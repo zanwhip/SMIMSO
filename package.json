@@ -1,0 +1,31 @@
+{
+  "name": "smimso",
+  "version": "1.0.0",
+  "description": "Smart Image & Idea Social Network",
+  "scripts": {
+    "install:all": "npm install && cd BACKEND && npm install && cd ../FRONTEND && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd BACKEND && npm run dev",
+    "dev:frontend": "cd FRONTEND && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd BACKEND && npm run build",
+    "build:frontend": "cd FRONTEND && npm run build",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd BACKEND && npm start",
+    "start:frontend": "cd FRONTEND && npm start"
+  },
+  "keywords": [
+    "social-network",
+    "image-sharing",
+    "ai",
+    "clip",
+    "nextjs",
+    "nodejs"
+  ],
+  "author": "SMIMSO Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
