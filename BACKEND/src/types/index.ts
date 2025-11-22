@@ -87,6 +87,7 @@ export interface Post {
   category_id?: string;
   tags?: string[];
   visibility: 'public' | 'friends' | 'private';
+  caption?: string; // AI-generated caption from first image
   view_count: number;
   like_count: number;
   comment_count: number;
@@ -112,7 +113,7 @@ export interface CreatePostDTO {
   title: string;
   description?: string;
   category_id?: string;
-  tags?: string[];
+  tags?: string[] | string; // Can be array or JSON string from FormData
   visibility?: 'public' | 'friends' | 'private';
 }
 

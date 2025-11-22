@@ -1,43 +1,87 @@
 import { supabase } from '../config/supabase';
 import { Comment } from '../types';
+import { notificationService } from './notification.service';
 
 export class InteractionService {
   // Like post
   async likePost(userId: string, postId: string): Promise<void> {
+    console.log('❤️ Like post:', { userId, postId });
+
     // Check if already liked
-    const { data: existingLike } = await supabase
+    const { data: existingLike, error: checkError } = await supabase
       .from('likes')
       .select('id')
       .eq('user_id', userId)
       .eq('post_id', postId)
-      .single();
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('❌ Error checking existing like:', checkError);
+      throw new Error('Failed to check like status');
+    }
 
     if (existingLike) {
+      console.log('⚠️ Post already liked');
       throw new Error('Post already liked');
     }
 
     // Add like
-    const { error } = await supabase.from('likes').insert({
+    const { error: insertError } = await supabase.from('likes').insert({
       user_id: userId,
       post_id: postId,
     });
 
-    if (error) {
-      throw new Error('Failed to like post');
+    if (insertError) {
+      console.error('❌ Error inserting like:', insertError);
+      throw new Error('Failed to like post: ' + insertError.message);
     }
 
-    // Update like count
-    const { data: post } = await supabase
+    console.log('✅ Like inserted successfully');
+
+    // Update like count and get post details
+    const { data: post, error: postError } = await supabase
       .from('posts')
-      .select('like_count')
+      .select('like_count, user_id, title')
       .eq('id', postId)
       .single();
 
+    if (postError) {
+      console.error('❌ Error fetching post:', postError);
+    }
+
     if (post) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('posts')
-        .update({ like_count: post.like_count + 1 })
+        .update({ like_count: (post.like_count || 0) + 1 })
         .eq('id', postId);
+
+      if (updateError) {
+        console.error('❌ Error updating like count:', updateError);
+      } else {
+        console.log('✅ Like count updated:', (post.like_count || 0) + 1);
+      }
+
+      // Send notification to post owner (if not liking own post)
+      if (post.user_id !== userId) {
+        try {
+          const { data: liker } = await supabase
+            .from('users')
+            .select('first_name, last_name')
+            .eq('id', userId)
+            .single();
+
+          await notificationService.createNotification({
+            user_id: post.user_id,
+            type: 'like',
+            content: `${liker?.first_name} ${liker?.last_name} liked your post "${post.title}"`,
+            related_user_id: userId,
+            post_id: postId,
+          });
+          console.log('✅ Like notification sent');
+        } catch (error) {
+          console.error('❌ Failed to send like notification:', error);
+        }
+      }
     }
 
     // Track activity
@@ -50,28 +94,43 @@ export class InteractionService {
 
   // Unlike post
   async unlikePost(userId: string, postId: string): Promise<void> {
-    const { error } = await supabase
+    console.log('💔 Unlike post:', { userId, postId });
+
+    const { error: deleteError } = await supabase
       .from('likes')
       .delete()
       .eq('user_id', userId)
       .eq('post_id', postId);
 
-    if (error) {
-      throw new Error('Failed to unlike post');
+    if (deleteError) {
+      console.error('❌ Error deleting like:', deleteError);
+      throw new Error('Failed to unlike post: ' + deleteError.message);
     }
 
+    console.log('✅ Like deleted successfully');
+
     // Update like count
-    const { data: post } = await supabase
+    const { data: post, error: postError } = await supabase
       .from('posts')
       .select('like_count')
       .eq('id', postId)
       .single();
 
-    if (post && post.like_count > 0) {
-      await supabase
+    if (postError) {
+      console.error('❌ Error fetching post:', postError);
+    }
+
+    if (post && (post.like_count || 0) > 0) {
+      const { error: updateError } = await supabase
         .from('posts')
-        .update({ like_count: post.like_count - 1 })
+        .update({ like_count: (post.like_count || 0) - 1 })
         .eq('id', postId);
+
+      if (updateError) {
+        console.error('❌ Error updating like count:', updateError);
+      } else {
+        console.log('✅ Like count updated:', (post.like_count || 0) - 1);
+      }
     }
   }
 
@@ -97,10 +156,10 @@ export class InteractionService {
       throw new Error('Failed to add comment');
     }
 
-    // Update comment count
+    // Update comment count and get post details
     const { data: post } = await supabase
       .from('posts')
-      .select('comment_count')
+      .select('comment_count, user_id, title')
       .eq('id', postId)
       .single();
 
@@ -109,6 +168,28 @@ export class InteractionService {
         .from('posts')
         .update({ comment_count: post.comment_count + 1 })
         .eq('id', postId);
+
+      // Send notification to post owner (if not commenting on own post)
+      if (post.user_id !== userId) {
+        try {
+          const { data: commenter } = await supabase
+            .from('users')
+            .select('first_name, last_name')
+            .eq('id', userId)
+            .single();
+
+          await notificationService.createNotification({
+            user_id: post.user_id,
+            type: 'comment',
+            content: `${commenter?.first_name} ${commenter?.last_name} commented on your post "${post.title}"`,
+            related_user_id: userId,
+            post_id: postId,
+          });
+          console.log('✅ Comment notification sent');
+        } catch (error) {
+          console.error('❌ Failed to send comment notification:', error);
+        }
+      }
     }
 
     // Track activity

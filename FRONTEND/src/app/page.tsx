@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Navbar from '@/components/Navbar';
 import PostCard from '@/components/PostCard';
-import SimilarUsers from '@/components/SimilarUsers';
+import Sidebar from '@/components/Sidebar';
 import api from '@/lib/api';
 import { Post, Category } from '@/types';
 import { useInView } from 'react-intersection-observer';
@@ -13,6 +13,7 @@ import { useInView } from 'react-intersection-observer';
 export default function HomePage() {
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -33,7 +34,7 @@ export default function HomePage() {
       fetchCategories();
       fetchPosts(1, true);
     }
-  }, [isAuthenticated, activeTab, selectedCategory]);
+  }, [isAuthenticated, activeTab, selectedCategory, searchParams]);
 
   useEffect(() => {
     if (inView && hasMore && !isLoading) {
@@ -195,7 +196,7 @@ export default function HomePage() {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-20">
-              <SimilarUsers />
+              <Sidebar />
             </div>
           </div>
         </div>

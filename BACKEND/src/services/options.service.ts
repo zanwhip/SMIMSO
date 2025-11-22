@@ -39,19 +39,14 @@ export class OptionsService {
   async getCategories() {
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, description, icon')
+      .select('id, name, slug, description, icon_url')
       .order('name');
 
     if (error) {
       throw new Error('Failed to fetch categories');
     }
 
-    return data.map((cat) => ({
-      value: cat.id,
-      label: cat.name,
-      description: cat.description,
-      icon: cat.icon,
-    }));
+    return data || [];
   }
 
   // Get purpose options (for survey)

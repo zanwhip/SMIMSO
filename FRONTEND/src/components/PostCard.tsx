@@ -47,7 +47,7 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
         isLiked: wasLiked,
         like_count: wasLiked ? prev.like_count + 1 : prev.like_count - 1,
       }));
-      toast.error('Có lỗi xảy ra');
+      toast.error('An error occurred');
     } finally {
       setIsLiking(false);
     }
@@ -60,13 +60,13 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
       <div className="masonry-item bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer image-hover-effect">
         {/* Image */}
         {imageUrl && (
-          <div className="relative w-full aspect-auto">
+          <div className="relative w-full aspect-auto max-h-[500px] overflow-hidden">
             <Image
               src={getImageUrl(imageUrl)}
               alt={post.title}
               width={400}
               height={300}
-              className="w-full h-auto object-cover"
+              className="w-full h-auto object-cover max-h-[500px]"
               unoptimized
             />
           </div>
@@ -79,6 +79,13 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
             {post.title}
           </h3>
 
+          {/* Caption (AI-generated) */}
+          {post.caption && (
+            <p className="text-xs text-purple-600 italic mb-2 line-clamp-1">
+              🤖 {post.caption}
+            </p>
+          )}
+
           {/* Description */}
           {post.description && (
             <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -88,7 +95,11 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
 
           {/* User Info */}
           {post.user && (
-            <div className="flex items-center space-x-2 mb-3">
+            <Link
+              href={`/profile/${post.user.id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center space-x-2 mb-3 hover:opacity-80 transition"
+            >
               {post.user.avatar_url ? (
                 <Image
                   src={getImageUrl(post.user.avatar_url)}
@@ -96,14 +107,17 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
                   width={24}
                   height={24}
                   className="rounded-full"
+                  unoptimized
                 />
               ) : (
-                <div className="w-6 h-6 bg-gray-300 rounded-full" />
+                <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                  {post.user.first_name[0]}{post.user.last_name[0]}
+                </div>
               )}
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 font-medium">
                 {post.user.first_name} {post.user.last_name}
               </span>
-            </div>
+            </Link>
           )}
 
           {/* Stats */}
@@ -111,10 +125,12 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleLike}
-                className="flex items-center space-x-1 hover:text-red-500 transition"
+                className={`flex items-center space-x-1 transition ${
+                  post.isLiked ? 'text-purple-600' : 'text-gray-600 hover:text-purple-500'
+                }`}
               >
                 {post.isLiked ? (
-                  <FaHeart className="text-red-500" />
+                  <FaHeart className="text-purple-600" />
                 ) : (
                   <FiHeart />
                 )}

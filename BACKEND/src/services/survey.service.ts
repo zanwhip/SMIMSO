@@ -87,18 +87,18 @@ export class SurveyService {
     return {
       categories: categories || [],
       usagePurposes: [
-        { value: 'share_ideas', label: 'Chia sẻ ý tưởng' },
-        { value: 'find_inspiration', label: 'Tìm kiếm cảm hứng' },
-        { value: 'connect_community', label: 'Kết nối cộng đồng' },
-        { value: 'store_images', label: 'Lưu trữ ảnh' },
-        { value: 'other', label: 'Khác' },
+        { value: 'share_ideas', label: 'Share ideas' },
+        { value: 'find_inspiration', label: 'Find inspiration' },
+        { value: 'connect_community', label: 'Connect with community' },
+        { value: 'store_images', label: 'Store images' },
+        { value: 'other', label: 'Other' },
       ],
       awarenessSources: [
-        { value: 'friends', label: 'Bạn bè' },
-        { value: 'social_media', label: 'Mạng xã hội' },
-        { value: 'advertisement', label: 'Quảng cáo' },
-        { value: 'search', label: 'Tình cờ tìm thấy' },
-        { value: 'other', label: 'Khác' },
+        { value: 'friends', label: 'Friends' },
+        { value: 'social_media', label: 'Social media' },
+        { value: 'advertisement', label: 'Advertisement' },
+        { value: 'search', label: 'Search engine' },
+        { value: 'other', label: 'Other' },
       ],
     };
   }

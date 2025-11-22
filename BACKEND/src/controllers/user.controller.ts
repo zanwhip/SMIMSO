@@ -143,5 +143,33 @@ export class UserController {
       return errorResponse(res, error.message, 400);
     }
   }
+
+  // Get top creators
+  async getTopCreators(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const creators = await userService.getTopCreators(limit);
+
+      return successResponse(res, creators);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  // Get related users
+  async getRelatedUsers(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
+      const limit = parseInt(req.query.limit as string) || 10;
+      const relatedUsers = await userService.getRelatedUsers(req.user.id, limit);
+
+      return successResponse(res, relatedUsers);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
 }
 

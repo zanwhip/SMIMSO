@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,12 +16,16 @@ const queryClient = new QueryClient({
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser);
 
   useEffect(() => {
     setMounted(true);
+    // Initialize auth from persisted storage
+    initializeAuth();
+    // Fetch current user to verify token is still valid
     fetchCurrentUser();
-  }, [fetchCurrentUser]);
+  }, [initializeAuth, fetchCurrentUser]);
 
   if (!mounted) {
     return null;
@@ -28,7 +33,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <NotificationProvider>
+        {children}
+      </NotificationProvider>
     </QueryClientProvider>
   );
 }

@@ -13,6 +13,7 @@ router.get('/user/:userId', optionalAuth, (req, res) => postController.getUserPo
 
 // Protected routes
 router.post('/', authMiddleware, uploadMultiple, (req, res) => postController.createPost(req, res));
+router.post('/generate-metadata', authMiddleware, uploadMultiple, (req, res) => postController.generateMetadata(req, res));
 router.post('/:postId/like', authMiddleware, (req, res) => postController.likePost(req, res));
 router.delete('/:postId/like', authMiddleware, (req, res) => postController.unlikePost(req, res));
 router.post('/:postId/comments', authMiddleware, (req, res) => postController.addComment(req, res));

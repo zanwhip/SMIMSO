@@ -67,6 +67,7 @@ export interface Post {
   category_id?: string;
   tags?: string[];
   visibility: 'public' | 'friends' | 'private';
+  caption?: string; // AI-generated caption from first image
   view_count: number;
   like_count: number;
   comment_count: number;

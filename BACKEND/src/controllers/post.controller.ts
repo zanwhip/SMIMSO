@@ -1,13 +1,53 @@
 import { Response } from 'express';
 import { PostService } from '../services/post.service';
 import { InteractionService } from '../services/interaction.service';
+import { AIService } from '../services/ai.service';
 import { successResponse, errorResponse, paginatedResponse } from '../utils/response';
 import { AuthRequest, CreatePostDTO } from '../types';
+import supabase from '../config/supabase';
 
 const postService = new PostService();
 const interactionService = new InteractionService();
+const aiService = new AIService();
 
 export class PostController {
+  // Generate metadata from image (for preview before creating post)
+  async generateMetadata(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
+      const images = req.files as Express.Multer.File[];
+
+      if (!images || images.length === 0) {
+        return errorResponse(res, 'At least one image is required', 400);
+      }
+
+      const firstImage = images[0];
+      console.log('🤖 Generating metadata for image:', firstImage.filename);
+
+      // Get categories for CLIP classification
+      const { data: categories } = await supabase
+        .from('categories')
+        .select('id, name, description');
+
+      // Generate metadata using AI
+      const metadata = await aiService.generateMetadataFromImage(
+        firstImage.path,
+        categories || [],
+        firstImage.filename
+      );
+
+      console.log('✅ Generated metadata:', metadata);
+
+      return successResponse(res, metadata, 'Metadata generated successfully');
+    } catch (error: any) {
+      console.error('❌ Generate metadata error:', error);
+      return errorResponse(res, error.message, 500);
+    }
+  }
+
   // Create post
   async createPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
@@ -18,6 +58,12 @@ export class PostController {
       const data: CreatePostDTO = req.body;
       const images = req.files as Express.Multer.File[];
 
+      console.log('📝 Create post request:', {
+        user: req.user.id,
+        data,
+        filesCount: images?.length || 0,
+      });
+
       if (!images || images.length === 0) {
         return errorResponse(res, 'At least one image is required', 400);
       }
@@ -26,6 +72,7 @@ export class PostController {
 
       return successResponse(res, post, 'Post created successfully', 201);
     } catch (error: any) {
+      console.error('❌ Create post error:', error);
       return errorResponse(res, error.message, 400);
     }
   }
@@ -51,11 +98,12 @@ export class PostController {
       const limit = parseInt(req.query.limit as string) || 20;
       const categoryId = req.query.categoryId as string;
       const search = req.query.search as string;
+      const currentUserId = req.user?.id; // Get current user ID from auth
 
       const { posts, total } = await postService.getPosts(page, limit, {
         categoryId,
         search,
-      });
+      }, currentUserId);
 
       return paginatedResponse(res, posts, page, limit, total);
     } catch (error: any) {
@@ -69,10 +117,11 @@ export class PostController {
       const { userId } = req.params;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
+      const currentUserId = req.user?.id; // Get current user ID from auth
 
       const { posts, total } = await postService.getPosts(page, limit, {
         userId,
-      });
+      }, currentUserId);
 
       return paginatedResponse(res, posts, page, limit, total);
     } catch (error: any) {
@@ -88,10 +137,13 @@ export class PostController {
       }
 
       const { postId } = req.params;
+      console.log('❤️ Like post request:', { userId: req.user.id, postId });
+
       await interactionService.likePost(req.user.id, postId);
 
       return successResponse(res, null, 'Post liked successfully');
     } catch (error: any) {
+      console.error('❌ Like post error:', error);
       return errorResponse(res, error.message, 400);
     }
   }
@@ -104,10 +156,13 @@ export class PostController {
       }
 
       const { postId } = req.params;
+      console.log('💔 Unlike post request:', { userId: req.user.id, postId });
+
       await interactionService.unlikePost(req.user.id, postId);
 
       return successResponse(res, null, 'Post unliked successfully');
     } catch (error: any) {
+      console.error('❌ Unlike post error:', error);
       return errorResponse(res, error.message, 400);
     }
   }

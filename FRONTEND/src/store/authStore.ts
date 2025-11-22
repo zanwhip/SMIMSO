@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { User } from '@/types';
 import api, { setAuthToken, removeAuthToken } from '@/lib/api';
 
@@ -13,118 +14,144 @@ interface AuthState {
   logout: () => void;
   fetchCurrentUser: () => Promise<void>;
   updateUser: (user: User) => void;
+  initializeAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  token: null,
-  isAuthenticated: false,
-  isLoading: true,
-
-  login: async (emailOrPhone: string, password: string) => {
-    try {
-      const response = await api.post('/auth/login', {
-        emailOrPhone,
-        password,
-      });
-
-      const { user, token } = response.data.data;
-      
-      setAuthToken(token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-      });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Login failed');
-    }
-  },
-
-  register: async (data: any) => {
-    try {
-      const response = await api.post('/auth/register', data);
-
-      const { user, token } = response.data.data;
-      
-      setAuthToken(token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-      });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Registration failed');
-    }
-  },
-
-  googleLogin: async (token: string) => {
-    try {
-      const response = await api.post('/auth/google-login', { token });
-
-      const { user, token: jwtToken, isNewUser } = response.data.data;
-      
-      setAuthToken(jwtToken);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      set({
-        user,
-        token: jwtToken,
-        isAuthenticated: true,
-      });
-
-      return { isNewUser };
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Google login failed');
-    }
-  },
-
-  logout: () => {
-    removeAuthToken();
-    set({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
-    });
-  },
+      isLoading: true,
 
-  fetchCurrentUser: async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        set({ isLoading: false });
-        return;
-      }
+      login: async (emailOrPhone: string, password: string) => {
+        try {
+          const response = await api.post('/auth/login', {
+            emailOrPhone,
+            password,
+          });
 
-      const response = await api.get('/auth/me');
-      const user = response.data.data;
+          const { user, token } = response.data.data;
 
-      localStorage.setItem('user', JSON.stringify(user));
+          setAuthToken(token);
 
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      removeAuthToken();
-      set({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error: any) {
+          throw new Error(error.response?.data?.error || 'Login failed');
+        }
+      },
+
+      register: async (data: any) => {
+        try {
+          const response = await api.post('/auth/register', data);
+
+          const { user, token } = response.data.data;
+
+          setAuthToken(token);
+
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error: any) {
+          throw new Error(error.response?.data?.error || 'Registration failed');
+        }
+      },
+
+      googleLogin: async (token: string) => {
+        try {
+          const response = await api.post('/auth/google-login', { token });
+
+          const { user, token: jwtToken, isNewUser } = response.data.data;
+
+          setAuthToken(jwtToken);
+
+          set({
+            user,
+            token: jwtToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+
+          return { isNewUser };
+        } catch (error: any) {
+          throw new Error(error.response?.data?.error || 'Google login failed');
+        }
+      },
+
+      logout: () => {
+        removeAuthToken();
+        localStorage.removeItem('auth-storage');
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      },
+
+      fetchCurrentUser: async () => {
+        try {
+          const state = get();
+          const token = state.token || localStorage.getItem('token');
+
+          if (!token) {
+            set({ isLoading: false });
+            return;
+          }
+
+          setAuthToken(token);
+          const response = await api.get('/auth/me');
+          const user = response.data.data;
+
+          set({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          removeAuthToken();
+          localStorage.removeItem('auth-storage');
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      },
+
+      updateUser: (user: User) => {
+        set({ user });
+      },
+
+      initializeAuth: () => {
+        const state = get();
+        if (state.token) {
+          setAuthToken(state.token);
+          set({ isLoading: false });
+        } else {
+          set({ isLoading: false });
+        }
+      },
+    }),
+    {
+      name: 'auth-storage',
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
-  },
-
-  updateUser: (user: User) => {
-    localStorage.setItem('user', JSON.stringify(user));
-    set({ user });
-  },
-}));
+  )
+);
 

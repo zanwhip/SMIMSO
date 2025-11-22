@@ -18,6 +18,7 @@ export default function CreatePostPage() {
   const [previews, setPreviews] = useState<string[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -36,10 +37,45 @@ export default function CreatePostPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await api.get('/survey/options');
-      setCategories(response.data.data.categories);
+      const response = await api.get('/options/categories');
+      setCategories(response.data.data);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
+    }
+  };
+
+  const generateMetadataFromImage = async (file: File) => {
+    try {
+      setIsGeneratingMetadata(true);
+      const loadingToast = toast.loading('🤖 AI is analyzing your image...');
+
+      const formData = new FormData();
+      formData.append('images', file);
+
+      const response = await api.post('/posts/generate-metadata', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const metadata = response.data.data;
+      console.log('✅ Received metadata:', metadata);
+
+      // Auto-fill form fields
+      setFormData((prev) => ({
+        ...prev,
+        title: metadata.caption || prev.title,
+        description: metadata.description || prev.description,
+        category_id: metadata.category_id || prev.category_id,
+        tags: metadata.tags?.join(', ') || prev.tags,
+      }));
+
+      toast.success('✨ AI generated metadata!', { id: loadingToast });
+    } catch (error: any) {
+      console.error('Failed to generate metadata:', error);
+      toast.error('AI generation failed, you can fill manually');
+    } finally {
+      setIsGeneratingMetadata(false);
     }
   };
 
@@ -48,9 +84,9 @@ export default function CreatePostPage() {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
     },
     maxFiles: 10,
-    onDrop: (acceptedFiles) => {
+    onDrop: async (acceptedFiles) => {
       setImages((prev) => [...prev, ...acceptedFiles]);
-      
+
       // Create previews
       acceptedFiles.forEach((file) => {
         const reader = new FileReader();
@@ -59,6 +95,11 @@ export default function CreatePostPage() {
         };
         reader.readAsDataURL(file);
       });
+
+      // Generate metadata from first image
+      if (acceptedFiles.length > 0 && images.length === 0) {
+        await generateMetadataFromImage(acceptedFiles[0]);
+      }
     },
   });
 
@@ -71,22 +112,32 @@ export default function CreatePostPage() {
     e.preventDefault();
 
     if (images.length === 0) {
-      toast.error('Vui lòng chọn ít nhất một ảnh');
+      toast.error('Please select at least one image');
       return;
     }
 
-    if (!formData.title.trim()) {
-      toast.error('Vui lòng nhập tiêu đề');
-      return;
-    }
+    // Title is optional now - AI will generate if not provided
+    // if (!formData.title.trim()) {
+    //   toast.error('Please enter a title');
+    //   return;
+    // }
 
     setIsLoading(true);
+    const loadingToast = toast.loading('🤖 AI is analyzing your image and generating metadata...');
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('category_id', formData.category_id);
+
+      // Only append if user provided values (AI will fill the rest)
+      if (formData.title.trim()) {
+        formDataToSend.append('title', formData.title);
+      }
+      if (formData.description.trim()) {
+        formDataToSend.append('description', formData.description);
+      }
+      if (formData.category_id) {
+        formDataToSend.append('category_id', formData.category_id);
+      }
       formDataToSend.append('visibility', formData.visibility);
 
       // Parse tags
@@ -94,23 +145,30 @@ export default function CreatePostPage() {
         .split(',')
         .map((tag) => tag.trim())
         .filter((tag) => tag);
-      formDataToSend.append('tags', JSON.stringify(tagsArray));
+      if (tagsArray.length > 0) {
+        formDataToSend.append('tags', JSON.stringify(tagsArray));
+      }
 
       // Append images
       images.forEach((image) => {
         formDataToSend.append('images', image);
       });
 
+      console.log('📤 Uploading post with images...');
       await api.post('/posts', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      toast.success('Tạo bài đăng thành công!');
-      router.push('/');
+      toast.dismiss(loadingToast);
+      toast.success('✅ Post created successfully with AI-generated metadata!');
+      // Redirect to home and force refresh
+      router.push('/?refresh=' + Date.now());
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Tạo bài đăng thất bại');
+      toast.dismiss(loadingToast);
+      console.error('❌ Post creation error:', error);
+      toast.error(error.response?.data?.error || 'Failed to create post');
     } finally {
       setIsLoading(false);
     }
@@ -126,13 +184,13 @@ export default function CreatePostPage() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Tạo bài đăng mới</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Post</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hình ảnh <span className="text-red-500">*</span>
+                Images <span className="text-red-500">*</span>
               </label>
 
               {previews.length > 0 && (
@@ -170,55 +228,82 @@ export default function CreatePostPage() {
                 <FiUpload className="mx-auto text-gray-400 mb-2" size={32} />
                 <p className="text-sm text-gray-600">
                   {isDragActive
-                    ? 'Thả ảnh vào đây...'
-                    : 'Kéo thả ảnh hoặc click để chọn'}
+                    ? 'Drop images here...'
+                    : 'Drag & drop images or click to select'}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Hỗ trợ: JPG, PNG, WebP (Tối đa 10 ảnh)
+                  Supported: JPG, PNG, WebP (Max 10 images)
                 </p>
               </div>
             </div>
 
+            {/* AI Info Banner */}
+            {images.length > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <h3 className="font-semibold text-purple-900 mb-1">
+                      {isGeneratingMetadata ? 'AI is analyzing your image...' : 'AI Generated Metadata'}
+                    </h3>
+                    <p className="text-sm text-purple-700">
+                      {isGeneratingMetadata
+                        ? 'Please wait while AI generates title, description, category, and tags...'
+                        : 'AI has auto-filled the fields below. You can edit them as needed.'
+                      }
+                    </p>
+                    {!isGeneratingMetadata && (
+                      <ul className="text-sm text-purple-600 mt-2 space-y-1">
+                        <li>• <strong>Title</strong> - From image caption</li>
+                        <li>• <strong>Description</strong> - Detailed image description</li>
+                        <li>• <strong>Category</strong> - Using CLIP classification</li>
+                        <li>• <strong>Tags</strong> - Extracted keywords</li>
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Title */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tiêu đề <span className="text-red-500">*</span>
+                Title <span className="text-purple-500 text-xs">(Optional - AI will generate)</span>
               </label>
               <input
                 type="text"
-                required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Nhập tiêu đề bài đăng"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Leave empty for AI to generate from image"
               />
             </div>
 
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mô tả
+                Description <span className="text-purple-500 text-xs">(Optional - AI will generate)</span>
               </label>
               <textarea
                 rows={4}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Mô tả về bài đăng của bạn..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Leave empty for AI to generate from image"
               />
             </div>
 
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Thể loại
+                Category <span className="text-purple-500 text-xs">(Optional - AI will classify)</span>
               </label>
               <select
                 value={formData.category_id}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="">Chọn thể loại</option>
+                <option value="">Let AI choose category</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -230,21 +315,21 @@ export default function CreatePostPage() {
             {/* Tags */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags
+                Tags <span className="text-purple-500 text-xs">(Optional - AI will extract)</span>
               </label>
               <input
                 type="text"
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Nhập tags, cách nhau bởi dấu phẩy (vd: sunset, beach, nature)"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Leave empty for AI to extract keywords from image"
               />
             </div>
 
             {/* Visibility */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quyền riêng tư
+                Privacy
               </label>
               <select
                 value={formData.visibility}
@@ -253,9 +338,9 @@ export default function CreatePostPage() {
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="public">Công khai</option>
-                <option value="friends">Bạn bè</option>
-                <option value="private">Riêng tư</option>
+                <option value="public">Public</option>
+                <option value="friends">Friends</option>
+                <option value="private">Private</option>
               </select>
             </div>
 
@@ -266,14 +351,14 @@ export default function CreatePostPage() {
                 onClick={() => router.back()}
                 className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
               >
-                Hủy
+                Cancel
               </button>
               <button
                 type="submit"
                 disabled={isLoading}
                 className="px-6 py-2 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg hover:from-primary-700 hover:to-secondary-700 disabled:opacity-50 transition"
               >
-                {isLoading ? 'Đang đăng...' : 'Đăng bài'}
+                {isLoading ? 'Publishing...' : 'Publish'}
               </button>
             </div>
           </form>

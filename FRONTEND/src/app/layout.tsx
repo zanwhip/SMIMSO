@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'SMIMSO - Smart Image & Idea Social Network',
-  description: 'Mạng xã hội chia sẻ hình ảnh và ý tưởng thông minh',
+  description: 'Smart social network for sharing images and ideas',
   keywords: ['social network', 'image sharing', 'ideas', 'AI', 'CLIP'],
 };
 
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
+    <html lang="en">
       <body className={inter.variable}>
         <Providers>
           {children}

@@ -124,15 +124,16 @@ export default function PostDetailPage() {
               {post.images && post.images.length > 0 && (
                 <div className="space-y-2">
                   {post.images.map((image, index) => (
-                    <Image
-                      key={image.id}
-                      src={getImageUrl(image.image_url)}
-                      alt={`${post.title} - ${index + 1}`}
-                      width={800}
-                      height={600}
-                      className="w-full h-auto"
-                      unoptimized
-                    />
+                    <div key={image.id} className="relative w-full max-h-[700px] overflow-hidden">
+                      <Image
+                        src={getImageUrl(image.image_url)}
+                        alt={`${post.title} - ${index + 1}`}
+                        width={800}
+                        height={600}
+                        className="w-full h-auto object-contain max-h-[700px]"
+                        unoptimized
+                      />
+                    </div>
                   ))}
                 </div>
               )}
@@ -229,6 +230,16 @@ export default function PostDetailPage() {
               <h1 className="text-2xl font-bold text-gray-900 mb-3">
                 {post.title}
               </h1>
+
+              {/* AI Caption */}
+              {post.caption && (
+                <div className="mb-4 p-3 bg-purple-50 border-l-4 border-purple-500 rounded">
+                  <p className="text-sm text-purple-700">
+                    <span className="font-semibold">🤖 AI Caption:</span> {post.caption}
+                  </p>
+                </div>
+              )}
+
               {post.description && (
                 <p className="text-gray-700 mb-4">{post.description}</p>
               )}

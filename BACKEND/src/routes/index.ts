@@ -5,6 +5,7 @@ import postRoutes from './post.routes';
 import userRoutes from './user.routes';
 import optionsRoutes from './options.routes';
 import recommendationRoutes from './recommendation.routes';
+import notificationRoutes from './notification.routes';
 
 const router = Router();
 
@@ -15,6 +16,7 @@ router.use('/posts', postRoutes);
 router.use('/users', userRoutes);
 router.use('/options', optionsRoutes);
 router.use('/recommendations', recommendationRoutes);
+router.use('/notifications', notificationRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

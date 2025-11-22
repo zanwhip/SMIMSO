@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['localhost', 'lh3.googleusercontent.com'],
+    domains: ['localhost', 'lh3.googleusercontent.com', 'images.unsplash.com', 'plus.unsplash.com'],
     remotePatterns: [
       {
         protocol: 'http',
@@ -13,6 +13,16 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.supabase.co',
         pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'plus.unsplash.com',
+        pathname: '/**',
       },
     ],
   },
