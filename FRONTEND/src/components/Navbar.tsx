@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/store/authStore';
+import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { FiHome, FiPlusCircle, FiUser, FiLogOut, FiSearch, FiBell } from 'react-icons/fi';
+import { FiHome, FiPlusCircle, FiUser, FiLogOut, FiSearch, FiBell, FiMessageCircle } from 'react-icons/fi';
 import { getImageUrl } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import NotificationDropdown from './NotificationDropdown';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useChat } from '@/contexts/ChatContext';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -16,14 +18,18 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const { unreadCount } = useNotifications();
+  const { unreadCount: notificationUnreadCount } = useNotifications();
+  const { unreadCount: chatUnreadCount } = useChat();
 
   // Debug: Log when unreadCount changes
   useEffect(() => {
-    console.log('🔔 Navbar: unreadCount changed to:', unreadCount);
-  }, [unreadCount]);
+    console.log('🔔 Navbar: notificationUnreadCount changed to:', notificationUnreadCount);
+  }, [notificationUnreadCount]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Sign out from NextAuth
+    await signOut({ redirect: false });
+    // Also clear Zustand store
     logout();
     router.push('/login');
     setShowLogoutModal(false);
@@ -84,6 +90,22 @@ export default function Navbar() {
                   <span className="hidden sm:inline">Tạo bài</span>
                 </Link>
 
+                {/* Chat */}
+                <Link
+                  href="/chat"
+                  className="relative flex items-center space-x-1 text-gray-700 hover:text-primary-600 transition"
+                >
+                  <div className="relative">
+                    <FiMessageCircle size={20} />
+                    {chatUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                        {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="hidden sm:inline">Tin nhắn</span>
+                </Link>
+
                 {/* Notification Bell */}
                 <div className="relative">
                   <button
@@ -92,9 +114,9 @@ export default function Navbar() {
                   >
                     <div className="relative">
                       <FiBell size={20} />
-                      {unreadCount > 0 && (
+                      {notificationUnreadCount > 0 && (
                         <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                          {unreadCount > 9 ? '9+' : unreadCount}
+                          {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
                         </span>
                       )}
                     </div>

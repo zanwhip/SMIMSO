@@ -18,6 +18,25 @@ export class UserController {
     }
   }
 
+  // Search users
+  async searchUsers(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return errorResponse(res, 'Search query is required', 400);
+      }
+
+      const users = await userService.searchUsers(q);
+      return successResponse(res, users);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 500);
+    }
+  }
+
   // Get current user profile
   async getCurrentUserProfile(req: AuthRequest, res: Response): Promise<Response> {
     try {

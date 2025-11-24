@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import Navbar from '@/components/Navbar';
 import PostCard from '@/components/PostCard';
@@ -9,7 +10,7 @@ import Image from 'next/image';
 import api from '@/lib/api';
 import { UserProfile, Post } from '@/types';
 import { getImageUrl, formatNumber } from '@/lib/utils';
-import { FiHeart, FiMessageCircle, FiImage } from 'react-icons/fi';
+import { FiHeart, FiMessageCircle, FiImage, FiPhone, FiVideo } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function UserProfilePage() {
@@ -125,25 +126,52 @@ export default function UserProfilePage() {
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex items-center space-x-6 pt-4 border-t border-gray-200">
-              <div className="flex items-center space-x-2">
-                <FiImage className="text-gray-500" />
-                <span className="text-sm text-gray-600">
-                  <strong className="text-gray-900">{formatNumber(profile.statistics?.postCount || 0)}</strong> Posts
-                </span>
+            {/* Stats and Actions */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-gray-200">
+              <div className="flex items-center space-x-6 mb-4 sm:mb-0">
+                <div className="flex items-center space-x-2">
+                  <FiImage className="text-gray-500" />
+                  <span className="text-sm text-gray-600">
+                    <strong className="text-gray-900">{formatNumber(profile.statistics?.postCount || 0)}</strong> Posts
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FiHeart className="text-gray-500" />
+                  <span className="text-sm text-gray-600">
+                    <strong className="text-gray-900">{formatNumber(profile.statistics?.totalLikes || 0)}</strong> Likes
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <FiMessageCircle className="text-gray-500" />
+                  <span className="text-sm text-gray-600">
+                    <strong className="text-gray-900">{formatNumber(profile.statistics?.totalComments || 0)}</strong> Comments
+                  </span>
+                </div>
               </div>
+              
+              {/* Chat Button */}
               <div className="flex items-center space-x-2">
-                <FiHeart className="text-gray-500" />
-                <span className="text-sm text-gray-600">
-                  <strong className="text-gray-900">{formatNumber(profile.statistics?.totalLikes || 0)}</strong> Likes
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <FiMessageCircle className="text-gray-500" />
-                <span className="text-sm text-gray-600">
-                  <strong className="text-gray-900">{formatNumber(profile.statistics?.totalComments || 0)}</strong> Comments
-                </span>
+                <Link
+                  href={`/chat?userId=${profile.id}`}
+                  className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                >
+                  <FiMessageCircle size={18} />
+                  <span>Nhắn tin</span>
+                </Link>
+                <button
+                  onClick={() => router.push(`/chat?userId=${profile.id}&callType=audio`)}
+                  className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                  title="Gọi điện"
+                >
+                  <FiPhone size={18} />
+                </button>
+                <button
+                  onClick={() => router.push(`/chat?userId=${profile.id}&callType=video`)}
+                  className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                  title="Gọi video"
+                >
+                  <FiVideo size={18} />
+                </button>
               </div>
             </div>
           </div>

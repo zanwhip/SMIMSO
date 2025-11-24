@@ -17,13 +17,28 @@
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
+  color: #000000;
   background: linear-gradient(
       to bottom,
       transparent,
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+}
+
+/* Ensure text is black by default for main content */
+body, 
+body h1, 
+body h2, 
+body h3, 
+body h4, 
+body h5, 
+body h6, 
+body p, 
+body span:not([class*="text-"]):not([style*="color"]),
+body div:not([class*="text-"]):not([style*="color"]),
+body a:not([class*="text-"]):not([style*="color"]) {
+  color: #000000;
 }
 
 @layer utilities {
@@ -51,16 +66,22 @@ body {
   background: #555;
 }
 
-/* Masonry grid for posts */
+/* Masonry grid for posts - fixed layout to prevent overlapping */
 .masonry-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  grid-auto-rows: 10px;
   gap: 16px;
+  align-items: start;
 }
 
-.masonry-item {
-  grid-row-end: span var(--row-span);
+.masonry-grid > * {
+  width: 100%;
+  break-inside: avoid;
+}
+
+.post-card-item {
+  width: 100%;
+  margin-bottom: 0;
 }
 
 /* Image hover effect */

@@ -27,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (emailOrPhone: string, password: string) => {
         try {
+          set({ isLoading: true });
           const response = await api.post('/auth/login', {
             emailOrPhone,
             password,
@@ -43,6 +44,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
         } catch (error: any) {
+          set({ isLoading: false });
           throw new Error(error.response?.data?.error || 'Login failed');
         }
       },
@@ -101,6 +103,11 @@ export const useAuthStore = create<AuthState>()(
       fetchCurrentUser: async () => {
         try {
           const state = get();
+          // Don't fetch if already loading (e.g., during login) or already authenticated with user
+          if (state.isLoading || (state.isAuthenticated && state.user)) {
+            return;
+          }
+
           const token = state.token || localStorage.getItem('token');
 
           if (!token) {
@@ -108,6 +115,7 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
+          set({ isLoading: true });
           setAuthToken(token);
           const response = await api.get('/auth/me');
           const user = response.data.data;

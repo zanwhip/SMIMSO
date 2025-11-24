@@ -17,11 +17,13 @@ export class AuthService {
     }
 
     // Check if user already exists
+    const emailQuery = `email.eq."${email}"`;
+    const phoneQuery = phone ? `,phone.eq."${phone}"` : '';
     const { data: existingUser } = await supabase
       .from('users')
       .select('*')
-      .or(`email.eq.${email}${phone ? `,phone.eq.${phone}` : ''}`)
-      .single();
+      .or(`${emailQuery}${phoneQuery}`)
+      .maybeSingle();
 
     if (existingUser) {
       throw new Error('User with this email or phone already exists');
@@ -60,11 +62,11 @@ export class AuthService {
   async login(data: LoginDTO): Promise<{ user: User; token: string }> {
     const { emailOrPhone, password, rememberMe } = data;
 
-    // Find user by email or phone
+    // Find user by email or phone - use proper Supabase syntax with quotes
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
-      .or(`email.eq.${emailOrPhone},phone.eq.${emailOrPhone}`)
+      .or(`email.eq."${emailOrPhone}",phone.eq."${emailOrPhone}"`)
       .single();
 
     if (error || !user) {

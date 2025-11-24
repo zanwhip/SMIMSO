@@ -5,6 +5,7 @@ import { AIService } from '../services/ai.service';
 import { successResponse, errorResponse, paginatedResponse } from '../utils/response';
 import { AuthRequest, CreatePostDTO } from '../types';
 import supabase from '../config/supabase';
+import { uploadChatFile } from '../middleware/upload.middleware';
 
 const postService = new PostService();
 const interactionService = new InteractionService();
@@ -231,6 +232,27 @@ export class PostController {
       return successResponse(res, null, 'Post unsaved successfully');
     } catch (error: any) {
       return errorResponse(res, error.message, 400);
+    }
+  }
+
+  // Upload file (for chat or posts)
+  async uploadFile(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
+      const file = req.file;
+      if (!file) {
+        return errorResponse(res, 'No file uploaded', 400);
+      }
+
+      const fileUrl = `/uploads/${file.filename}`;
+
+      return successResponse(res, { url: fileUrl, filename: file.filename }, 'File uploaded successfully');
+    } catch (error: any) {
+      console.error('❌ Upload file error:', error);
+      return errorResponse(res, error.message, 500);
     }
   }
 }

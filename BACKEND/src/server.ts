@@ -1,15 +1,20 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import routes from './routes';
+import { initializeSocket } from './socket/socket';
 
 // Load environment variables
 dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
+
+// Create HTTP server for Socket.IO
+const httpServer = createServer(app);
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -86,8 +91,12 @@ app.use((req: Request, res: Response) => {
   });
 });
 
+// Initialize Socket.IO
+initializeSocket(httpServer);
+console.log('✅ Socket.IO initialized');
+
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
@@ -95,6 +104,7 @@ app.listen(PORT, () => {
 ║   Smart Image & Idea Social Network                      ║
 ║                                                           ║
 ║   Server running on: http://localhost:${PORT}              ║
+║   Socket.IO: ws://localhost:${PORT}                        ║
 ║   Environment: ${process.env.NODE_ENV || 'development'}                              ║
 ║                                                           ║
 ║   API Endpoints:                                          ║
@@ -104,6 +114,7 @@ app.listen(PORT, () => {
 ║   - Users:   http://localhost:${PORT}/api/users            ║
 ║   - Options: http://localhost:${PORT}/api/options          ║
 ║   - Health:  http://localhost:${PORT}/api/health           ║
+║   - Chat:    http://localhost:${PORT}/api/chat             ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);

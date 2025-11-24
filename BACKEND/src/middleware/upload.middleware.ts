@@ -98,3 +98,34 @@ export const uploadCover = (req: Request, res: Response, next: NextFunction) => 
   upload.single('cover')(req, res, (err) => handleMulterError(err, req, res, next));
 };
 
+// File filter for chat (images and audio)
+const chatFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+    'audio/webm', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a'
+  ];
+
+  console.log('🔍 Checking chat file type:', file.mimetype);
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Invalid file type: ${file.mimetype}. Only images and audio files are allowed.`));
+  }
+};
+
+// Configure multer for chat uploads
+export const chatUpload = multer({
+  storage,
+  fileFilter: chatFileFilter,
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB default
+    files: 1,
+  },
+});
+
+// Middleware for chat file upload (image or audio)
+export const uploadChatFile = (req: Request, res: Response, next: NextFunction) => {
+  chatUpload.single('file')(req, res, (err) => handleMulterError(err, req, res, next));
+};
+

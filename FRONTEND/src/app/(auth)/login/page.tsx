@@ -26,10 +26,17 @@ export default function LoginPage() {
     try {
       await login(formData.emailOrPhone, formData.password);
       toast.success('Đăng nhập thành công!');
-      router.push('/');
+      // Small delay to ensure state is fully updated before redirect
+      setTimeout(() => {
+        router.push('/');
+        router.refresh();
+      }, 100);
     } catch (error: any) {
-      toast.error(error.message || 'Đăng nhập thất bại');
-    } finally {
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        toast.error('Kết nối quá lâu. Vui lòng thử lại.');
+      } else {
+        toast.error(error.message || 'Đăng nhập thất bại');
+      }
       setIsLoading(false);
     }
   };

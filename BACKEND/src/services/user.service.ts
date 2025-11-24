@@ -46,6 +46,18 @@ export class UserService {
     };
   }
 
+  // Search users
+  async searchUsers(query: string, limit: number = 20): Promise<User[]> {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('*')
+      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%`)
+      .limit(limit);
+
+    if (error) throw error;
+    return users || [];
+  }
+
   // Update user profile
   async updateUserProfile(userId: string, updates: Partial<User>): Promise<User> {
     const allowedFields = [

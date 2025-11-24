@@ -12,6 +12,9 @@ router.get('/top-creators', (req, res) => userController.getTopCreators(req, res
 // Protected routes
 router.use(authMiddleware);
 
+// Search users
+router.get('/search', (req, res) => userController.searchUsers(req, res));
+
 router.get('/profile', (req, res) => userController.getCurrentUserProfile(req, res));
 router.put('/profile', (req, res) => userController.updateUserProfile(req, res));
 router.post('/profile/avatar', uploadAvatar, (req, res) => userController.uploadAvatar(req, res));

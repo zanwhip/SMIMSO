@@ -167,22 +167,30 @@ export default function PostDetailPage() {
               <div className="space-y-4">
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex space-x-3">
-                    {comment.user?.avatar_url ? (
-                      <Image
-                        src={getImageUrl(comment.user.avatar_url)}
-                        alt={comment.user.first_name}
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-gray-300 rounded-full" />
-                    )}
+                    <Link
+                      href={`/profile/${comment.user?.id}`}
+                      className="flex-shrink-0 hover:opacity-80 transition"
+                    >
+                      {comment.user?.avatar_url ? (
+                        <Image
+                          src={getImageUrl(comment.user.avatar_url)}
+                          alt={comment.user.first_name}
+                          width={40}
+                          height={40}
+                          className="rounded-full"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-300 rounded-full" />
+                      )}
+                    </Link>
                     <div className="flex-1">
                       <div className="bg-gray-100 rounded-lg p-3">
-                        <p className="font-medium text-sm">
+                        <Link
+                          href={`/profile/${comment.user?.id}`}
+                          className="font-medium text-sm hover:text-primary-600 transition"
+                        >
                           {comment.user?.first_name} {comment.user?.last_name}
-                        </p>
+                        </Link>
                         <p className="text-gray-700 mt-1">{comment.content}</p>
                       </div>
                       <p className="text-xs text-gray-500 mt-1 ml-3">
@@ -201,8 +209,8 @@ export default function PostDetailPage() {
               {/* User Info */}
               {post.user && (
                 <Link
-                  href={`/user/${post.user.id}`}
-                  className="flex items-center space-x-3 mb-6"
+                  href={`/profile/${post.user.id}`}
+                  className="flex items-center space-x-3 mb-6 hover:opacity-80 transition"
                 >
                   {post.user.avatar_url ? (
                     <Image
