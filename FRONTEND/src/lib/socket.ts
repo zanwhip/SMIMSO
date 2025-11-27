@@ -563,7 +563,7 @@ class SocketService {
   }
 
   // Error handling
-  onError(callback: (error: { message: string }) => void) {
+  onError(callback: (error: { message: string; conversationId?: string }) => void) {
     const socket = this.getSocketSync();
     if (socket) {
       socket.on('error', callback);
@@ -576,7 +576,7 @@ class SocketService {
     }
   }
 
-  offError(callback: (error: { message: string }) => void) {
+  offError(callback: (error: { message: string; conversationId?: string }) => void) {
     const socket = this.getSocketSync();
     if (socket) {
       socket.off('error', callback);

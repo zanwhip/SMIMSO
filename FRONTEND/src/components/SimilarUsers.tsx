@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import api from '@/lib/api';
-import { getImageUrl } from '@/lib/utils';
 import { FiUsers } from 'react-icons/fi';
+import UserAvatar from './UserAvatar';
 
 interface SimilarUser {
   id: string;
@@ -79,21 +78,15 @@ export default function SimilarUsers() {
             href={`/profile/${user.id}`}
             className="flex items-start space-x-3 hover:bg-gray-50 p-2 rounded-lg transition"
           >
-            <div className="relative w-12 h-12 flex-shrink-0">
-              {user.avatar_url ? (
-                <Image
-                  src={getImageUrl(user.avatar_url)}
-                  alt={`${user.first_name} ${user.last_name}`}
-                  fill
-                  className="rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full flex items-center justify-center text-white font-semibold">
-                  {user.first_name?.[0]}
-                  {user.last_name?.[0]}
-                </div>
-              )}
-            </div>
+            <UserAvatar
+              userId={user.id}
+              avatarUrl={user.avatar_url || undefined}
+              firstName={user.first_name}
+              lastName={user.last_name}
+              size="lg"
+              showOnlineStatus={true}
+              className="flex-shrink-0"
+            />
 
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">

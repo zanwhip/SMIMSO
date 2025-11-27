@@ -1,16 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useAuthStore } from '@/store/authStore';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FiHome, FiPlusCircle, FiUser, FiLogOut, FiSearch, FiBell, FiMessageCircle } from 'react-icons/fi';
-import { getImageUrl } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import NotificationDropdown from './NotificationDropdown';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useChat } from '@/contexts/ChatContext';
+import UserAvatar from './UserAvatar';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -98,7 +97,7 @@ export default function Navbar() {
                   <div className="relative">
                     <FiMessageCircle size={20} />
                     {chatUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                         {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
                       </span>
                     )}
@@ -131,18 +130,15 @@ export default function Navbar() {
                   href="/profile"
                   className="flex items-center space-x-2 text-gray-700 hover:text-primary-600 transition"
                 >
-                  {user?.avatar_url ? (
-                    <Image
-                      src={getImageUrl(user.avatar_url)}
-                      alt={user.first_name}
-                      width={32}
-                      height={32}
-                      className="rounded-full"
+                  {user && (
+                    <UserAvatar
+                      userId={user.id}
+                      avatarUrl={user.avatar_url || undefined}
+                      firstName={user.first_name}
+                      lastName={user.last_name}
+                      size="sm"
+                      showOnlineStatus={false}
                     />
-                  ) : (
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                      <FiUser size={16} />
-                    </div>
                   )}
                   <span className="hidden sm:inline">{user?.first_name}</span>
                 </Link>

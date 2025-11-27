@@ -22,11 +22,41 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'suggestion' | 'newest'>('newest');
   const { ref, inView } = useInView();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // Wait for hydration and check auth
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
+    // Give time for persist middleware to hydrate
+    const timer = setTimeout(() => {
+      const state = useAuthStore.getState();
+      console.log('Home page - Auth state check:', state);
+      
+      // Check if we have token in localStorage but state is not authenticated
+      const tokenInStorage = localStorage.getItem('token');
+      const authStorage = localStorage.getItem('auth-storage');
+      
+      if (tokenInStorage || authStorage) {
+        // We have persisted data, wait a bit more for hydration
+        setTimeout(() => {
+          const finalState = useAuthStore.getState();
+          console.log('Home page - Final auth state:', finalState);
+          
+          if (!finalState.isAuthenticated && !finalState.isLoading) {
+            // Still not authenticated after hydration, redirect to login
+            router.push('/login');
+          }
+          setIsCheckingAuth(false);
+        }, 200);
+      } else {
+        // No persisted data, check normal state
+        if (!authLoading && !isAuthenticated) {
+          router.push('/login');
+        }
+        setIsCheckingAuth(false);
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [isAuthenticated, authLoading, router]);
 
   useEffect(() => {
@@ -89,7 +119,7 @@ export default function HomePage() {
     setHasMore(true);
   };
 
-  if (authLoading) {
+  if (authLoading || isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="spinner"></div>

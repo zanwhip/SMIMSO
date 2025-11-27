@@ -37,7 +37,7 @@ import { OnlineStatus } from '@/types';
 
 export default function ChatPage() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
-  const { setActiveConversation, resetUnread, incrementUnread, setUnreadCount } = useChat();
+  const { setActiveConversation, resetUnread, incrementUnread, setUnreadCount, setCallState } = useChat();
   const { subscribe, isSubscribed, isSupported, permissionStatus } = usePushNotifications();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,6 +53,10 @@ export default function ChatPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGroupSettings, setShowGroupSettings] = useState(false);
   const [recommendedContacts, setRecommendedContacts] = useState<User[]>([]);
+  const [suggestedPage, setSuggestedPage] = useState(1);
+  const [suggestedHasMore, setSuggestedHasMore] = useState(true);
+  const [isLoadingSuggested, setIsLoadingSuggested] = useState(false);
+  const suggestedScrollRef = useRef<HTMLDivElement>(null);
   
   // Call state
   const [isCallActive, setIsCallActive] = useState(false);
@@ -182,38 +186,55 @@ export default function ChatPage() {
       // Update local state
       setConversations((prev) => prev.map(conv => 
         conv.id === message.conversation_id 
-          ? { ...conv, unread_count: (conv.unread_count || 0) + 1 }
+          ? { ...conv, unread_count: (conv.unread_count || 0) + 1, last_message_at: message.created_at }
           : conv
       ));
       
       // Update ChatContext for navbar badge
       incrementUnread(message.conversation_id);
       
-      // Show browser notification
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const senderName = message.sender 
-          ? `${message.sender.first_name} ${message.sender.last_name}` 
-          : 'Someone';
-        let body = '';
-        
-        if (message.message_type === 'image') body = '📷 sent an image';
-        else if (message.message_type === 'audio') body = '🎤 sent an audio';
-        else if (message.message_type === 'video') body = '🎥 sent a video';
-        else if (message.message_type === 'sticker') body = '🎨 sent a sticker';
-        else if (message.message_type === 'gif') body = '🎬 sent a GIF';
-        else {
-          body = message.content || 'sent a message';
-          if (body.length > 50) body = body.substring(0, 50) + '...';
+      // Show browser notification (only if not already shown by ChatContext)
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      if (currentPath.startsWith('/chat')) {
+        // We're on chat page, show notification for other conversations
+        if ('Notification' in window && Notification.permission === 'granted') {
+          const senderName = message.sender 
+            ? `${message.sender.first_name} ${message.sender.last_name}` 
+            : 'Someone';
+          let body = '';
+          
+          if (message.message_type === 'image') body = '📷 sent an image';
+          else if (message.message_type === 'audio') body = '🎤 sent an audio';
+          else if (message.message_type === 'video') body = '🎥 sent a video';
+          else if (message.message_type === 'sticker') body = '🎨 sent a sticker';
+          else if (message.message_type === 'gif') body = '🎬 sent a GIF';
+          else {
+            body = message.content || 'sent a message';
+            if (body.length > 50) body = body.substring(0, 50) + '...';
+          }
+          
+          try {
+            const notification = new Notification(senderName, {
+              body,
+              icon: message.sender?.avatar_url || '/icon-192x192.png',
+              tag: `message-${message.conversation_id}`,
+              badge: '/icon-192x192.png',
+            });
+            
+            notification.onclick = () => {
+              window.focus();
+              router.push(`/chat/${message.conversation_id}`);
+              notification.close();
+            };
+            
+            setTimeout(() => notification.close(), 5000);
+          } catch (error) {
+            console.error('Failed to show notification:', error);
+          }
         }
-        
-        new Notification(senderName, {
-          body,
-          icon: message.sender?.avatar_url || '/icon-192x192.png',
-          tag: `message-${message.conversation_id}`,
-        });
       }
     }
-  }, [user?.id]);
+  }, [user?.id, incrementUnread, router]);
 
   // Scroll to bottom when conversation changes
   useEffect(() => {
@@ -240,12 +261,30 @@ export default function ChatPage() {
         }).catch(console.error);
       }
       
+      // Error handler for chat page
+      const handleError = (error: { message: string; conversationId?: string }) => {
+        console.error('Socket error:', error);
+        if (error.message.includes('Not a participant')) {
+          toast.error('Bạn không phải là thành viên của cuộc trò chuyện này');
+          // Refresh conversation if error is for current conversation
+          if (error.conversationId === selectedConversationRef.current?.id) {
+            updateConversationInList(error.conversationId);
+          }
+        } else if (error.message.includes('Failed to join')) {
+          // Don't show toast for join errors - they're handled automatically
+          console.warn('Join conversation error (handled automatically):', error);
+        } else {
+          toast.error(error.message || 'Có lỗi xảy ra');
+        }
+      };
+
       // Helper function to setup all listeners
       const setupSocketListeners = () => {
         console.log('🔌 Setting up socket listeners...');
         
         // Remove old listeners first to avoid duplicates
         socketService.offNewMessage(handleNewMessage);
+        socketService.offError(handleError);
         
         // Set up socket event listeners
         socketService.onNewMessage(handleNewMessage);
@@ -380,7 +419,8 @@ export default function ChatPage() {
       
       joinConversationRoom();
       fetchMessages(selectedConversation.id);
-      markAsRead(selectedConversation.id);
+      // KHÔNG TỰ ĐỘNG mark as read khi vào conversation
+      // Sẽ mark as read khi user thực sự xem messages (scroll hoặc có messages)
       
       // Fetch online status for participants
       if (selectedConversation.type === 'direct' && selectedConversation.participants?.[0]?.user_id) {
@@ -442,9 +482,6 @@ export default function ChatPage() {
     }
   };
 
-  const handleError = (error: { message: string }) => {
-    toast.error(error.message);
-  };
 
   const handleMessageEdited = (message: Message) => {
     if (message.conversation_id === selectedConversation?.id) {
@@ -509,17 +546,23 @@ export default function ChatPage() {
       return;
     }
     
+    // Clear global call state - we're handling it locally
+    setCallState(null);
+    
     // Show call popup even if conversation is not selected
     let callerUser: User | undefined = data.caller; // Use caller from backend first
+    let callConversation: Conversation | undefined;
     
     // If not provided, try to find from conversations
     if (!callerUser) {
       if (data.conversationId === selectedConversation?.id) {
         callerUser = selectedConversation?.participants?.find(p => p.user_id === data.callerId)?.user;
+        callConversation = selectedConversation;
       } else {
         // Find from conversations list
         const conv = conversations.find(c => c.id === data.conversationId);
         callerUser = conv?.participants?.find(p => p.user_id === data.callerId)?.user;
+        callConversation = conv;
       }
     }
     
@@ -539,12 +582,38 @@ export default function ChatPage() {
       }
     }
     
-    if (callerUser) {
+    // Fetch conversation if not found
+    if (!callConversation) {
+      try {
+        const response = await api.get(`/chat/conversations/${data.conversationId}`);
+        callConversation = response.data.data;
+        // Add to conversations list if not already there
+        setConversations((prev) => {
+          const exists = prev.find(c => c.id === callConversation?.id);
+          if (exists) return prev;
+          return [callConversation!, ...prev];
+        });
+      } catch (error) {
+        console.error('Failed to fetch conversation:', error);
+      }
+    }
+    
+    if (callerUser && callConversation) {
+      // SET conversation trước khi show call modal
+      setSelectedConversation(callConversation);
+      
       setCaller(callerUser);
       setCallType(data.callType);
       setCallOffer(data.offer);
       setIsIncomingCall(true);
       setIsCallActive(true);
+      
+      console.log('📞 Call offer setup complete:', {
+        callerId: data.callerId,
+        conversationId: data.conversationId,
+        caller: callerUser,
+        conversation: callConversation,
+      });
       
       // Play notification sound
       try {
@@ -556,12 +625,22 @@ export default function ChatPage() {
       
       // Show browser notification if permission granted
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(`Incoming ${data.callType === 'video' ? 'Video' : 'Audio'} Call`, {
-          body: `${callerUser.first_name} ${callerUser.last_name} is calling you`,
-          icon: callerUser.avatar_url || '/icon-192x192.png',
-          tag: `call-${data.conversationId}`,
-          requireInteraction: true,
-        });
+        try {
+          const notification = new Notification(`Incoming ${data.callType === 'video' ? 'Video' : 'Audio'} Call`, {
+            body: `${callerUser.first_name} ${callerUser.last_name} is calling you`,
+            icon: callerUser.avatar_url || '/icon-192x192.png',
+            tag: `call-${data.conversationId}`,
+            requireInteraction: true,
+            badge: '/icon-192x192.png',
+          });
+          
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+          };
+        } catch (error) {
+          console.error('Failed to show call notification:', error);
+        }
       }
     }
   };
@@ -608,6 +687,19 @@ export default function ChatPage() {
         return;
       }
 
+      // Ensure we're joined to the conversation room
+      try {
+        socketService.joinConversation(selectedConversation.id);
+        // Wait a bit for join to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error('Failed to join conversation:', error);
+        // Continue anyway - backend will auto-join
+      }
+
+      // Clear global call state if any (we're handling call locally)
+      setCallState(null);
+
       setCallType(type);
       setIsIncomingCall(false);
       setIsCallActive(true);
@@ -646,6 +738,9 @@ export default function ChatPage() {
     if (!selectedConversation || !caller || !callOffer) return;
 
     try {
+      // Clear global call state
+      setCallState(null);
+      
       setIsIncomingCall(false);
       
       await webrtcService.acceptCall({
@@ -671,10 +766,10 @@ export default function ChatPage() {
       
       console.log('✅ Call accepted');
       
-      toast.success('Call accepted');
+      toast.success('Đã chấp nhận cuộc gọi');
     } catch (error: any) {
       console.error('Failed to accept call:', error);
-      toast.error('Failed to accept call');
+      toast.error('Không thể chấp nhận cuộc gọi');
       endCall();
     }
   };
@@ -695,6 +790,9 @@ export default function ChatPage() {
       // Send call end event with duration - backend will create the summary message
       socketService.sendCallEnd(selectedConversation.id, callTypeToEnd, duration);
     }
+    
+    // Clear global call state
+    setCallState(null);
     
     setIsCallActive(false);
     setIsIncomingCall(false);
@@ -719,12 +817,46 @@ export default function ChatPage() {
     setIsVideoOff(!enabled);
   };
 
-  const fetchRecommendedContacts = async () => {
+  const fetchRecommendedContacts = async (page: number = 1, append: boolean = false) => {
     try {
-      const response = await api.get('/chat/recommended-contacts?limit=8');
-      setRecommendedContacts(response.data.data || []);
+      setIsLoadingSuggested(true);
+      const response = await api.get(`/chat/recommended-contacts?limit=20&page=${page}`);
+      const newContacts = response.data.data || [];
+      
+      if (append) {
+        setRecommendedContacts((prev) => {
+          // Remove duplicates
+          const combined = [...prev, ...newContacts];
+          const unique = Array.from(
+            new Map(combined.map(contact => [contact.id, contact])).values()
+          );
+          return unique;
+        });
+      } else {
+        setRecommendedContacts(newContacts);
+      }
+      
+      // Check if there are more contacts to load
+      setSuggestedHasMore(newContacts.length === 20);
+      setIsLoadingSuggested(false);
     } catch (error: any) {
       console.error('Failed to fetch recommended contacts:', error);
+      setIsLoadingSuggested(false);
+    }
+  };
+  
+  // Handle horizontal scroll for suggested contacts
+  const handleSuggestedScroll = () => {
+    const container = suggestedScrollRef.current;
+    if (!container || isLoadingSuggested || !suggestedHasMore) return;
+    
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const isNearEnd = scrollLeft + clientWidth >= scrollWidth - 100;
+    
+    if (isNearEnd) {
+      const nextPage = suggestedPage + 1;
+      setSuggestedPage(nextPage);
+      fetchRecommendedContacts(nextPage, true);
     }
   };
 
@@ -761,6 +893,14 @@ export default function ChatPage() {
             const newConversation = convResponse.data.data;
             setSelectedConversation(newConversation);
             setConversations((prev) => [newConversation, ...prev]);
+            
+            // Join conversation room immediately
+            try {
+              socketService.joinConversation(newConversation.id);
+            } catch (error) {
+              console.error('Failed to join new conversation:', error);
+            }
+            
             router.replace('/chat');
           } catch (error: any) {
             console.error('Failed to create conversation:', error);
@@ -783,6 +923,9 @@ export default function ChatPage() {
       const messages = response.data.data || [];
       console.log('📥 Fetched messages:', messages.length);
       setMessages(messages);
+      
+      // Mark as read sau khi load messages thành công
+      markAsRead(conversationId);
       
       // Scroll to bottom after fetching messages
       setTimeout(() => {
@@ -827,39 +970,51 @@ export default function ChatPage() {
   };
 
   const updateConversationInList = (conversationId: string) => {
-    setConversations((prev) => {
-      const index = prev.findIndex((c) => c.id === conversationId);
-      if (index >= 0) {
-        // Refresh conversation
-        api.get(`/chat/conversations/${conversationId}`)
-          .then((response) => {
-            const updatedConv = response.data.data;
-            setConversations((prev) => {
-              const newConvs = [...prev];
-              newConvs[index] = updatedConv;
-              
-              // Sync unread count to ChatContext
-              if (updatedConv.unread_count && updatedConv.unread_count > 0) {
-                setUnreadCount(conversationId, updatedConv.unread_count);
-              } else {
-                resetUnread(conversationId);
-              }
-              
-              return newConvs.sort((a, b) => {
-                const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
-                const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-                return bTime - aTime;
-              });
-            });
-          })
-          .catch(() => {});
-      }
-      return prev;
-    });
+    // Refresh conversation
+    api.get(`/chat/conversations/${conversationId}`)
+      .then((response) => {
+        const updatedConv = response.data.data;
+        setConversations((prev) => {
+          // Tìm index của conversation cần update
+          const index = prev.findIndex((c) => c.id === conversationId);
+          
+          let newConvs: Conversation[];
+          if (index >= 0) {
+            // Update existing conversation
+            newConvs = [...prev];
+            newConvs[index] = updatedConv;
+          } else {
+            // Add new conversation if not found
+            newConvs = [updatedConv, ...prev];
+          }
+          
+          // Remove duplicates (just in case)
+          const uniqueConvs = Array.from(
+            new Map(newConvs.map(conv => [conv.id, conv])).values()
+          );
+          
+          // Sync unread count to ChatContext
+          if (updatedConv.unread_count && updatedConv.unread_count > 0) {
+            setUnreadCount(conversationId, updatedConv.unread_count);
+          } else {
+            resetUnread(conversationId);
+          }
+          
+          // Sort by last message time
+          return uniqueConvs.sort((a, b) => {
+            const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+            const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+            return bTime - aTime;
+          });
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to update conversation:', error);
+      });
   };
 
   const sendMessage = async () => {
-    if (!messageInput.trim() || !selectedConversation) return;
+    if (!messageInput.trim() || !selectedConversation || !user?.id) return;
 
     const content = messageInput.trim();
     setMessageInput('');
@@ -872,7 +1027,7 @@ export default function ChatPage() {
     console.log('📤 Sending message:', { conversationId: selectedConversation.id, content });
 
     // Check socket connection first
-    const socket = socketService.getSocketSync();
+    const socket = await socketService.getSocket();
     if (!socket || !socket.connected) {
       console.error('❌ Socket not connected, attempting to connect...');
       toast.error('Đang kết nối... Vui lòng thử lại');
@@ -885,6 +1040,16 @@ export default function ChatPage() {
         toast.error('Không thể kết nối. Vui lòng refresh trang');
         return;
       }
+    }
+
+    // Ensure we're joined to the conversation room
+    try {
+      socketService.joinConversation(selectedConversation.id);
+      // Wait a bit for join to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      console.error('Failed to join conversation:', error);
+      // Continue anyway - backend will auto-join
     }
 
     // Send via socket - backend will emit back the message via new_message event
@@ -922,9 +1087,31 @@ export default function ChatPage() {
       
       // Remove temp message when real message arrives (handled by handleNewMessage)
       // The message will be received via handleNewMessage when backend emits it
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send message:', error);
-      toast.error('Failed to send message');
+      const errorMessage = error?.message || 'Không thể gửi tin nhắn';
+      
+      // If "Not a participant" error, try to refresh conversation
+      if (errorMessage.includes('Not a participant')) {
+        toast.error('Bạn không phải là thành viên. Đang làm mới...');
+        // Refresh conversation
+        if (selectedConversation) {
+          try {
+            const response = await api.get(`/chat/conversations/${selectedConversation.id}`);
+            const updatedConv = response.data.data;
+            setSelectedConversation(updatedConv);
+            // Try sending again after refresh
+            setTimeout(() => {
+              toast('Vui lòng thử gửi lại', { icon: 'ℹ️' });
+            }, 1000);
+          } catch (refreshError) {
+            console.error('Failed to refresh conversation:', refreshError);
+          }
+        }
+      } else {
+        toast.error(errorMessage);
+      }
+      
       // Remove temp message on error
       setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-')));
     }
@@ -1215,8 +1402,13 @@ export default function ChatPage() {
             {/* Recommended Contacts */}
             {recommendedContacts.length > 0 && (
               <div className="p-2 sm:p-4 border-b border-gray-200">
-                <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Suggested</h3>
-                <div className="flex space-x-2 overflow-x-auto pb-2">
+                <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Gợi ý</h3>
+                <div 
+                  ref={suggestedScrollRef}
+                  onScroll={handleSuggestedScroll}
+                  className="flex space-x-2 overflow-x-auto pb-2 scroll-smooth"
+                  style={{ scrollbarWidth: 'thin' }}
+                >
                   {recommendedContacts.map((contact) => (
                     <button
                       key={contact.id}
@@ -1231,6 +1423,13 @@ export default function ChatPage() {
                             if (exists) return prev;
                             return [conversation, ...prev];
                           });
+                          
+                          // Join conversation room immediately
+                          try {
+                            socketService.joinConversation(conversation.id);
+                          } catch (error) {
+                            console.error('Failed to join new conversation:', error);
+                          }
                         } catch (error: any) {
                           console.error('Failed to create conversation:', error);
                           toast.error('Failed to start conversation');
@@ -1258,6 +1457,11 @@ export default function ChatPage() {
                       </span>
                     </button>
                   ))}
+                  {isLoadingSuggested && (
+                    <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12">
+                      <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -33,19 +33,40 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
 
+          console.log('Login response:', response.data);
+
           const { user, token } = response.data.data;
+
+          if (!user || !token) {
+            throw new Error('Invalid response from server');
+          }
 
           setAuthToken(token);
 
-          set({
+          const newState = {
             user,
             token,
             isAuthenticated: true,
             isLoading: false,
-          });
+          };
+
+          console.log('Setting auth state:', newState);
+          set(newState);
+
+          // Force persist to complete
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Verify state was set
+          const verifyState = get();
+          console.log('Verified auth state:', verifyState);
+          
+          if (!verifyState.isAuthenticated || !verifyState.token) {
+            throw new Error('Failed to set authentication state');
+          }
         } catch (error: any) {
-          set({ isLoading: false });
-          throw new Error(error.response?.data?.error || 'Login failed');
+          set({ isLoading: false, isAuthenticated: false });
+          console.error('Login error:', error);
+          throw new Error(error.response?.data?.error || error.message || 'Login failed');
         }
       },
 
@@ -144,11 +165,21 @@ export const useAuthStore = create<AuthState>()(
 
       initializeAuth: () => {
         const state = get();
-        if (state.token) {
+        if (state.token && state.user) {
+          setAuthToken(state.token);
+          set({ 
+            isLoading: false,
+            isAuthenticated: true 
+          });
+        } else if (state.token) {
+          // Have token but no user - will be fetched by fetchCurrentUser
           setAuthToken(state.token);
           set({ isLoading: false });
         } else {
-          set({ isLoading: false });
+          set({ 
+            isLoading: false,
+            isAuthenticated: false 
+          });
         }
       },
     }),

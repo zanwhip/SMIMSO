@@ -336,7 +336,8 @@ export class ChatController {
       }
 
       const limit = parseInt(req.query.limit as string) || 10;
-      const contacts = await chatService.getRecommendedContacts(req.user.id, limit);
+      const page = parseInt(req.query.page as string) || 1;
+      const contacts = await chatService.getRecommendedContacts(req.user.id, limit, page);
       return successResponse(res, contacts);
     } catch (error: any) {
       console.error('Error getting recommended contacts:', error);

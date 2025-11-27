@@ -154,8 +154,12 @@ export default function CallModal({
   }, [localStream, isOpen, isIncoming]);
 
   useEffect(() => {
-    if (isOpen && !isIncoming && (localStream || remoteStream)) {
-      // Start timer when call is active (not incoming and streams are available)
+    // Chỉ start timer khi:
+    // 1. Call đang active (isOpen = true)
+    // 2. Không phải incoming call (isIncoming = false - đã accept)
+    // 3. Có REMOTE stream (đối phương đã connected)
+    if (isOpen && !isIncoming && remoteStream) {
+      console.log('⏱️ Starting call timer - remote connected');
       durationTimerRef.current = setInterval(() => {
         setCallDuration((prev) => {
           const newDuration = prev + 1;
@@ -167,10 +171,13 @@ export default function CallModal({
         });
       }, 1000);
     } else {
+      // Clear timer nếu không đủ điều kiện
       if (durationTimerRef.current) {
+        console.log('⏱️ Stopping call timer');
         clearInterval(durationTimerRef.current);
         durationTimerRef.current = null;
       }
+      // Reset duration khi call không còn active
       if (!isOpen) {
         setCallDuration(0);
         if (onDurationChange) {
@@ -184,7 +191,7 @@ export default function CallModal({
         clearInterval(durationTimerRef.current);
       }
     };
-  }, [isOpen, isIncoming, localStream, remoteStream, onDurationChange]);
+  }, [isOpen, isIncoming, remoteStream, onDurationChange]);
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -211,7 +218,7 @@ export default function CallModal({
       <div className="relative w-full h-full flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Remote video (main view) */}
         {callType === 'video' && (
-          <div className="flex-1 relative bg-gray-900 pointer-events-none" style={{ paddingBottom: '120px' }}>
+          <div className="flex-1 relative bg-gray-900" style={{ paddingBottom: '120px' }}>
             {remoteStream && remoteStream.getVideoTracks().length > 0 ? (
               <video
                 ref={remoteVideoRef}
@@ -302,11 +309,11 @@ export default function CallModal({
 
         {/* Audio call view */}
         {callType === 'audio' && (
-          <div className="flex-1 flex items-center justify-center bg-gray-900 pointer-events-none" style={{ paddingBottom: '120px' }}>
-            <div className="text-center pointer-events-none">
+          <div className="flex-1 flex items-center justify-center bg-gray-900" style={{ paddingBottom: '120px' }}>
+            <div className="text-center">
               {caller && (
                 <>
-                  <div className="relative w-48 h-48 mx-auto mb-6 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden pointer-events-none">
+                  <div className="relative w-48 h-48 mx-auto mb-6 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                     {caller.avatar_url ? (
                       <Image
                         src={getImageUrl(caller.avatar_url)}
@@ -321,18 +328,18 @@ export default function CallModal({
                       </span>
                     )}
                   </div>
-                  <p className="text-white text-2xl font-medium mb-2 pointer-events-none">
+                  <p className="text-white text-2xl font-medium mb-2">
                     {caller.first_name} {caller.last_name}
                   </p>
                 </>
               )}
-              <p className="text-gray-400 mb-4 pointer-events-none">
-                {isIncoming ? 'Incoming call...' : formatDuration(callDuration)}
+              <p className="text-gray-400 mb-4">
+                {isIncoming ? 'Cuộc gọi đến...' : formatDuration(callDuration)}
               </p>
               
               {/* Audio Level Indicator */}
               {!isIncoming && localStream && !isMicMuted && (
-                <div className="flex items-center justify-center space-x-1 h-10 mb-4 pointer-events-none">
+                <div className="flex items-center justify-center space-x-1 h-10 mb-4">
                   {Array.from({ length: 25 }).map((_, i) => {
                     const barHeight = audioLevel * 100;
                     const isActive = (i / 25) * 100 < barHeight;

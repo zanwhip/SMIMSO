@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
@@ -9,7 +8,6 @@ import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 
 export default function LoginPage() {
-  const router = useRouter();
   const { login, googleLogin } = useAuthStore();
   const [formData, setFormData] = useState({
     emailOrPhone: '',
@@ -25,12 +23,33 @@ export default function LoginPage() {
 
     try {
       await login(formData.emailOrPhone, formData.password);
+      
+      // Verify state before redirect
+      const state = useAuthStore.getState();
+      console.log('Login completed, state:', state);
+      
+      if (!state.isAuthenticated || !state.token) {
+        toast.error('Đăng nhập không thành công. Vui lòng thử lại.');
+        setIsLoading(false);
+        return;
+      }
+      
       toast.success('Đăng nhập thành công!');
-      // Small delay to ensure state is fully updated before redirect
-      setTimeout(() => {
-        router.push('/');
-        router.refresh();
-      }, 100);
+      
+      // Wait a bit longer to ensure state is persisted and updated
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Verify one more time
+      const finalState = useAuthStore.getState();
+      console.log('Before redirect, final state:', finalState);
+      
+      if (finalState.isAuthenticated && finalState.token) {
+        // Use window.location for a full page reload to ensure state is properly initialized
+        window.location.href = '/';
+      } else {
+        toast.error('Lỗi xác thực. Vui lòng thử lại.');
+        setIsLoading(false);
+      }
     } catch (error: any) {
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         toast.error('Kết nối quá lâu. Vui lòng thử lại.');

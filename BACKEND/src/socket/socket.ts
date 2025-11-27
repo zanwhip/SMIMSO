@@ -56,10 +56,12 @@ export const initializeSocket = (httpServer: HttpServer) => {
     // Join user's personal room
     socket.join(`user:${userId}`);
 
-    // Get user conversations and join their rooms
+    // Get user conversations and join their rooms automatically
     chatService.getUserConversations(userId).then((conversations) => {
+      console.log(`📥 Auto-joining ${conversations.length} conversations for user ${userId}`);
       conversations.forEach((conv) => {
         socket.join(`conversation:${conv.id}`);
+        console.log(`✅ Auto-joined conversation: ${conv.id}`);
       });
     }).catch((error) => {
       console.error('Error joining conversation rooms:', error);
@@ -68,13 +70,32 @@ export const initializeSocket = (httpServer: HttpServer) => {
     // Handle joining conversation room
     socket.on('join_conversation', async (conversationId: string) => {
       try {
-        // Verify user is participant
-        await chatService.getConversationById(conversationId, userId);
+        // Verify user is participant by checking directly
+        const { data: participant, error } = await supabaseAdmin
+          .from('conversation_participants')
+          .select('user_id')
+          .eq('conversation_id', conversationId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (error) {
+          console.error(`❌ Error checking participant: ${error.message}`);
+          // Don't emit error for join - just log it
+          return;
+        }
+
+        if (!participant) {
+          console.warn(`⚠️ User ${userId} is not a participant in conversation ${conversationId} - skipping join`);
+          // Don't emit error - just skip joining (user might be trying to join before being added)
+          return;
+        }
+
+        // Join the room
         socket.join(`conversation:${conversationId}`);
         console.log(`✅ User ${userId} joined conversation ${conversationId}`);
-      } catch (error) {
+      } catch (error: any) {
         console.error(`❌ Error joining conversation ${conversationId}:`, error);
-        socket.emit('error', { message: 'Failed to join conversation' });
+        // Don't emit error for join failures - they're not critical
       }
     });
 
@@ -95,6 +116,13 @@ export const initializeSocket = (httpServer: HttpServer) => {
       replyToId?: string;
     }) => {
       try {
+        // Ensure user is in the conversation room
+        if (!socket.rooms.has(`conversation:${data.conversationId}`)) {
+          socket.join(`conversation:${data.conversationId}`);
+          console.log(`✅ Auto-joined user ${userId} to conversation ${data.conversationId}`);
+        }
+
+        // Send message - chatService will verify participant
         const message = await chatService.sendMessage(
           data.conversationId,
           userId,
@@ -212,6 +240,29 @@ export const initializeSocket = (httpServer: HttpServer) => {
       try {
         console.log(`📞 Call offer from ${userId} to conversation ${data.conversationId}`);
         
+        // Verify user is participant
+        const { data: participant } = await supabaseAdmin
+          .from('conversation_participants')
+          .select('user_id')
+          .eq('conversation_id', data.conversationId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (!participant) {
+          console.error(`User ${userId} tried to call but is not a participant in conversation ${data.conversationId}`);
+          socket.emit('error', { 
+            message: 'Not a participant in this conversation',
+            conversationId: data.conversationId 
+          });
+          return;
+        }
+
+        // Ensure user is in the conversation room
+        if (!socket.rooms.has(`conversation:${data.conversationId}`)) {
+          socket.join(`conversation:${data.conversationId}`);
+          console.log(`✅ Auto-joined user ${userId} to conversation ${data.conversationId}`);
+        }
+        
         // Get conversation participants
         const conversation = await chatService.getConversationById(data.conversationId, userId);
         
@@ -259,15 +310,46 @@ export const initializeSocket = (httpServer: HttpServer) => {
       }
     });
 
-    socket.on('call_answer', (data: {
+    socket.on('call_answer', async (data: {
       conversationId: string;
       answer: any; // RTCSessionDescriptionInit
     }) => {
-      io.to(`conversation:${data.conversationId}`).emit('call_answer', {
-        conversationId: data.conversationId,
-        answer: data.answer,
-        userId,
-      });
+      try {
+        console.log(`📞 Call answer from ${userId} for conversation ${data.conversationId}`);
+        
+        // Get conversation to find caller
+        const conversation = await chatService.getConversationById(data.conversationId, userId);
+        
+        // Emit to conversation room (all participants)
+        io.to(`conversation:${data.conversationId}`).emit('call_answer', {
+          conversationId: data.conversationId,
+          answer: data.answer,
+          userId,
+        });
+        
+        // Also emit to caller's personal room to ensure delivery
+        conversation.participants?.forEach((participant) => {
+          if (participant.user_id !== userId) {
+            io.to(`user:${participant.user_id}`).emit('call_answer', {
+              conversationId: data.conversationId,
+              answer: data.answer,
+              userId,
+            });
+          }
+        });
+        
+        // Update call history status to answered
+        await chatService.saveCallHistory(
+          data.conversationId,
+          userId,
+          'audio', // Default, will be updated when call ends
+          'answered',
+          new Date().toISOString()
+        ).catch(() => {});
+      } catch (error) {
+        console.error('Error handling call answer:', error);
+        socket.emit('error', { message: 'Failed to process call answer' });
+      }
     });
 
     socket.on('call_ice_candidate', (data: {
@@ -373,23 +455,49 @@ export const initializeSocket = (httpServer: HttpServer) => {
       });
     });
 
-    socket.on('call_decline', (data: {
+    socket.on('call_decline', async (data: {
       conversationId: string;
       callType: 'audio' | 'video';
     }) => {
-      io.to(`conversation:${data.conversationId}`).emit('call_decline', {
-        conversationId: data.conversationId,
-        userId,
-      });
+      try {
+        console.log(`📞 Call declined by ${userId} for conversation ${data.conversationId}`);
+        
+        // Get conversation to find caller
+        const conversation = await chatService.getConversationById(data.conversationId, userId);
+        
+        // Emit to conversation room
+        io.to(`conversation:${data.conversationId}`).emit('call_decline', {
+          conversationId: data.conversationId,
+          userId,
+        });
+        
+        // Also emit to caller's personal room to ensure delivery
+        conversation.participants?.forEach((participant) => {
+          if (participant.user_id !== userId) {
+            io.to(`user:${participant.user_id}`).emit('call_decline', {
+              conversationId: data.conversationId,
+              userId,
+            });
+          }
+        });
 
-      // Update call history
-      chatService.saveCallHistory(
-        data.conversationId,
-        userId,
-        data.callType,
-        'declined',
-        new Date().toISOString()
-      ).catch(() => {});
+        // Update call history - find the caller (the one who initiated)
+        conversation.participants?.forEach(async (participant) => {
+          if (participant.user_id !== userId) {
+            // This is the caller, update their call history
+            await chatService.saveCallHistory(
+              data.conversationId,
+              participant.user_id,
+              data.callType,
+              'declined',
+              new Date().toISOString()
+            ).catch(() => {});
+          }
+        });
+      } catch (error) {
+        console.error('Error handling call decline:', error);
+        socket.emit('error', { message: 'Failed to process call decline' });
+      }
     });
 
     // Handle message reaction
