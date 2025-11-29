@@ -115,6 +115,7 @@ export interface CreatePostDTO {
   category_id?: string;
   tags?: string[] | string; // Can be array or JSON string from FormData
   visibility?: 'public' | 'friends' | 'private';
+  user_captions?: string[] | string; // Array of user captions for each image, can be JSON string from FormData
 }
 
 export interface UpdatePostDTO {

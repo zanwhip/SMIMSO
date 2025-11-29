@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { PostController } from '../controllers/post.controller';
 import { authMiddleware, optionalAuth } from '../middleware/auth.middleware';
-import { uploadMultiple, uploadChatFile } from '../middleware/upload.middleware';
+import { uploadMultiple, uploadChatFile, uploadSingle } from '../middleware/upload.middleware';
 
 const router = Router();
 const postController = new PostController();
@@ -13,6 +13,7 @@ router.get('/user/:userId', optionalAuth, (req, res) => postController.getUserPo
 
 // Protected routes
 router.post('/upload', authMiddleware, uploadChatFile, (req, res) => postController.uploadFile(req, res));
+router.post('/generate-caption', authMiddleware, uploadSingle, (req, res) => postController.generateCaption(req, res));
 router.post('/', authMiddleware, uploadMultiple, (req, res) => postController.createPost(req, res));
 router.post('/generate-metadata', authMiddleware, uploadMultiple, (req, res) => postController.generateMetadata(req, res));
 router.post('/:postId/like', authMiddleware, (req, res) => postController.likePost(req, res));

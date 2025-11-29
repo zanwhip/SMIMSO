@@ -208,4 +208,3 @@ export function extractVideoUrl(response: any): string | null {
   // 9. Reuse image extraction logic as fallback
   return extractImageUrl(response);
 }
-

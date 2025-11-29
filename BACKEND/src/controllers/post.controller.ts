@@ -12,6 +12,73 @@ const interactionService = new InteractionService();
 const aiService = new AIService();
 
 export class PostController {
+  // Generate caption for a single image using CLIP
+  async generateCaption(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
+      const file = req.file;
+
+      if (!file) {
+        return errorResponse(res, 'Image file is required', 400);
+      }
+
+      console.log('🤖 [POST] Generating CLIP caption for image:', file.filename);
+      console.log('📁 [POST] Image path:', file.path);
+
+      // Get categories for CLIP classification
+      let categoryLabels: string[] = [];
+      try {
+        const { data: categories } = await supabase
+          .from('categories')
+          .select('id, name, description');
+        categoryLabels = categories?.map(c => c.name) || [];
+        console.log(`📂 [POST] Found ${categoryLabels.length} categories`);
+      } catch (error: any) {
+        console.warn('⚠️ [POST] Failed to fetch categories:', error.message);
+      }
+
+      // Generate caption using CLIP
+      let result;
+      try {
+        console.log('🚀 [POST] Calling CLIP service...');
+        result = await aiService.generateCaptionWithClip(file.path, categoryLabels);
+        
+        console.log('📝 [POST] CLIP result:', JSON.stringify(result, null, 2));
+        
+        // Ensure we always have a caption
+        if (!result.caption || result.caption.trim() === '') {
+          console.warn('⚠️ [POST] Empty caption, using fallback');
+          result.caption = 'Beautiful Image';
+        }
+        
+        console.log('✅ [POST] Generated CLIP caption:', result.caption);
+      } catch (error: any) {
+        console.error('❌ [POST] CLIP generation failed:', error.message);
+        console.error('❌ [POST] Error stack:', error.stack);
+        // Return fallback result
+        result = {
+          caption: 'Beautiful Image',
+          category_label: undefined,
+          category_score: undefined,
+        };
+      }
+
+      return successResponse(res, result, 'Caption generated successfully');
+    } catch (error: any) {
+      console.error('❌ [POST] Generate caption error:', error);
+      console.error('❌ [POST] Error stack:', error.stack);
+      // Always return a response, even on error
+      return successResponse(res, {
+        caption: 'Beautiful Image',
+        category_label: undefined,
+        category_score: undefined,
+      }, 'Caption generated with fallback');
+    }
+  }
+
   // Generate metadata from image (for preview before creating post)
   async generateMetadata(req: AuthRequest, res: Response): Promise<Response> {
     try {

@@ -117,6 +117,28 @@ export class PostService {
       throw new Error(postError?.message || 'Failed to create post');
     }
 
+    // Parse user captions if provided
+    let userCaptions: string[] = [];
+    if (data.user_captions) {
+      if (typeof data.user_captions === 'string') {
+        try {
+          userCaptions = JSON.parse(data.user_captions);
+        } catch (e) {
+          // If parsing fails, treat as single caption or empty
+          userCaptions = data.user_captions ? [data.user_captions] : [];
+        }
+      } else {
+        userCaptions = data.user_captions;
+      }
+    }
+
+    // Get categories for CLIP classification
+    const { data: categories } = await supabase
+      .from('categories')
+      .select('id, name, description');
+
+    const categoryLabels = categories?.map(c => c.name) || [];
+
     // Upload images and generate AI features
     if (images && images.length > 0) {
       for (let i = 0; i < images.length; i++) {
@@ -124,17 +146,28 @@ export class PostService {
         const imagePath = image.path;
         const imageUrl = `/uploads/${image.filename}`;
 
-        // Generate AI features (embedding and caption)
+        // Generate AI features (embedding)
         let embedding: number[] | undefined;
-        let caption: string | undefined;
-
         try {
           const aiFeatures = await aiService.generateImageFeatures(imagePath);
           embedding = aiFeatures.embedding;
-          caption = aiFeatures.caption;
         } catch (error) {
           console.error('AI feature generation failed:', error);
         }
+
+        // Generate AI caption using CLIP
+        let aiCaption: string | undefined;
+        try {
+          console.log(`🤖 Generating CLIP caption for image ${i + 1}...`);
+          const clipResult = await aiService.generateCaptionWithClip(imagePath, categoryLabels);
+          aiCaption = clipResult.caption;
+          console.log(`✅ Generated CLIP caption: "${aiCaption}"`);
+        } catch (error) {
+          console.error('CLIP caption generation failed:', error);
+        }
+
+        // Get user caption for this image (if provided)
+        const userCaption = userCaptions[i]?.trim() || undefined;
 
         // Prepare image data
         const imageData: any = {
@@ -149,18 +182,35 @@ export class PostService {
           imageData.embedding = embedding;
         }
 
-        // Only add caption if it exists
-        if (caption) {
-          imageData.caption = caption;
+        // Add AI caption if exists (only if column exists)
+        if (aiCaption) {
+          imageData.ai_caption = aiCaption;
+        }
+
+        // Add user caption if exists (only if column exists)
+        if (userCaption) {
+          imageData.user_caption = userCaption;
         }
 
         // Save image to database
         const { error: imageError } = await supabase
           .from('post_images')
           .insert(imageData);
+        
+        if (imageError) {
+          // If error is about missing columns, log helpful message
+          if (imageError.message?.includes('ai_caption') || imageError.message?.includes('user_caption')) {
+            console.error('❌ [POST] Database columns missing. Please run migration:');
+            console.error('📝 Run MIGRATION_AI_CAPTION.sql in Supabase SQL Editor');
+            throw new Error('Database migration required. Please run MIGRATION_AI_CAPTION.sql in Supabase SQL Editor');
+          }
+          throw imageError;
+        }
 
         if (imageError) {
           console.error('Failed to save image:', imageError);
+        } else {
+          console.log(`✅ Saved image ${i + 1} with AI caption and user caption`);
         }
       }
     }
@@ -267,7 +317,51 @@ export class PostService {
     }
 
     if (filters?.search) {
-      query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      const searchTerm = filters.search.toLowerCase();
+      
+      // Get post IDs that match search in title/description
+      const { data: postsByText } = await supabase
+        .from('posts')
+        .select('id')
+        .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+      
+      const postIdsByText = postsByText?.map(p => p.id) || [];
+      
+      // Get post IDs that match search in ai_caption from post_images
+      const { data: imagesByCaption } = await supabase
+        .from('post_images')
+        .select('post_id')
+        .ilike('ai_caption', `%${searchTerm}%`);
+      
+      const postIdsByCaption = imagesByCaption?.map(img => img.post_id) || [];
+      
+      // Get category IDs that match search
+      const { data: categoriesBySearch } = await supabase
+        .from('categories')
+        .select('id')
+        .ilike('name', `%${searchTerm}%`);
+      
+      const categoryIdsBySearch = categoriesBySearch?.map(c => c.id) || [];
+      
+      // Combine all post IDs (remove duplicates)
+      const allPostIds = [...new Set([...postIdsByText, ...postIdsByCaption])];
+      
+      // Build filter: posts matching text/caption OR posts with matching category
+      if (allPostIds.length > 0 || categoryIdsBySearch.length > 0) {
+        if (allPostIds.length > 0 && categoryIdsBySearch.length > 0) {
+          // Both conditions: posts matching IDs OR posts with matching category
+          query = query.or(`id.in.(${allPostIds.join(',')}),category_id.in.(${categoryIdsBySearch.join(',')})`);
+        } else if (allPostIds.length > 0) {
+          // Only post IDs
+          query = query.in('id', allPostIds);
+        } else if (categoryIdsBySearch.length > 0) {
+          // Only category filter
+          query = query.in('category_id', categoryIdsBySearch);
+        }
+      } else {
+        // No matches - return empty result by using non-existent ID
+        query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+      }
     }
 
     // Pagination

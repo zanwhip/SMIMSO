@@ -11,6 +11,17 @@ const api: AxiosInstance = axios.create({
   timeout: 30000, // 30 seconds timeout to prevent infinite hanging
 });
 
+// Helper to create API instance with custom timeout for AI operations
+export const createApiWithTimeout = (timeout: number = 90000): AxiosInstance => {
+  return axios.create({
+    baseURL: API_URL,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    timeout,
+  });
+};
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {

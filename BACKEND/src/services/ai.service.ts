@@ -2,28 +2,21 @@ import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
 import { ImageEmbedding, SimilarityResult } from '../types';
+import { CLIPService } from './clip.service';
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+const clipService = new CLIPService();
 
 export class AIService {
-  // Generate image embedding and caption using CLIP + BLIP
+  // Generate image embedding using CLIP
   async generateImageFeatures(imagePath: string): Promise<ImageEmbedding> {
     try {
-      const formData = new FormData();
-      formData.append('image', fs.createReadStream(imagePath));
-
-      const response = await axios.post(`${AI_SERVICE_URL}/api/ai/image-features`, formData, {
-        headers: formData.getHeaders(),
-        timeout: 30000,
-      });
-
+      const embedding = await clipService.generateImageEmbedding(imagePath);
       return {
-        embedding: response.data.embedding,
-        caption: response.data.caption,
+        embedding,
+        caption: undefined, // Caption is generated separately
       };
     } catch (error: any) {
       console.error('AI service error:', error.message);
-      // Return empty features if AI service fails
       return {
         embedding: [],
         caption: undefined,
@@ -31,68 +24,32 @@ export class AIService {
     }
   }
 
-  // Zero-shot image classification
+  // Zero-shot image classification using CLIP
   async classifyImage(imagePath: string, labels: string[]): Promise<{ label: string; score: number }[]> {
     try {
-      const formData = new FormData();
-      formData.append('image', fs.createReadStream(imagePath));
-      formData.append('labels', JSON.stringify(labels));
-
-      const response = await axios.post(`${AI_SERVICE_URL}/api/ai/classify`, formData, {
-        headers: formData.getHeaders(),
-        timeout: 30000,
-      });
-
-      return response.data.predictions;
+      return await clipService.classifyImage(imagePath, labels);
     } catch (error: any) {
       console.error('AI classification error:', error.message);
       return [];
     }
   }
 
-  // Text-to-image search
+  // Text-to-image search (not implemented - using CLIP directly)
   async searchImagesByText(query: string, limit: number = 20): Promise<SimilarityResult[]> {
-    try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/ai/search-by-text`, {
-        query,
-        limit,
-      });
-
-      return response.data.results;
-    } catch (error: any) {
-      console.error('AI search error:', error.message);
-      return [];
-    }
+    console.warn('⚠️ searchImagesByText not implemented yet');
+    return [];
   }
 
-  // Find similar images
+  // Find similar images (not implemented - using CLIP directly)
   async findSimilarImages(imageEmbedding: number[], limit: number = 20): Promise<SimilarityResult[]> {
-    try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/ai/similar-images`, {
-        embedding: imageEmbedding,
-        limit,
-      });
-
-      return response.data.results;
-    } catch (error: any) {
-      console.error('AI similarity error:', error.message);
-      return [];
-    }
+    console.warn('⚠️ findSimilarImages not implemented yet');
+    return [];
   }
 
-  // Generate personalized recommendations
+  // Generate personalized recommendations (not implemented)
   async getRecommendations(userId: string, limit: number = 20): Promise<string[]> {
-    try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/ai/recommendations`, {
-        user_id: userId,
-        limit,
-      });
-
-      return response.data.post_ids;
-    } catch (error: any) {
-      console.error('AI recommendation error:', error.message);
-      return [];
-    }
+    console.warn('⚠️ getRecommendations not implemented yet');
+    return [];
   }
 
   // Calculate user embedding based on liked posts
@@ -116,6 +73,29 @@ export class AIService {
     }
 
     return meanEmbedding;
+  }
+
+  // Generate caption using CLIP model
+  async generateCaptionWithClip(
+    imagePath: string,
+    categoryLabels?: string[]
+  ): Promise<{ caption: string; category_label?: string; category_score?: number }> {
+    try {
+      console.log('🚀 [AI] Calling CLIP service generateCaptionWithCategory...');
+      console.log('🚀 [AI] Image path:', imagePath);
+      console.log('🚀 [AI] Category labels:', categoryLabels);
+      
+      const result = await clipService.generateCaptionWithCategory(imagePath, categoryLabels);
+      
+      console.log('🚀 [AI] CLIP service returned:', JSON.stringify(result, null, 2));
+      
+      return result;
+    } catch (error: any) {
+      console.error('❌ [AI] CLIP caption generation error:', error.message);
+      console.error('❌ [AI] Error stack:', error.stack?.substring(0, 1000));
+      // Don't return "Beautiful Image" here - let the caller handle fallback
+      throw error; // Re-throw to let caller handle
+    }
   }
 
   // Calculate cosine similarity
@@ -155,27 +135,38 @@ export class AIService {
     console.log('🤖 Starting AI metadata generation...');
 
     try {
-      // Step 1: Try to generate caption using BLIP
+      // Step 1: Generate caption using CLIP
       let caption = '';
       let aiWorked = false;
 
       try {
-        console.log('📸 Calling BLIP for image caption...');
-        const features = await this.generateImageFeatures(imagePath);
-        caption = features.caption || '';
+        console.log('📸 [AI] Calling CLIP for image caption...');
+        console.log('📸 [AI] Image path:', imagePath);
+        const categoryLabels = categories.map(c => c.name);
+        console.log('📸 [AI] Category labels:', categoryLabels);
+        
+        const clipResult = await this.generateCaptionWithClip(imagePath, categoryLabels);
+        console.log('📸 [AI] CLIP result:', JSON.stringify(clipResult, null, 2));
+        
+        caption = clipResult.caption || '';
 
-        if (caption && caption.trim().length > 0) {
+        if (caption && caption.trim().length > 0 && caption.trim().toLowerCase() !== 'beautiful image') {
           aiWorked = true;
-          console.log(`✅ BLIP caption: "${caption}"`);
+          console.log(`✅ [AI] CLIP caption: "${caption}"`);
         } else {
-          console.log('⚠️ BLIP returned empty caption');
+          console.log(`⚠️ [AI] CLIP returned empty or generic caption: "${caption}"`);
+          console.log(`⚠️ [AI] Will use fallback caption generation`);
         }
       } catch (error: any) {
-        console.log(`⚠️ BLIP failed: ${error.message}`);
+        console.error(`❌ [AI] CLIP failed: ${error.message}`);
+        console.error(`❌ [AI] CLIP error stack:`, error.stack?.substring(0, 1000));
+        console.log(`⚠️ [AI] Will use fallback caption generation`);
       }
 
       // Fallback: Generate meaningful caption from filename or use generic
-      if (!caption || caption.trim().length === 0) {
+      // ONLY if CLIP didn't work or returned empty/generic caption
+      if (!aiWorked && (!caption || caption.trim().length === 0 || caption.trim().toLowerCase() === 'beautiful image')) {
+        console.log('📝 [AI] Using fallback caption generation...');
         if (filename) {
           // Clean filename: remove UUID patterns, timestamps, and extensions
           let cleanName = filename
@@ -192,14 +183,14 @@ export class AIService {
               .split(' ')
               .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
               .join(' ');
-            console.log(`📝 Generated caption from filename: "${caption}"`);
+            console.log(`📝 [AI] Generated caption from filename: "${caption}"`);
           } else {
             caption = 'Beautiful Image';
-            console.log(`📝 Using generic caption: "${caption}"`);
+            console.log(`📝 [AI] Using generic caption: "${caption}"`);
           }
         } else {
           caption = 'Beautiful Image';
-          console.log(`📝 Using generic caption: "${caption}"`);
+          console.log(`📝 [AI] Using generic caption: "${caption}"`);
         }
       }
 
@@ -251,7 +242,7 @@ export class AIService {
       // Step 4: Find best matching category using CLIP zero-shot classification
       let category_id: string | undefined;
 
-      if (categories.length > 0 && imagePath && aiWorked) {
+      if (categories.length > 0 && imagePath) {
         try {
           console.log('🎯 Trying CLIP classification for category...');
           // Use CLIP to classify image into categories

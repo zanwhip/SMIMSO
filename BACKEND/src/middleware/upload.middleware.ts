@@ -8,18 +8,15 @@ import { Request, Response, NextFunction } from 'express';
 const uploadDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-  console.log('✅ Created uploads directory at:', uploadDir);
 }
 
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    console.log('📁 Saving file to:', uploadDir);
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    console.log('📝 Generated filename:', uniqueName);
     cb(null, uniqueName);
   },
 });
@@ -27,8 +24,6 @@ const storage = multer.diskStorage({
 // File filter
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-
-  console.log('🔍 Checking file type:', file.mimetype);
 
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -105,8 +100,6 @@ const chatFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilt
     'audio/webm', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a'
   ];
 
-  console.log('🔍 Checking chat file type:', file.mimetype);
-
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -133,4 +126,3 @@ export const uploadChatFile = (req: Request, res: Response, next: NextFunction) 
 export const uploadImagineFile = (req: Request, res: Response, next: NextFunction) => {
   upload.single('file')(req, res, (err) => handleMulterError(err, req, res, next));
 };
-

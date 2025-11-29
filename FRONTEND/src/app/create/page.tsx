@@ -16,6 +16,9 @@ export default function CreatePostPage() {
   const { isAuthenticated } = useAuthStore();
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [aiCaptions, setAiCaptions] = useState<string[]>([]);
+  const [userCaptions, setUserCaptions] = useState<string[]>([]);
+  const [isGeneratingCaptions, setIsGeneratingCaptions] = useState<boolean[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false);
@@ -44,10 +47,56 @@ export default function CreatePostPage() {
     }
   };
 
+  // Generate caption for a single image using CLIP
+  const generateCaptionForImage = async (file: File, index: number) => {
+    try {
+      // Set generating state for this specific image
+      setIsGeneratingCaptions((prev) => {
+        const newState = [...prev];
+        newState[index] = true;
+        return newState;
+      });
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await api.post('/posts/generate-caption', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 90000, // 90 seconds for AI operations
+      });
+
+      const aiCaption = response.data.data.caption || '';
+      console.log(`✅ Generated CLIP caption for image ${index + 1}:`, aiCaption);
+
+      // Update AI caption for this specific image
+      setAiCaptions((prev) => {
+        const newState = [...prev];
+        newState[index] = aiCaption;
+        return newState;
+      });
+    } catch (error: any) {
+      console.error(`Failed to generate caption for image ${index + 1}:`, error);
+      // Set empty caption on error
+      setAiCaptions((prev) => {
+        const newState = [...prev];
+        newState[index] = '';
+        return newState;
+      });
+    } finally {
+      setIsGeneratingCaptions((prev) => {
+        const newState = [...prev];
+        newState[index] = false;
+        return newState;
+      });
+    }
+  };
+
   const generateMetadataFromImage = async (file: File) => {
     try {
       setIsGeneratingMetadata(true);
-      const loadingToast = toast.loading('🤖 AI is analyzing your image...');
+      // Silent metadata generation - no toast notification
 
       const formData = new FormData();
       formData.append('images', file);
@@ -56,12 +105,13 @@ export default function CreatePostPage() {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 90000, // 90 seconds for AI operations
       });
 
       const metadata = response.data.data;
       console.log('✅ Received metadata:', metadata);
 
-      // Auto-fill form fields
+      // Auto-fill form fields silently (not shown to user)
       setFormData((prev) => ({
         ...prev,
         title: metadata.caption || prev.title,
@@ -69,11 +119,9 @@ export default function CreatePostPage() {
         category_id: metadata.category_id || prev.category_id,
         tags: metadata.tags?.join(', ') || prev.tags,
       }));
-
-      toast.success('✨ AI generated metadata!', { id: loadingToast });
     } catch (error: any) {
       console.error('Failed to generate metadata:', error);
-      toast.error('AI generation failed, you can fill manually');
+      // Silent fail - metadata will be generated on backend anyway
     } finally {
       setIsGeneratingMetadata(false);
     }
@@ -85,7 +133,13 @@ export default function CreatePostPage() {
     },
     maxFiles: 10,
     onDrop: async (acceptedFiles) => {
+      const currentImageCount = images.length;
       setImages((prev) => [...prev, ...acceptedFiles]);
+
+      // Initialize captions and generating states for new images
+      setAiCaptions((prev) => [...prev, ...new Array(acceptedFiles.length).fill('')]);
+      setUserCaptions((prev) => [...prev, ...new Array(acceptedFiles.length).fill('')]);
+      setIsGeneratingCaptions((prev) => [...prev, ...new Array(acceptedFiles.length).fill(false)]);
 
       // Create previews
       acceptedFiles.forEach((file) => {
@@ -96,8 +150,14 @@ export default function CreatePostPage() {
         reader.readAsDataURL(file);
       });
 
-      // Generate metadata from first image
-      if (acceptedFiles.length > 0 && images.length === 0) {
+      // Generate caption for each uploaded image
+      acceptedFiles.forEach(async (file, index) => {
+        const imageIndex = currentImageCount + index;
+        await generateCaptionForImage(file, imageIndex);
+      });
+
+      // Generate metadata from first image (only for the first upload)
+      if (acceptedFiles.length > 0 && currentImageCount === 0) {
         await generateMetadataFromImage(acceptedFiles[0]);
       }
     },
@@ -106,6 +166,17 @@ export default function CreatePostPage() {
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
     setPreviews((prev) => prev.filter((_, i) => i !== index));
+    setAiCaptions((prev) => prev.filter((_, i) => i !== index));
+    setUserCaptions((prev) => prev.filter((_, i) => i !== index));
+    setIsGeneratingCaptions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateUserCaption = (index: number, caption: string) => {
+    setUserCaptions((prev) => {
+      const newState = [...prev];
+      newState[index] = caption;
+      return newState;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,12 +194,13 @@ export default function CreatePostPage() {
     // }
 
     setIsLoading(true);
-    const loadingToast = toast.loading('🤖 AI is analyzing your image and generating metadata...');
+    const loadingToast = toast.loading('📤 Đang tạo bài viết...');
 
     try {
       const formDataToSend = new FormData();
 
-      // Only append if user provided values (AI will fill the rest)
+      // Metadata will be auto-generated by AI on backend
+      // Only send if user explicitly provided (though fields are hidden)
       if (formData.title.trim()) {
         formDataToSend.append('title', formData.title);
       }
@@ -149,6 +221,11 @@ export default function CreatePostPage() {
         formDataToSend.append('tags', JSON.stringify(tagsArray));
       }
 
+      // Append user captions (array of captions for each image)
+      if (userCaptions.length > 0) {
+        formDataToSend.append('user_captions', JSON.stringify(userCaptions));
+      }
+
       // Append images
       images.forEach((image) => {
         formDataToSend.append('images', image);
@@ -159,16 +236,17 @@ export default function CreatePostPage() {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 90000, // 90 seconds for AI operations
       });
 
       toast.dismiss(loadingToast);
-      toast.success('✅ Post created successfully with AI-generated metadata!');
+      toast.success('✅ Bài viết đã được tạo thành công!');
       // Redirect to home and force refresh
       router.push('/?refresh=' + Date.now());
     } catch (error: any) {
       toast.dismiss(loadingToast);
       console.error('❌ Post creation error:', error);
-      toast.error(error.response?.data?.error || 'Failed to create post');
+      toast.error(error.response?.data?.error || 'Không thể tạo bài viết');
     } finally {
       setIsLoading(false);
     }
@@ -194,23 +272,44 @@ export default function CreatePostPage() {
               </label>
 
               {previews.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {previews.map((preview, index) => (
-                    <div key={index} className="relative group">
-                      <Image
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        width={200}
-                        height={200}
-                        className="w-full h-40 object-cover rounded-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <FiX size={16} />
-                      </button>
+                    <div key={index} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                      <div className="relative group mb-2">
+                        <Image
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          width={200}
+                          height={200}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <FiX size={16} />
+                        </button>
+                      </div>
+                      <div className="mt-2">
+                        {/* User Caption - only field visible to user */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Caption của bạn <span className="text-gray-500">(tùy chọn)</span>
+                            {isGeneratingCaptions[index] && (
+                              <span className="ml-2 text-purple-500 text-xs">(AI đang tạo caption...)</span>
+                            )}
+                          </label>
+                          <textarea
+                            value={userCaptions[index] || ''}
+                            onChange={(e) => updateUserCaption(index, e.target.value)}
+                            rows={2}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            placeholder="Nhập caption của bạn cho hình ảnh này (để trống nếu không muốn nhập)..."
+                          />
+                        </div>
+                        {/* AI Caption is generated but hidden - saved to database automatically */}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -237,94 +336,7 @@ export default function CreatePostPage() {
               </div>
             </div>
 
-            {/* AI Info Banner */}
-            {images.length > 0 && (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">🤖</span>
-                  <div>
-                    <h3 className="font-semibold text-purple-900 mb-1">
-                      {isGeneratingMetadata ? 'AI is analyzing your image...' : 'AI Generated Metadata'}
-                    </h3>
-                    <p className="text-sm text-purple-700">
-                      {isGeneratingMetadata
-                        ? 'Please wait while AI generates title, description, category, and tags...'
-                        : 'AI has auto-filled the fields below. You can edit them as needed.'
-                      }
-                    </p>
-                    {!isGeneratingMetadata && (
-                      <ul className="text-sm text-purple-600 mt-2 space-y-1">
-                        <li>• <strong>Title</strong> - From image caption</li>
-                        <li>• <strong>Description</strong> - Detailed image description</li>
-                        <li>• <strong>Category</strong> - Using CLIP classification</li>
-                        <li>• <strong>Tags</strong> - Extracted keywords</li>
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Title <span className="text-purple-500 text-xs">(Optional - AI will generate)</span>
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Leave empty for AI to generate from image"
-              />
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description <span className="text-purple-500 text-xs">(Optional - AI will generate)</span>
-              </label>
-              <textarea
-                rows={4}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Leave empty for AI to generate from image"
-              />
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category <span className="text-purple-500 text-xs">(Optional - AI will classify)</span>
-              </label>
-              <select
-                value={formData.category_id}
-                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="">Let AI choose category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Tags */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags <span className="text-purple-500 text-xs">(Optional - AI will extract)</span>
-              </label>
-              <input
-                type="text"
-                value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Leave empty for AI to extract keywords from image"
-              />
-            </div>
+            {/* Metadata fields are hidden - auto-generated by AI and saved to database */}
 
             {/* Visibility */}
             <div>

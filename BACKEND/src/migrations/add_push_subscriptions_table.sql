@@ -34,3 +34,5 @@ COMMENT ON TABLE user_push_subscriptions IS 'User push notification subscription
 
 
 
+
+

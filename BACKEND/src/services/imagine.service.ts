@@ -42,12 +42,6 @@ export class ImagineService {
         formData.append('seed', String(params.seed));
       }
 
-      console.log('🚀 Sending Text to Image request:', {
-        prompt: params.prompt,
-        style: params.style || 'realistic',
-        aspect_ratio: params.aspect_ratio || '1:1',
-      });
-
       // Try to get response - handle both JSON and binary
       const response = await axios.post(
         `${VYRO_API_BASE}/image/generations`,
@@ -62,14 +56,10 @@ export class ImagineService {
         }
       );
 
-      console.log('✅ Text to Image response status:', response.status);
-      console.log('✅ Text to Image response headers:', JSON.stringify(response.headers, null, 2));
-      
       const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
       
       // Check if response is binary image
       if (contentType.includes('image/')) {
-        console.log('✅ Response is binary image, converting to base64');
         const imageBuffer = Buffer.from(response.data);
         const base64 = imageBuffer.toString('base64');
         const imageDataUrl = `data:${contentType};base64,${base64}`;
@@ -86,11 +76,9 @@ export class ImagineService {
       try {
         const jsonString = Buffer.from(response.data).toString('utf-8');
         const jsonData = JSON.parse(jsonString);
-        console.log('✅ Response is JSON:', JSON.stringify(jsonData, null, 2));
         return jsonData;
       } catch (parseError) {
         // If not JSON, might be binary - convert to base64
-        console.log('⚠️ Response is not JSON, treating as binary image');
         const imageBuffer = Buffer.from(response.data);
         const base64 = imageBuffer.toString('base64');
         const imageDataUrl = `data:image/png;base64,${base64}`;
@@ -102,19 +90,6 @@ export class ImagineService {
         };
       }
     } catch (error: any) {
-      console.error('❌ Text to Image API error:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-        }
-      });
-      
       // Try to extract error message from response
       let errorMessage = 'Failed to generate image';
       
@@ -143,11 +118,6 @@ export class ImagineService {
       formData.append('prompt', String(params.prompt));
       formData.append('style', String(params.style || 'kling-1.0-pro'));
 
-      console.log('🚀 Sending Text to Video request:', {
-        prompt: params.prompt,
-        style: params.style || 'kling-1.0-pro',
-      });
-
       const response = await axios.post(
         `${VYRO_API_BASE}/video/text-to-video`,
         formData,
@@ -161,13 +131,10 @@ export class ImagineService {
         }
       );
 
-      console.log('✅ Text to Video response status:', response.status);
       const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
-      console.log('✅ Text to Video content-type:', contentType);
       
       // Check if response is binary video
       if (contentType.includes('video/')) {
-        console.log('✅ Response is binary video, converting to base64');
         const videoBuffer = Buffer.from(response.data);
         const base64 = videoBuffer.toString('base64');
         const videoDataUrl = `data:${contentType};base64,${base64}`;
@@ -184,11 +151,9 @@ export class ImagineService {
       try {
         const jsonString = Buffer.from(response.data).toString('utf-8');
         const jsonData = JSON.parse(jsonString);
-        console.log('✅ Response is JSON:', JSON.stringify(jsonData, null, 2));
         return jsonData;
       } catch (parseError) {
         // If not JSON, might be binary video
-        console.log('⚠️ Response is not JSON, treating as binary video');
         const videoBuffer = Buffer.from(response.data);
         const base64 = videoBuffer.toString('base64');
         const videoDataUrl = `data:video/mp4;base64,${base64}`;
@@ -200,18 +165,6 @@ export class ImagineService {
         };
       }
     } catch (error: any) {
-      console.error('❌ Text to Video API error:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-        }
-      });
-      
       // Try to extract error message from response
       let errorMessage = 'Failed to generate video';
       
@@ -262,12 +215,6 @@ export class ImagineService {
         contentType: fileContentType,
       });
 
-      console.log('🚀 Sending Image to Video request:', {
-        prompt: params.prompt,
-        style: params.style || 'kling-1.0-pro',
-        imagePath: params.imagePath,
-      });
-
       const response = await axios.post(
         `${VYRO_API_BASE}/video/image-to-video`,
         formData,
@@ -281,13 +228,10 @@ export class ImagineService {
         }
       );
 
-      console.log('✅ Image to Video response status:', response.status);
       const responseContentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
-      console.log('✅ Image to Video content-type:', responseContentType);
       
       // Check if response is binary video
       if (responseContentType.includes('video/')) {
-        console.log('✅ Response is binary video, converting to base64');
         const videoBuffer = Buffer.from(response.data);
         const base64 = videoBuffer.toString('base64');
         const videoDataUrl = `data:${responseContentType};base64,${base64}`;
@@ -304,11 +248,9 @@ export class ImagineService {
       try {
         const jsonString = Buffer.from(response.data).toString('utf-8');
         const jsonData = JSON.parse(jsonString);
-        console.log('✅ Response is JSON:', JSON.stringify(jsonData, null, 2));
         return jsonData;
       } catch (parseError) {
         // If not JSON, might be binary video
-        console.log('⚠️ Response is not JSON, treating as binary video');
         const videoBuffer = Buffer.from(response.data);
         const base64 = videoBuffer.toString('base64');
         const videoDataUrl = `data:video/mp4;base64,${base64}`;
@@ -320,18 +262,6 @@ export class ImagineService {
         };
       }
     } catch (error: any) {
-      console.error('❌ Image to Video API error:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-        }
-      });
-      
       // Try to extract error message from response
       let errorMessage = 'Failed to generate video';
       
