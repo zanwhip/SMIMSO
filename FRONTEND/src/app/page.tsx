@@ -136,6 +136,42 @@ export default function HomePage() {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* AI Imagine Buttons */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Create with AI</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button
+              onClick={() => router.push('/imagine/text-to-image')}
+              className="group relative aspect-square bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center text-white"
+            >
+              <div className="text-4xl mb-3">🎨</div>
+              <h3 className="text-xl font-bold mb-2">Text to Image</h3>
+              <p className="text-sm opacity-90 text-center">Generate stunning images from text descriptions</p>
+              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 rounded-lg transition-opacity"></div>
+            </button>
+
+            <button
+              onClick={() => router.push('/imagine/text-to-video')}
+              className="group relative aspect-square bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center text-white"
+            >
+              <div className="text-4xl mb-3">🎬</div>
+              <h3 className="text-xl font-bold mb-2">Text to Video</h3>
+              <p className="text-sm opacity-90 text-center">Create dynamic videos from text prompts</p>
+              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 rounded-lg transition-opacity"></div>
+            </button>
+
+            <button
+              onClick={() => router.push('/imagine/image-to-video')}
+              className="group relative aspect-square bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center text-white"
+            >
+              <div className="text-4xl mb-3">🎥</div>
+              <h3 className="text-xl font-bold mb-2">Image to Video</h3>
+              <p className="text-sm opacity-90 text-center">Bring static images to life with animation</p>
+              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 rounded-lg transition-opacity"></div>
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-3">

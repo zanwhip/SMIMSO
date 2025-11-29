@@ -129,3 +129,8 @@ export const uploadChatFile = (req: Request, res: Response, next: NextFunction) 
   chatUpload.single('file')(req, res, (err) => handleMulterError(err, req, res, next));
 };
 
+// Middleware for imagine image upload (for image-to-video)
+export const uploadImagineFile = (req: Request, res: Response, next: NextFunction) => {
+  upload.single('file')(req, res, (err) => handleMulterError(err, req, res, next));
+};
+

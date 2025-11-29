@@ -46,15 +46,18 @@ app.get('/', (req: Request, res: Response) => {
     success: true,
     message: 'Welcome to SMIMSO API - Smart Image & Idea Social Network',
     version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      survey: '/api/survey',
-      posts: '/api/posts',
-      users: '/api/users',
-      options: '/api/options',
-      recommendations: '/api/recommendations',
-      health: '/api/health',
-    },
+      endpoints: {
+        auth: '/api/auth',
+        survey: '/api/survey',
+        posts: '/api/posts',
+        users: '/api/users',
+        options: '/api/options',
+        recommendations: '/api/recommendations',
+        notifications: '/api/notifications',
+        chat: '/api/chat',
+        imagine: '/api/imagine',
+        health: '/api/health',
+      },
   });
 });
 
@@ -108,13 +111,14 @@ httpServer.listen(PORT, () => {
 ║   Environment: ${process.env.NODE_ENV || 'development'}                              ║
 ║                                                           ║
 ║   API Endpoints:                                          ║
-║   - Auth:    http://localhost:${PORT}/api/auth             ║
-║   - Survey:  http://localhost:${PORT}/api/survey           ║
-║   - Posts:   http://localhost:${PORT}/api/posts            ║
-║   - Users:   http://localhost:${PORT}/api/users            ║
-║   - Options: http://localhost:${PORT}/api/options          ║
-║   - Health:  http://localhost:${PORT}/api/health           ║
-║   - Chat:    http://localhost:${PORT}/api/chat             ║
+║   - Auth:     http://localhost:${PORT}/api/auth            ║
+║   - Survey:   http://localhost:${PORT}/api/survey          ║
+║   - Posts:    http://localhost:${PORT}/api/posts           ║
+║   - Users:    http://localhost:${PORT}/api/users           ║
+║   - Options:  http://localhost:${PORT}/api/options         ║
+║   - Chat:     http://localhost:${PORT}/api/chat            ║
+║   - Imagine:  http://localhost:${PORT}/api/imagine         ║
+║   - Health:   http://localhost:${PORT}/api/health          ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
