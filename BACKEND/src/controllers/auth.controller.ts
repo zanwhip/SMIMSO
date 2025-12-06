@@ -6,7 +6,6 @@ import { RegisterDTO, LoginDTO, GoogleLoginDTO, AuthRequest } from '../types';
 const authService = new AuthService();
 
 export class AuthController {
-  // Register
   async register(req: Request, res: Response): Promise<Response> {
     try {
       const data: RegisterDTO = req.body;
@@ -32,7 +31,6 @@ export class AuthController {
     }
   }
 
-  // Login
   async login(req: Request, res: Response): Promise<Response> {
     try {
       const data: LoginDTO = req.body;
@@ -53,7 +51,6 @@ export class AuthController {
     }
   }
 
-  // Google Login
   async googleLogin(req: Request, res: Response): Promise<Response> {
     try {
       const data: GoogleLoginDTO = req.body;
@@ -75,7 +72,6 @@ export class AuthController {
     }
   }
 
-  // Get current user
   async getCurrentUser(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {

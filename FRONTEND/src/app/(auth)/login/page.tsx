@@ -29,12 +29,12 @@ export default function LoginPage() {
       console.log('Login completed, state:', state);
       
       if (!state.isAuthenticated || !state.token) {
-        toast.error('Đăng nhập không thành công. Vui lòng thử lại.');
+        toast.error('Login failed. Please try again.');
         setIsLoading(false);
         return;
       }
       
-      toast.success('Đăng nhập thành công!');
+      toast.success('Login successful!');
       
       // Wait a bit longer to ensure state is persisted and updated
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -54,7 +54,7 @@ export default function LoginPage() {
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         toast.error('Kết nối quá lâu. Vui lòng thử lại.');
       } else {
-        toast.error(error.message || 'Đăng nhập thất bại');
+        toast.error(error.message || 'Login failed');
       }
       setIsLoading(false);
     }
@@ -62,20 +62,28 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     // Implement Google OAuth login
-    toast.error('Chức năng đăng nhập Google đang được phát triển');
+    toast.error('Google login feature is under development');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-slow"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+      </div>
+      
+      <div className="max-w-md w-full space-y-8 bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-large relative z-10 animate-scale-in">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center mb-4">
-            <span className="text-white font-bold text-3xl">S</span>
+          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500 rounded-2xl flex items-center justify-center mb-6 shadow-glow hover:shadow-glow-blue transition-all duration-500 hover:scale-110">
+            <span className="text-white font-bold text-4xl">S</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Đăng nhập</h2>
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent mb-2">
+            Login
+          </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Chào mừng bạn quay trở lại SMIMSO
+            Welcome back to SMIMSO
           </p>
         </div>
 
@@ -98,8 +106,8 @@ export default function LoginPage() {
                   required
                   value={formData.emailOrPhone}
                   onChange={(e) => setFormData({ ...formData, emailOrPhone: e.target.value })}
-                  className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Email hoặc số điện thoại"
+                  className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
+                  placeholder="Email or phone number"
                 />
               </div>
             </div>
@@ -120,8 +128,8 @@ export default function LoginPage() {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Mật khẩu"
+                  className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
+                  placeholder="Password"
                 />
                 <button
                   type="button"
@@ -149,7 +157,7 @@ export default function LoginPage() {
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
-                  Ghi nhớ đăng nhập
+                  Remember me
                 </label>
               </div>
             </div>
@@ -159,9 +167,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-medium text-base font-semibold text-white bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-large hover:scale-[1.02] active:scale-[0.98] ripple"
           >
-            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
 
           {/* Divider */}
@@ -181,15 +189,15 @@ export default function LoginPage() {
             className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition"
           >
             <FcGoogle size={20} />
-            Đăng nhập với Google
+            Login with Google
           </button>
         </form>
 
         {/* Register Link */}
         <p className="text-center text-sm text-gray-600">
-          Chưa có tài khoản?{' '}
+          Don't have an account?{' '}
           <Link href="/register" className="font-medium text-primary-600 hover:text-primary-500">
-            Đăng ký ngay
+            Sign up now
           </Link>
         </p>
       </div>

@@ -51,7 +51,6 @@ export const optionalAuth = async (
         const decoded = verifyToken(token);
         req.user = decoded;
       } catch (error) {
-        // Token invalid but continue anyway
       }
     }
 

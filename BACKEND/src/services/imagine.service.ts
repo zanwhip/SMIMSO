@@ -4,10 +4,8 @@ import fs from 'fs';
 import path from 'path';
 
 const VYRO_API_BASE = 'https://api.vyro.ai/v2';
-// Get token from env, ensure it has Bearer prefix
 const getToken = (): string => {
   const token = process.env.IMAGINE_TOKEN || 'vk-G0L8QiCBFuL3XydqNnzB14kDYjkxNDnlD5hbOgVmDAidF';
-  // If token doesn't start with 'Bearer', add it
   return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
 };
 
@@ -30,11 +28,9 @@ export interface ImageToVideoParams {
 }
 
 export class ImagineService {
-  // Text to Image
   async textToImage(params: TextToImageParams): Promise<any> {
     try {
       const formData = new FormData();
-      // According to API docs, values should be strings
       formData.append('prompt', String(params.prompt));
       formData.append('style', String(params.style || 'realistic'));
       formData.append('aspect_ratio', String(params.aspect_ratio || '1:1'));
@@ -42,7 +38,6 @@ export class ImagineService {
         formData.append('seed', String(params.seed));
       }
 
-      // Try to get response - handle both JSON and binary
       const response = await axios.post(
         `${VYRO_API_BASE}/image/generations`,
         formData,
@@ -58,7 +53,6 @@ export class ImagineService {
 
       const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
       
-      // Check if response is binary image
       if (contentType.includes('image/')) {
         const imageBuffer = Buffer.from(response.data);
         const base64 = imageBuffer.toString('base64');
@@ -72,13 +66,11 @@ export class ImagineService {
         };
       }
       
-      // Try to parse as JSON
       try {
         const jsonString = Buffer.from(response.data).toString('utf-8');
         const jsonData = JSON.parse(jsonString);
         return jsonData;
       } catch (parseError) {
-        // If not JSON, might be binary - convert to base64
         const imageBuffer = Buffer.from(response.data);
         const base64 = imageBuffer.toString('base64');
         const imageDataUrl = `data:image/png;base64,${base64}`;
@@ -90,7 +82,6 @@ export class ImagineService {
         };
       }
     } catch (error: any) {
-      // Try to extract error message from response
       let errorMessage = 'Failed to generate image';
       
       if (error.response?.data) {
@@ -111,7 +102,6 @@ export class ImagineService {
     }
   }
 
-  // Text to Video
   async textToVideo(params: TextToVideoParams): Promise<any> {
     try {
       const formData = new FormData();
@@ -127,15 +117,66 @@ export class ImagineService {
             'Authorization': getToken(),
           },
           timeout: 300000, // 5 minutes timeout for video generation
-          responseType: 'arraybuffer', // Get raw response
         }
       );
 
       const contentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
       
-      // Check if response is binary video
+      if (contentType.includes('application/json') || (typeof response.data === 'object' && !Buffer.isBuffer(response.data))) {
+        const jsonData = response.data;
+        
+        if (jsonData.url) {
+          return {
+            video: jsonData.url,
+            url: jsonData.url,
+            format: 'url',
+          };
+        }
+        
+        if (jsonData.video) {
+          const videoUrl = typeof jsonData.video === 'string' ? jsonData.video : jsonData.video.url;
+          if (videoUrl) {
+            return {
+              video: videoUrl,
+              url: videoUrl,
+              format: 'url',
+            };
+          }
+        }
+        
+        if (jsonData.output) {
+          const outputUrl = typeof jsonData.output === 'string' ? jsonData.output : jsonData.output.url;
+          if (outputUrl) {
+            return {
+              video: outputUrl,
+              url: outputUrl,
+              format: 'url',
+            };
+          }
+        }
+        
+        if (jsonData.data) {
+          const dataUrl = typeof jsonData.data === 'string' ? jsonData.data : jsonData.data.url || jsonData.data.video;
+          if (dataUrl) {
+            return {
+              video: dataUrl,
+              url: dataUrl,
+              format: 'url',
+            };
+          }
+        }
+        
+        if (jsonData.task_id || jsonData.id) {
+          throw new Error('Video generation is asynchronous. Please use polling or check task status.');
+        }
+        
+        return jsonData;
+      }
+      
       if (contentType.includes('video/')) {
-        const videoBuffer = Buffer.from(response.data);
+        const videoBuffer = Buffer.isBuffer(response.data) 
+          ? response.data 
+          : Buffer.from(response.data);
         const base64 = videoBuffer.toString('base64');
         const videoDataUrl = `data:${contentType};base64,${base64}`;
         
@@ -147,13 +188,24 @@ export class ImagineService {
         };
       }
       
-      // Try to parse as JSON
-      try {
-        const jsonString = Buffer.from(response.data).toString('utf-8');
-        const jsonData = JSON.parse(jsonString);
-        return jsonData;
-      } catch (parseError) {
-        // If not JSON, might be binary video
+      if (typeof response.data === 'string') {
+        try {
+          const jsonData = JSON.parse(response.data);
+          
+          if (jsonData.url || jsonData.video || jsonData.output) {
+            return {
+              video: jsonData.url || jsonData.video || jsonData.output,
+              url: jsonData.url || jsonData.video || jsonData.output,
+              format: 'url',
+            };
+          }
+          
+          return jsonData;
+        } catch (parseError) {
+        }
+      }
+      
+      if (Buffer.isBuffer(response.data) || Array.isArray(response.data)) {
         const videoBuffer = Buffer.from(response.data);
         const base64 = videoBuffer.toString('base64');
         const videoDataUrl = `data:video/mp4;base64,${base64}`;
@@ -164,13 +216,25 @@ export class ImagineService {
           format: 'base64',
         };
       }
+      
+      if (typeof response.data === 'string' && (response.data.startsWith('http') || response.data.startsWith('data:'))) {
+        return {
+          video: response.data,
+          url: response.data,
+          format: response.data.startsWith('data:') ? 'base64' : 'url',
+        };
+      }
     } catch (error: any) {
-      // Try to extract error message from response
       let errorMessage = 'Failed to generate video';
       
       if (error.response?.data) {
         if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
+          try {
+            const errorJson = JSON.parse(error.response.data);
+            errorMessage = errorJson.error || errorJson.message || errorJson.detail || errorMessage;
+          } catch {
+            errorMessage = error.response.data;
+          }
         } else if (error.response.data.error) {
           errorMessage = error.response.data.error;
         } else if (error.response.data.message) {
@@ -186,12 +250,10 @@ export class ImagineService {
     }
   }
 
-  // Image to Video
   async imageToVideo(params: ImageToVideoParams): Promise<any> {
     try {
       const formData = new FormData();
       
-      // Check if image file exists
       if (!fs.existsSync(params.imagePath)) {
         throw new Error(`Image file not found: ${params.imagePath}`);
       }
@@ -199,7 +261,6 @@ export class ImagineService {
       formData.append('prompt', String(params.prompt));
       formData.append('style', String(params.style || 'kling-1.0-pro'));
       
-      // Determine content type from file extension
       const ext = path.extname(params.imagePath).toLowerCase();
       const contentTypeMap: { [key: string]: string } = {
         '.jpg': 'image/jpeg',
@@ -224,15 +285,66 @@ export class ImagineService {
             'Authorization': getToken(),
           },
           timeout: 300000, // 5 minutes timeout for video generation
-          responseType: 'arraybuffer', // Get raw response
         }
       );
 
       const responseContentType = response.headers['content-type'] || response.headers['Content-Type'] || '';
       
-      // Check if response is binary video
+      if (responseContentType.includes('application/json') || (typeof response.data === 'object' && !Buffer.isBuffer(response.data))) {
+        const jsonData = response.data;
+        
+        if (jsonData.url) {
+          return {
+            video: jsonData.url,
+            url: jsonData.url,
+            format: 'url',
+          };
+        }
+        
+        if (jsonData.video) {
+          const videoUrl = typeof jsonData.video === 'string' ? jsonData.video : jsonData.video.url;
+          if (videoUrl) {
+            return {
+              video: videoUrl,
+              url: videoUrl,
+              format: 'url',
+            };
+          }
+        }
+        
+        if (jsonData.output) {
+          const outputUrl = typeof jsonData.output === 'string' ? jsonData.output : jsonData.output.url;
+          if (outputUrl) {
+            return {
+              video: outputUrl,
+              url: outputUrl,
+              format: 'url',
+            };
+          }
+        }
+        
+        if (jsonData.data) {
+          const dataUrl = typeof jsonData.data === 'string' ? jsonData.data : jsonData.data.url || jsonData.data.video;
+          if (dataUrl) {
+            return {
+              video: dataUrl,
+              url: dataUrl,
+              format: 'url',
+            };
+          }
+        }
+        
+        if (jsonData.task_id || jsonData.id) {
+          throw new Error('Video generation is asynchronous. Please use polling or check task status.');
+        }
+        
+        return jsonData;
+      }
+      
       if (responseContentType.includes('video/')) {
-        const videoBuffer = Buffer.from(response.data);
+        const videoBuffer = Buffer.isBuffer(response.data) 
+          ? response.data 
+          : Buffer.from(response.data);
         const base64 = videoBuffer.toString('base64');
         const videoDataUrl = `data:${responseContentType};base64,${base64}`;
         
@@ -244,13 +356,24 @@ export class ImagineService {
         };
       }
       
-      // Try to parse as JSON
-      try {
-        const jsonString = Buffer.from(response.data).toString('utf-8');
-        const jsonData = JSON.parse(jsonString);
-        return jsonData;
-      } catch (parseError) {
-        // If not JSON, might be binary video
+      if (typeof response.data === 'string') {
+        try {
+          const jsonData = JSON.parse(response.data);
+          
+          if (jsonData.url || jsonData.video || jsonData.output) {
+            return {
+              video: jsonData.url || jsonData.video || jsonData.output,
+              url: jsonData.url || jsonData.video || jsonData.output,
+              format: 'url',
+            };
+          }
+          
+          return jsonData;
+        } catch (parseError) {
+        }
+      }
+      
+      if (Buffer.isBuffer(response.data) || Array.isArray(response.data)) {
         const videoBuffer = Buffer.from(response.data);
         const base64 = videoBuffer.toString('base64');
         const videoDataUrl = `data:video/mp4;base64,${base64}`;
@@ -261,13 +384,25 @@ export class ImagineService {
           format: 'base64',
         };
       }
+      
+      if (typeof response.data === 'string' && (response.data.startsWith('http') || response.data.startsWith('data:'))) {
+        return {
+          video: response.data,
+          url: response.data,
+          format: response.data.startsWith('data:') ? 'base64' : 'url',
+        };
+      }
     } catch (error: any) {
-      // Try to extract error message from response
       let errorMessage = 'Failed to generate video';
       
       if (error.response?.data) {
         if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
+          try {
+            const errorJson = JSON.parse(error.response.data);
+            errorMessage = errorJson.error || errorJson.message || errorJson.detail || errorMessage;
+          } catch {
+            errorMessage = error.response.data;
+          }
         } else if (error.response.data.error) {
           errorMessage = error.response.data.error;
         } else if (error.response.data.message) {

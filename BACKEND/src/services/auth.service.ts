@@ -7,16 +7,13 @@ import { OAuth2Client } from 'google-auth-library';
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export class AuthService {
-  // Register new user
   async register(data: RegisterDTO): Promise<{ user: User; token: string }> {
     const { email, phone, password, confirmPassword, first_name, last_name, date_of_birth, job } = data;
 
-    // Validate password match
     if (password !== confirmPassword) {
       throw new Error('Passwords do not match');
     }
 
-    // Check if user already exists
     const emailQuery = `email.eq."${email}"`;
     const phoneQuery = phone ? `,phone.eq."${phone}"` : '';
     const { data: existingUser } = await supabase
@@ -29,10 +26,8 @@ export class AuthService {
       throw new Error('User with this email or phone already exists');
     }
 
-    // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
-    // Create user
     const { data: newUser, error } = await supabase
       .from('users')
       .insert({
@@ -52,17 +47,14 @@ export class AuthService {
       throw new Error('Failed to create user');
     }
 
-    // Generate token
     const token = generateToken({ id: newUser.id, email: newUser.email });
 
     return { user: newUser, token };
   }
 
-  // Login with credentials
   async login(data: LoginDTO): Promise<{ user: User; token: string }> {
     const { emailOrPhone, password, rememberMe } = data;
 
-    // Find user by email or phone - use proper Supabase syntax with quotes
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -73,12 +65,10 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    // Check if user is active
     if (!user.is_active) {
       throw new Error('Account is deactivated');
     }
 
-    // Verify password
     if (!user.password_hash) {
       throw new Error('Please use Google login for this account');
     }
@@ -88,18 +78,15 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    // Generate token
     const token = generateToken({ id: user.id, email: user.email });
 
     return { user, token };
   }
 
-  // Google OAuth login
   async googleLogin(data: GoogleLoginDTO): Promise<{ user: User; token: string; isNewUser: boolean }> {
     const { token } = data;
 
     try {
-      // Verify Google token
       const ticket = await googleClient.verifyIdToken({
         idToken: token,
         audience: process.env.GOOGLE_CLIENT_ID,
@@ -116,7 +103,6 @@ export class AuthService {
         throw new Error('Email not provided by Google');
       }
 
-      // Check if user exists
       const { data: existingUser } = await supabase
         .from('users')
         .select('*')
@@ -129,7 +115,6 @@ export class AuthService {
       if (existingUser) {
         user = existingUser;
       } else {
-        // Create new user
         const { data: newUser, error } = await supabase
           .from('users')
           .insert({
@@ -152,7 +137,6 @@ export class AuthService {
         isNewUser = true;
       }
 
-      // Generate JWT token
       const jwtToken = generateToken({ id: user.id, email: user.email });
 
       return { user, token: jwtToken, isNewUser };
@@ -161,7 +145,6 @@ export class AuthService {
     }
   }
 
-  // Get user by ID
   async getUserById(userId: string): Promise<User> {
     const { data: user, error } = await supabase
       .from('users')

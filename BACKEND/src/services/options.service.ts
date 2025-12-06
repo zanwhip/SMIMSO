@@ -1,7 +1,6 @@
 import { supabase } from '../config/supabase';
 
 export class OptionsService {
-  // Get all form options
   async getFormOptions() {
     const jobs = await this.getJobOptions();
     const categories = await this.getCategories();
@@ -15,7 +14,6 @@ export class OptionsService {
     };
   }
 
-  // Get job options
   async getJobOptions() {
     return [
       { value: 'student', label: 'Sinh viên' },
@@ -35,7 +33,6 @@ export class OptionsService {
     ];
   }
 
-  // Get categories from database
   async getCategories() {
     const { data, error } = await supabase
       .from('categories')
@@ -49,7 +46,6 @@ export class OptionsService {
     return data || [];
   }
 
-  // Get purpose options (for survey)
   getPurposeOptions() {
     return [
       { value: 'inspiration', label: 'Tìm cảm hứng' },
@@ -63,7 +59,6 @@ export class OptionsService {
     ];
   }
 
-  // Get source options (for survey)
   getSourceOptions() {
     return [
       { value: 'google', label: 'Google Search' },
@@ -77,7 +72,6 @@ export class OptionsService {
     ];
   }
 
-  // Get expectation options (for survey)
   getExpectationOptions() {
     return [
       { value: 'very_high', label: 'Rất cao' },

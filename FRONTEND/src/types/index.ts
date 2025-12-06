@@ -140,7 +140,10 @@ export interface UserProfile extends User {
     postCount: number;
     totalLikes: number;
     totalComments: number;
+    followerCount?: number;
+    followingCount?: number;
   };
+  isFollowing?: boolean;
   survey?: Survey;
 }
 

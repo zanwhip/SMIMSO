@@ -5,7 +5,6 @@ import { authMiddleware } from '../middleware/auth.middleware';
 const router = Router();
 const surveyController = new SurveyController();
 
-// All routes require authentication
 router.use(authMiddleware);
 
 router.post('/', (req, res) => surveyController.submitSurvey(req, res));

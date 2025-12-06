@@ -62,13 +62,11 @@ export interface CallHistory {
 }
 
 export class ChatService {
-  // Get or create direct conversation between two users
   async getOrCreateDirectConversation(user1Id: string, user2Id: string): Promise<Conversation> {
     if (user1Id === user2Id) {
       throw new Error('Cannot create conversation with yourself');
     }
 
-    // Check if direct conversation already exists
     const { data: existingConversations, error: fetchError } = await supabaseAdmin
       .from('conversations')
       .select('id, type')
@@ -76,7 +74,6 @@ export class ChatService {
 
     if (fetchError) throw fetchError;
 
-    // Find conversation with both users
     for (const conv of existingConversations || []) {
       const { data: participants } = await supabaseAdmin
         .from('conversation_participants')
@@ -89,11 +86,9 @@ export class ChatService {
       }
     }
 
-    // Create new direct conversation
     const conversationId = uuidv4();
     const now = new Date().toISOString();
     
-    // Insert conversation
     const { error: convError } = await supabaseAdmin
       .from('conversations')
       .insert({
@@ -103,11 +98,9 @@ export class ChatService {
       });
 
     if (convError) {
-      console.error('Error creating conversation:', convError);
       throw convError;
     }
 
-    // Insert both participants - insert separately to handle errors better
     const { error: participant1Error } = await supabaseAdmin
       .from('conversation_participants')
       .insert({
@@ -117,7 +110,6 @@ export class ChatService {
       });
 
     if (participant1Error) {
-      console.error('Error adding participant 1:', participant1Error);
       await supabaseAdmin.from('conversations').delete().eq('id', conversationId);
       throw new Error('Failed to add participants to conversation');
     }
@@ -131,35 +123,28 @@ export class ChatService {
       });
 
     if (participant2Error) {
-      console.error('Error adding participant 2:', participant2Error);
-      // Try to clean up participant 1
       await supabaseAdmin.from('conversation_participants').delete().eq('conversation_id', conversationId).eq('user_id', user1Id);
       await supabaseAdmin.from('conversations').delete().eq('id', conversationId);
       throw new Error('Failed to add participants to conversation');
     }
 
-    // Verify both participants were added
     const { data: verifyParticipants, error: verifyError } = await supabaseAdmin
       .from('conversation_participants')
       .select('user_id')
       .eq('conversation_id', conversationId);
 
     if (verifyError) {
-      console.error('Error verifying participants:', verifyError);
       throw new Error('Failed to verify conversation participants');
     }
 
     const participantIds = verifyParticipants?.map(p => p.user_id) || [];
     if (!participantIds.includes(user1Id) || !participantIds.includes(user2Id)) {
-      console.error('Participants verification failed. Expected:', [user1Id, user2Id], 'Got:', participantIds);
       throw new Error('Failed to create conversation participants');
     }
 
-    // Return conversation with full participant data
     return await this.getConversationById(conversationId, user1Id);
   }
 
-  // Create group conversation
   async createGroupConversation(name: string, createdBy: string, participantIds: string[]): Promise<Conversation> {
     if (!participantIds.includes(createdBy)) {
       participantIds.push(createdBy);
@@ -181,7 +166,6 @@ export class ChatService {
 
     if (convError) throw convError;
 
-    // Add participants
     const participants = participantIds.map(userId => ({
       conversation_id: conversationId,
       user_id: userId,
@@ -194,9 +178,7 @@ export class ChatService {
     return await this.getConversationById(conversationId, createdBy);
   }
 
-  // Get conversation by ID
   async getConversationById(conversationId: string, userId: string): Promise<Conversation> {
-    // Get conversation
     const { data: conversation, error: convError } = await supabaseAdmin
       .from('conversations')
       .select('*')
@@ -207,26 +189,20 @@ export class ChatService {
       throw new Error('Conversation not found');
     }
 
-    // Get all participants first
     const { data: allParticipants, error: participantsError } = await supabaseAdmin
       .from('conversation_participants')
       .select('user_id')
       .eq('conversation_id', conversationId);
 
     if (participantsError) {
-      console.error('Error fetching participants:', participantsError);
       throw new Error('Failed to fetch conversation participants');
     }
 
     const participantIds = allParticipants?.map(p => p.user_id) || [];
     const isParticipant = participantIds.includes(userId);
 
-    // For direct conversations, if user is not participant but conversation exists
-    // and has participants, check if user should be one of them
     if (!isParticipant && conversation.type === 'direct') {
-      // If conversation has participants but user is not one, check if we should add them
       if (participantIds.length > 0 && participantIds.length < 2) {
-        // Only one participant - add the missing user
         try {
           await supabaseAdmin
             .from('conversation_participants')
@@ -235,8 +211,6 @@ export class ChatService {
               user_id: userId,
               joined_at: new Date().toISOString()
             });
-          console.log(`✅ Auto-added user ${userId} as participant to direct conversation ${conversationId}`);
-          // Reload participants
           const { data: reloaded } = await supabaseAdmin
             .from('conversation_participants')
             .select('user_id')
@@ -245,17 +219,12 @@ export class ChatService {
             participantIds.push(userId);
           }
         } catch (addError: any) {
-          // If unique constraint violation, user might have been added by another request
           if (addError?.code === '23505') {
-            console.log(`User ${userId} already added as participant (race condition)`);
+            `);
           } else {
-            console.error('Failed to add participant:', addError);
-            // Don't throw - continue to check if user is now a participant
-          }
+            }
         }
       } else if (participantIds.length === 0) {
-        // No participants at all - this is an error state
-        // If user is the creator, add them
         if (conversation.created_by === userId) {
           try {
             await supabaseAdmin
@@ -267,19 +236,15 @@ export class ChatService {
               });
             participantIds.push(userId);
           } catch (error) {
-            console.error('Failed to add creator as participant:', error);
-          }
+            }
         }
       } else if (participantIds.length === 2) {
-        // Has 2 participants but user is not one - access denied
         throw new Error('Conversation not found or access denied');
       }
     } else if (!isParticipant) {
-      // For group conversations, strict check
       throw new Error('Conversation not found or access denied');
     }
 
-    // Get participants with user info (reload to get updated list)
     const { data: participants, error: fetchParticipantsError } = await supabaseAdmin
       .from('conversation_participants')
       .select(`
@@ -298,11 +263,9 @@ export class ChatService {
       .eq('conversation_id', conversationId);
 
     if (fetchParticipantsError) {
-      console.error('Error fetching participants:', fetchParticipantsError);
       throw fetchParticipantsError;
     }
 
-    // Get unread count
     const { data: lastRead } = await supabaseAdmin
       .from('conversation_participants')
       .select('last_read_at')
@@ -340,7 +303,6 @@ export class ChatService {
     } as Conversation;
   }
 
-  // Get user conversations
   async getUserConversations(userId: string): Promise<Conversation[]> {
     const { data: participantConversations, error } = await supabaseAdmin
       .from('conversation_participants')
@@ -363,7 +325,6 @@ export class ChatService {
 
     if (convError) throw convError;
 
-    // Get participants and unread counts for each conversation
     const conversationsWithDetails = await Promise.all(
       (conversations || []).map(conv => this.getConversationById(conv.id, userId))
     );
@@ -371,7 +332,6 @@ export class ChatService {
     return conversationsWithDetails;
   }
 
-  // Send message
   async sendMessage(
     conversationId: string,
     senderId: string,
@@ -382,7 +342,6 @@ export class ChatService {
     fileSize?: number,
     replyToId?: string
   ): Promise<Message> {
-    // Get conversation first to check type
     const { data: conversation, error: convError } = await supabaseAdmin
       .from('conversations')
       .select('id, type')
@@ -393,7 +352,6 @@ export class ChatService {
       throw new Error('Conversation not found');
     }
 
-    // Verify user is participant
     const { data: participant, error: participantError } = await supabaseAdmin
       .from('conversation_participants')
       .select('user_id')
@@ -402,14 +360,11 @@ export class ChatService {
       .maybeSingle();
 
     if (participantError) {
-      console.error('Error checking participant:', participantError);
       throw new Error('Failed to verify participant status');
     }
 
-    // If not a participant, for direct conversations, try to add them
     if (!participant) {
       if (conversation.type === 'direct') {
-        // Get all participants
         const { data: allParticipants } = await supabaseAdmin
           .from('conversation_participants')
           .select('user_id')
@@ -417,8 +372,6 @@ export class ChatService {
         
         const participantIds = allParticipants?.map(p => p.user_id) || [];
         
-        // For direct conversations, if there's only 1 participant, add the sender
-        // OR if there are 0 participants, add the sender (edge case)
         if (participantIds.length === 0 || participantIds.length === 1) {
           try {
             const { error: addError } = await supabaseAdmin
@@ -430,35 +383,25 @@ export class ChatService {
               });
             
             if (addError) {
-              // If unique constraint, user was already added (race condition)
               if (addError.code === '23505') {
-                console.log(`User ${senderId} already added as participant`);
-              } else {
-                console.error('Failed to add participant:', addError);
+                } else {
                 throw new Error('Not a participant in this conversation');
               }
             } else {
-              console.log(`✅ Added user ${senderId} as participant to direct conversation ${conversationId}`);
-            }
+              }
           } catch (error: any) {
-            // If it's a unique constraint error, user is already added
             if (error?.code === '23505') {
-              console.log(`User ${senderId} already added as participant (race condition)`);
+              `);
             } else {
-              console.error('Error adding participant:', error);
               throw new Error('Not a participant in this conversation');
             }
           }
         } else if (participantIds.length === 2) {
-          // Has 2 participants but sender is not one - this shouldn't happen for direct conversations
-          // But if it does, deny access
           throw new Error('Not a participant in this conversation');
         } else {
-          // More than 2 participants in a direct conversation - data corruption
           throw new Error('Invalid conversation state');
         }
       } else {
-        // Group conversation - strict check
         throw new Error('Not a participant in this conversation');
       }
     }
@@ -482,17 +425,14 @@ export class ChatService {
 
     if (error) throw error;
 
-    // Update conversation last_message_at
     await supabaseAdmin
       .from('conversations')
       .update({ last_message_at: new Date().toISOString() })
       .eq('id', conversationId);
 
-    // Get message with sender info
     return await this.getMessageById(messageId);
   }
 
-  // Get message by ID
   async getMessageById(messageId: string): Promise<Message> {
     const { data: message, error } = await supabaseAdmin
       .from('messages')
@@ -502,14 +442,12 @@ export class ChatService {
 
     if (error) throw error;
 
-    // Get sender info
     const { data: sender } = await supabaseAdmin
       .from('users')
       .select('id, first_name, last_name, avatar_url')
       .eq('id', message.sender_id)
       .single();
 
-    // Get reply_to message if exists
     let replyTo: Message | undefined;
     if (message.reply_to_id) {
       replyTo = await this.getMessageById(message.reply_to_id);
@@ -522,9 +460,7 @@ export class ChatService {
     } as Message;
   }
 
-  // Get messages for conversation
   async getConversationMessages(conversationId: string, userId: string, page = 1, limit = 50): Promise<Message[]> {
-    // Verify user is participant
     const { data: participant } = await supabaseAdmin
       .from('conversation_participants')
       .select('user_id')
@@ -548,7 +484,6 @@ export class ChatService {
 
     if (error) throw error;
 
-    // Get sender info for each message
     const messagesWithSenders = await Promise.all(
       (messages || []).map(async (msg) => {
         const { data: sender } = await supabaseAdmin
@@ -573,7 +508,6 @@ export class ChatService {
     return messagesWithSenders.reverse(); // Return in chronological order
   }
 
-  // Mark conversation as read
   async markAsRead(conversationId: string, userId: string): Promise<void> {
     await supabaseAdmin
       .from('conversation_participants')
@@ -582,7 +516,6 @@ export class ChatService {
       .eq('user_id', userId);
   }
 
-  // Save call history
   async saveCallHistory(
     conversationId: string,
     callerId: string,
@@ -613,7 +546,6 @@ export class ChatService {
     return callHistory as CallHistory;
   }
 
-  // Add reaction to message
   async addReaction(messageId: string, userId: string, emoji: string): Promise<void> {
     const { error } = await supabaseAdmin
       .from('message_reactions')
@@ -629,7 +561,6 @@ export class ChatService {
     if (error) throw error;
   }
 
-  // Remove reaction from message
   async removeReaction(messageId: string, userId: string, emoji: string): Promise<void> {
     const { error } = await supabaseAdmin
       .from('message_reactions')
@@ -641,7 +572,6 @@ export class ChatService {
     if (error) throw error;
   }
 
-  // Get reactions for a message
   async getMessageReactions(messageId: string): Promise<any[]> {
     const { data, error } = await supabaseAdmin
       .from('message_reactions')
@@ -658,9 +588,7 @@ export class ChatService {
     return data || [];
   }
 
-  // Edit message
   async editMessage(messageId: string, userId: string, newContent: string): Promise<Message> {
-    // Verify user is the sender
     const { data: message, error: fetchError } = await supabaseAdmin
       .from('messages')
       .select('sender_id')
@@ -687,9 +615,7 @@ export class ChatService {
     return await this.getMessageById(messageId);
   }
 
-  // Delete message
   async deleteMessage(messageId: string, userId: string): Promise<void> {
-    // Verify user is the sender
     const { data: message, error: fetchError } = await supabaseAdmin
       .from('messages')
       .select('sender_id')
@@ -713,7 +639,6 @@ export class ChatService {
     if (error) throw error;
   }
 
-  // Update online status
   async updateOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
     const { error } = await supabaseAdmin
       .from('user_online_status')
@@ -729,7 +654,6 @@ export class ChatService {
     if (error) throw error;
   }
 
-  // Get online status for users
   async getOnlineStatus(userIds: string[]): Promise<Map<string, { isOnline: boolean; lastSeen: string }>> {
     const { data, error } = await supabaseAdmin
       .from('user_online_status')
@@ -749,9 +673,7 @@ export class ChatService {
     return statusMap;
   }
 
-  // Add member to group
   async addGroupMember(conversationId: string, userId: string, addedBy: string): Promise<void> {
-    // Verify conversation is a group
     const { data: conversation, error: convError } = await supabaseAdmin
       .from('conversations')
       .select('type')
@@ -763,7 +685,6 @@ export class ChatService {
       throw new Error('Can only add members to group conversations');
     }
 
-    // Check if user is already a member
     const { data: existing } = await supabaseAdmin
       .from('conversation_participants')
       .select('id')
@@ -775,7 +696,6 @@ export class ChatService {
       throw new Error('User is already a member');
     }
 
-    // Add member
     const { error } = await supabaseAdmin
       .from('conversation_participants')
       .insert({
@@ -786,7 +706,6 @@ export class ChatService {
 
     if (error) throw error;
 
-    // Assign member role (default)
     await supabaseAdmin
       .from('conversation_roles')
       .upsert({
@@ -800,9 +719,7 @@ export class ChatService {
       });
   }
 
-  // Remove member from group
   async removeGroupMember(conversationId: string, userId: string, removedBy: string): Promise<void> {
-    // Verify conversation is a group
     const { data: conversation, error: convError } = await supabaseAdmin
       .from('conversations')
       .select('type')
@@ -814,7 +731,6 @@ export class ChatService {
       throw new Error('Can only remove members from group conversations');
     }
 
-    // Verify remover has permission (admin or moderator)
     const { data: role } = await supabaseAdmin
       .from('conversation_roles')
       .select('role')
@@ -826,7 +742,6 @@ export class ChatService {
       throw new Error('You do not have permission to remove members');
     }
 
-    // Remove member
     const { error } = await supabaseAdmin
       .from('conversation_participants')
       .delete()
@@ -835,7 +750,6 @@ export class ChatService {
 
     if (error) throw error;
 
-    // Remove role
     await supabaseAdmin
       .from('conversation_roles')
       .delete()
@@ -843,11 +757,9 @@ export class ChatService {
       .eq('user_id', userId);
   }
 
-  // Get recommended contacts for messaging
   async getRecommendedContacts(userId: string, limit: number = 10, page: number = 1): Promise<any[]> {
     const offset = (page - 1) * limit;
     
-    // Get users who have messaged with current user
     const { data: conversations, error: convError } = await supabaseAdmin
       .from('conversation_participants')
       .select('conversation_id')
@@ -857,7 +769,6 @@ export class ChatService {
 
     const conversationIds = conversations?.map(c => c.conversation_id) || [];
     
-    // Get all users (excluding current user) for suggestions
     const { data: allUsers, error: allUsersError } = await supabaseAdmin
       .from('users')
       .select('id, first_name, last_name, avatar_url, job')
@@ -866,7 +777,6 @@ export class ChatService {
     if (allUsersError) throw allUsersError;
     if (!allUsers) return [];
 
-    // Build scoring system
     const userScores = new Map<string, { user: any; score: number; lastMessageAt: string | null; messageCount: number }>();
     
     allUsers.forEach((user: any) => {
@@ -879,7 +789,6 @@ export class ChatService {
     });
 
     if (conversationIds.length > 0) {
-      // Get participants from user's conversations
       const { data: participants } = await supabaseAdmin
         .from('conversation_participants')
         .select('user_id, conversation_id')
@@ -889,7 +798,6 @@ export class ChatService {
       const participantIds = [...new Set(participants?.map(p => p.user_id) || [])];
 
       if (participantIds.length > 0) {
-        // Get message counts and last message time
         const { data: messages } = await supabaseAdmin
           .from('messages')
           .select('sender_id, conversation_id, created_at')
@@ -897,7 +805,6 @@ export class ChatService {
           .in('sender_id', participantIds)
           .order('created_at', { ascending: false });
 
-        // Calculate message stats per user
         messages?.forEach((msg: any) => {
           const userData = userScores.get(msg.sender_id);
           if (userData) {
@@ -908,15 +815,12 @@ export class ChatService {
           }
         });
 
-        // Calculate scores
         userScores.forEach((userData, userId) => {
           let score = 0;
           
-          // Has messaged before: +100 points
           if (userData.messageCount > 0) {
             score += 100;
             
-            // Recent message: +50 points if within last 7 days
             if (userData.lastMessageAt) {
               const daysSinceLastMessage = (Date.now() - new Date(userData.lastMessageAt).getTime()) / (1000 * 60 * 60 * 24);
               if (daysSinceLastMessage < 7) {
@@ -926,7 +830,6 @@ export class ChatService {
               }
             }
             
-            // Message count: +1 point per message (capped at 50)
             score += Math.min(userData.messageCount, 50);
           }
           
@@ -935,7 +838,6 @@ export class ChatService {
       }
     }
 
-    // Get follows/interactions for users who haven't messaged
     const { data: followData } = await supabaseAdmin
       .from('user_interactions')
       .select('target_user_id')
@@ -944,7 +846,6 @@ export class ChatService {
     
     const followedUserIds = new Set(followData?.map(f => f.target_user_id) || []);
     
-    // Boost score for followed users who haven't messaged
     followedUserIds.forEach(followedId => {
       const userData = userScores.get(followedId);
       if (userData && userData.score === 0) {
@@ -952,13 +853,11 @@ export class ChatService {
       }
     });
 
-    // Convert to array and sort by score
     const recommended = Array.from(userScores.values())
       .sort((a, b) => {
         if (b.score !== a.score) {
           return b.score - a.score;
         }
-        // If same score, sort by last message time
         if (a.lastMessageAt && b.lastMessageAt) {
           return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
         }

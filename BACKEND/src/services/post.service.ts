@@ -5,7 +5,6 @@ import { AIService } from './ai.service';
 const aiService = new AIService();
 
 export class PostService {
-  // Create post
   async createPost(
     userId: string,
     data: CreatePostDTO,
@@ -14,14 +13,12 @@ export class PostService {
     let { title, description, category_id, visibility = 'public' } = data;
     let caption: string | undefined;
 
-    // Parse tags if it's a string (from FormData)
     let tags: string[] | undefined;
     if (data.tags) {
       if (typeof data.tags === 'string') {
         try {
           tags = JSON.parse(data.tags);
         } catch (e) {
-          // If parsing fails, split by comma
           tags = data.tags.split(',').map(t => t.trim()).filter(t => t);
         }
       } else {
@@ -29,75 +26,57 @@ export class PostService {
       }
     }
 
-    // Generate AI metadata from first image using CLIP + BLIP
     let aiGeneratedMetadata: any = null;
     if (images && images.length > 0) {
       try {
-        console.log('🤖 Starting AI metadata generation...');
         const firstImage = images[0];
 
-        // Get categories for CLIP classification
         const { data: categories } = await supabase
           .from('categories')
           .select('id, name, description');
 
-        console.log(`📂 Found ${categories?.length || 0} categories for classification`);
-
-        // Generate metadata using improved AI service (with filename fallback)
         aiGeneratedMetadata = await aiService.generateMetadataFromImage(
           firstImage.path,
           categories || [],
           firstImage.filename
         );
 
-        // Store caption
         caption = aiGeneratedMetadata.caption;
 
-        // Use AI-generated data if not provided by user
         if (!title && aiGeneratedMetadata.caption) {
           title = aiGeneratedMetadata.caption.substring(0, 100); // Use caption as title
-          console.log(`📝 Auto-generated title: "${title}"`);
-        }
+          }
         if (!description && aiGeneratedMetadata.description) {
           description = aiGeneratedMetadata.description;
-          console.log(`📝 Auto-generated description: "${description.substring(0, 50)}..."`);
+          }..."`);
         }
         if ((!tags || tags.length === 0) && aiGeneratedMetadata.tags.length > 0) {
           tags = aiGeneratedMetadata.tags;
-          console.log(`🏷️ Auto-generated tags: ${tags.join(', ')}`);
+          }`);
         }
         if (!category_id && aiGeneratedMetadata.category_id) {
           category_id = aiGeneratedMetadata.category_id;
-          console.log(`📁 Auto-selected category ID: ${category_id}`);
-        }
+          }
 
-        console.log('✅ Final post metadata:', {
-          title: title?.substring(0, 50),
+        ,
           description: description?.substring(0, 50),
           category_id,
           tags,
           caption: caption?.substring(0, 50),
         });
       } catch (error: any) {
-        console.error('❌ AI metadata generation failed:', error.message);
-
-        // Fallback: use filename if everything fails
         if (!title && images[0].filename) {
           title = images[0].filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-          console.log(`📝 Fallback title from filename: "${title}"`);
-        }
+          }
       }
     }
 
-    // Ensure title is not empty (required field)
     if (!title || title.trim() === '') {
       title = 'Untitled Post';
-      console.log('⚠️ No title provided, using default: "Untitled Post"');
-    }
+      }
 
-    console.log('📝 Creating post:', { userId, title, category_id, tags, visibility, caption: caption?.substring(0, 30) });
+    });
 
-    // Create post with caption
     const { data: newPost, error: postError } = await supabase
       .from('posts')
       .insert({
@@ -113,18 +92,15 @@ export class PostService {
       .single();
 
     if (postError || !newPost) {
-      console.error('❌ Post creation error:', postError);
       throw new Error(postError?.message || 'Failed to create post');
     }
 
-    // Parse user captions if provided
     let userCaptions: string[] = [];
     if (data.user_captions) {
       if (typeof data.user_captions === 'string') {
         try {
           userCaptions = JSON.parse(data.user_captions);
         } catch (e) {
-          // If parsing fails, treat as single caption or empty
           userCaptions = data.user_captions ? [data.user_captions] : [];
         }
       } else {
@@ -132,44 +108,34 @@ export class PostService {
       }
     }
 
-    // Get categories for CLIP classification
     const { data: categories } = await supabase
       .from('categories')
       .select('id, name, description');
 
     const categoryLabels = categories?.map(c => c.name) || [];
 
-    // Upload images and generate AI features
     if (images && images.length > 0) {
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         const imagePath = image.path;
         const imageUrl = `/uploads/${image.filename}`;
 
-        // Generate AI features (embedding)
         let embedding: number[] | undefined;
         try {
           const aiFeatures = await aiService.generateImageFeatures(imagePath);
           embedding = aiFeatures.embedding;
         } catch (error) {
-          console.error('AI feature generation failed:', error);
-        }
+          }
 
-        // Generate AI caption using CLIP
         let aiCaption: string | undefined;
         try {
-          console.log(`🤖 Generating CLIP caption for image ${i + 1}...`);
           const clipResult = await aiService.generateCaptionWithClip(imagePath, categoryLabels);
           aiCaption = clipResult.caption;
-          console.log(`✅ Generated CLIP caption: "${aiCaption}"`);
-        } catch (error) {
-          console.error('CLIP caption generation failed:', error);
-        }
+          } catch (error) {
+          }
 
-        // Get user caption for this image (if provided)
         const userCaption = userCaptions[i]?.trim() || undefined;
 
-        // Prepare image data
         const imageData: any = {
           post_id: newPost.id,
           image_url: imageUrl,
@@ -177,45 +143,42 @@ export class PostService {
           display_order: i,
         };
 
-        // Only add embedding if it's valid (has elements)
         if (embedding && embedding.length > 0) {
+          if (embedding.length !== 512) {
+            if (embedding.length < 512) {
+              embedding = [...embedding, ...new Array(512 - embedding.length).fill(0)];
+            } else {
+              embedding = embedding.slice(0, 512);
+            }
+          }
           imageData.embedding = embedding;
         }
 
-        // Add AI caption if exists (only if column exists)
         if (aiCaption) {
           imageData.ai_caption = aiCaption;
         }
 
-        // Add user caption if exists (only if column exists)
         if (userCaption) {
           imageData.user_caption = userCaption;
         }
 
-        // Save image to database
         const { error: imageError } = await supabase
           .from('post_images')
           .insert(imageData);
         
         if (imageError) {
-          // If error is about missing columns, log helpful message
           if (imageError.message?.includes('ai_caption') || imageError.message?.includes('user_caption')) {
-            console.error('❌ [POST] Database columns missing. Please run migration:');
-            console.error('📝 Run MIGRATION_AI_CAPTION.sql in Supabase SQL Editor');
             throw new Error('Database migration required. Please run MIGRATION_AI_CAPTION.sql in Supabase SQL Editor');
           }
           throw imageError;
         }
 
         if (imageError) {
-          console.error('Failed to save image:', imageError);
-        } else {
-          console.log(`✅ Saved image ${i + 1} with AI caption and user caption`);
-        }
+          } else {
+          }
       }
     }
 
-    // Fetch post with images
     const { data: postImages } = await supabase
       .from('post_images')
       .select('*')
@@ -228,9 +191,7 @@ export class PostService {
     };
   }
 
-  // Get post by ID
   async getPostById(postId: string, userId?: string): Promise<any> {
-    // Get post with user info and category
     const { data: post, error } = await supabase
       .from('posts')
       .select(`
@@ -245,14 +206,12 @@ export class PostService {
       throw new Error('Post not found');
     }
 
-    // Get images
     const { data: images } = await supabase
       .from('post_images')
       .select('*')
       .eq('post_id', postId)
       .order('display_order');
 
-    // Check if user liked the post
     let isLiked = false;
     if (userId) {
       const { data: like } = await supabase
@@ -264,11 +223,9 @@ export class PostService {
 
       isLiked = !!like;
 
-      // Track view activity
       await this.trackActivity(userId, postId, 'view');
     }
 
-    // Increment view count
     await supabase
       .from('posts')
       .update({ view_count: post.view_count + 1 })
@@ -281,7 +238,6 @@ export class PostService {
     };
   }
 
-  // Get posts list
   async getPosts(
     page: number = 1,
     limit: number = 20,
@@ -301,7 +257,6 @@ export class PostService {
         category:categories(id, name, slug)
       `, { count: 'exact' });
 
-    // Apply filters
     if (filters?.userId) {
       query = query.eq('user_id', filters.userId);
     }
@@ -319,7 +274,6 @@ export class PostService {
     if (filters?.search) {
       const searchTerm = filters.search.toLowerCase();
       
-      // Get post IDs that match search in title/description
       const { data: postsByText } = await supabase
         .from('posts')
         .select('id')
@@ -327,7 +281,6 @@ export class PostService {
       
       const postIdsByText = postsByText?.map(p => p.id) || [];
       
-      // Get post IDs that match search in ai_caption from post_images
       const { data: imagesByCaption } = await supabase
         .from('post_images')
         .select('post_id')
@@ -335,7 +288,6 @@ export class PostService {
       
       const postIdsByCaption = imagesByCaption?.map(img => img.post_id) || [];
       
-      // Get category IDs that match search
       const { data: categoriesBySearch } = await supabase
         .from('categories')
         .select('id')
@@ -343,40 +295,52 @@ export class PostService {
       
       const categoryIdsBySearch = categoriesBySearch?.map(c => c.id) || [];
       
-      // Combine all post IDs (remove duplicates)
       const allPostIds = [...new Set([...postIdsByText, ...postIdsByCaption])];
       
-      // Build filter: posts matching text/caption OR posts with matching category
       if (allPostIds.length > 0 || categoryIdsBySearch.length > 0) {
         if (allPostIds.length > 0 && categoryIdsBySearch.length > 0) {
-          // Both conditions: posts matching IDs OR posts with matching category
           query = query.or(`id.in.(${allPostIds.join(',')}),category_id.in.(${categoryIdsBySearch.join(',')})`);
         } else if (allPostIds.length > 0) {
-          // Only post IDs
           query = query.in('id', allPostIds);
         } else if (categoryIdsBySearch.length > 0) {
-          // Only category filter
           query = query.in('category_id', categoryIdsBySearch);
         }
       } else {
-        // No matches - return empty result by using non-existent ID
         query = query.eq('id', '00000000-0000-0000-0000-000000000000');
       }
     }
 
-    // Pagination
-    const offset = (page - 1) * limit;
-    query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
+    let followedUserIds: string[] = [];
+    if (currentUserId) {
+      const { data: follows } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', currentUserId);
+      
+      followedUserIds = follows?.map(f => f.following_id) || [];
+    }
 
-    const { data: posts, error, count } = await query;
+    const { data: allPosts, error, count } = await query.order('created_at', { ascending: false });
 
     if (error) {
       throw new Error('Failed to fetch posts');
     }
 
-    // Get first image and check if liked for each post
+    const sortedPosts = (allPosts || []).sort((a, b) => {
+      const aIsFollowed = followedUserIds.includes(a.user_id);
+      const bIsFollowed = followedUserIds.includes(b.user_id);
+      
+      if (aIsFollowed && !bIsFollowed) return -1;
+      if (!aIsFollowed && bIsFollowed) return 1;
+      
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    const offset = (page - 1) * limit;
+    const paginatedPosts = sortedPosts.slice(offset, offset + limit);
+
     const postsWithImages = await Promise.all(
-      (posts || []).map(async (post) => {
+      paginatedPosts.map(async (post) => {
         const { data: images } = await supabase
           .from('post_images')
           .select('*')
@@ -384,7 +348,6 @@ export class PostService {
           .order('display_order')
           .limit(1);
 
-        // Check if current user liked this post
         let isLiked = false;
         if (currentUserId) {
           const { data: like } = await supabase
@@ -411,7 +374,83 @@ export class PostService {
     };
   }
 
-  // Track user activity
+  async updatePost(
+    postId: string,
+    userId: string,
+    data: UpdatePostDTO
+  ): Promise<Post> {
+    const { data: post, error: fetchError } = await supabase
+      .from('posts')
+      .select('user_id')
+      .eq('id', postId)
+      .single();
+
+    if (fetchError || !post) {
+      throw new Error('Post not found');
+    }
+
+    if (post.user_id !== userId) {
+      throw new Error('You can only edit your own posts');
+    }
+
+    const updateData: any = {};
+
+    if (data.title !== undefined) {
+      if (!data.title || data.title.trim() === '') {
+        throw new Error('Title is required');
+      }
+      updateData.title = data.title.trim();
+    }
+
+    if (data.description !== undefined) {
+      updateData.description = data.description.trim() || null;
+    }
+
+    if (data.category_id !== undefined) {
+      updateData.category_id = data.category_id || null;
+    }
+
+    if (data.tags !== undefined) {
+      updateData.tags = data.tags.length > 0 ? data.tags : null;
+    }
+
+    if (data.visibility !== undefined) {
+      updateData.visibility = data.visibility;
+    }
+
+    const { data: updatedPost, error: updateError } = await supabase
+      .from('posts')
+      .update(updateData)
+      .eq('id', postId)
+      .select()
+      .single();
+
+    if (updateError || !updatedPost) {
+      throw new Error('Failed to update post');
+    }
+
+    const { data: postWithRelations } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        user:users(id, first_name, last_name, avatar_url),
+        category:categories(id, name, slug)
+      `)
+      .eq('id', postId)
+      .single();
+
+    const { data: images } = await supabase
+      .from('post_images')
+      .select('*')
+      .eq('post_id', postId)
+      .order('display_order');
+
+    return {
+      ...postWithRelations,
+      images: images || [],
+    };
+  }
+
   async trackActivity(userId: string, postId: string, activityType: string): Promise<void> {
     await supabase.from('user_activities').insert({
       user_id: userId,

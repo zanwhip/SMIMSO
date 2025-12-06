@@ -3,11 +3,7 @@ import { Comment } from '../types';
 import { notificationService } from './notification.service';
 
 export class InteractionService {
-  // Like post
   async likePost(userId: string, postId: string): Promise<void> {
-    console.log('❤️ Like post:', { userId, postId });
-
-    // Check if already liked
     const { data: existingLike, error: checkError } = await supabase
       .from('likes')
       .select('id')
@@ -16,29 +12,23 @@ export class InteractionService {
       .maybeSingle();
 
     if (checkError) {
-      console.error('❌ Error checking existing like:', checkError);
       throw new Error('Failed to check like status');
     }
 
     if (existingLike) {
-      console.log('⚠️ Post already liked');
-      throw new Error('Post already liked');
+      await this.unlikePost(userId, postId);
+      return;
     }
 
-    // Add like
     const { error: insertError } = await supabase.from('likes').insert({
       user_id: userId,
       post_id: postId,
     });
 
     if (insertError) {
-      console.error('❌ Error inserting like:', insertError);
       throw new Error('Failed to like post: ' + insertError.message);
     }
 
-    console.log('✅ Like inserted successfully');
-
-    // Update like count and get post details
     const { data: post, error: postError } = await supabase
       .from('posts')
       .select('like_count, user_id, title')
@@ -46,8 +36,7 @@ export class InteractionService {
       .single();
 
     if (postError) {
-      console.error('❌ Error fetching post:', postError);
-    }
+      }
 
     if (post) {
       const { error: updateError } = await supabase
@@ -56,12 +45,10 @@ export class InteractionService {
         .eq('id', postId);
 
       if (updateError) {
-        console.error('❌ Error updating like count:', updateError);
-      } else {
-        console.log('✅ Like count updated:', (post.like_count || 0) + 1);
+        } else {
+        + 1);
       }
 
-      // Send notification to post owner (if not liking own post)
       if (post.user_id !== userId) {
         try {
           const { data: liker } = await supabase
@@ -77,14 +64,11 @@ export class InteractionService {
             related_user_id: userId,
             post_id: postId,
           });
-          console.log('✅ Like notification sent');
-        } catch (error) {
-          console.error('❌ Failed to send like notification:', error);
-        }
+          } catch (error) {
+          }
       }
     }
 
-    // Track activity
     await supabase.from('user_activities').insert({
       user_id: userId,
       post_id: postId,
@@ -92,10 +76,7 @@ export class InteractionService {
     });
   }
 
-  // Unlike post
   async unlikePost(userId: string, postId: string): Promise<void> {
-    console.log('💔 Unlike post:', { userId, postId });
-
     const { error: deleteError } = await supabase
       .from('likes')
       .delete()
@@ -103,13 +84,9 @@ export class InteractionService {
       .eq('post_id', postId);
 
     if (deleteError) {
-      console.error('❌ Error deleting like:', deleteError);
       throw new Error('Failed to unlike post: ' + deleteError.message);
     }
 
-    console.log('✅ Like deleted successfully');
-
-    // Update like count
     const { data: post, error: postError } = await supabase
       .from('posts')
       .select('like_count')
@@ -117,8 +94,7 @@ export class InteractionService {
       .single();
 
     if (postError) {
-      console.error('❌ Error fetching post:', postError);
-    }
+      }
 
     if (post && (post.like_count || 0) > 0) {
       const { error: updateError } = await supabase
@@ -127,14 +103,12 @@ export class InteractionService {
         .eq('id', postId);
 
       if (updateError) {
-        console.error('❌ Error updating like count:', updateError);
-      } else {
-        console.log('✅ Like count updated:', (post.like_count || 0) - 1);
+        } else {
+        - 1);
       }
     }
   }
 
-  // Add comment
   async addComment(
     userId: string,
     postId: string,
@@ -156,7 +130,6 @@ export class InteractionService {
       throw new Error('Failed to add comment');
     }
 
-    // Update comment count and get post details
     const { data: post } = await supabase
       .from('posts')
       .select('comment_count, user_id, title')
@@ -169,7 +142,6 @@ export class InteractionService {
         .update({ comment_count: post.comment_count + 1 })
         .eq('id', postId);
 
-      // Send notification to post owner (if not commenting on own post)
       if (post.user_id !== userId) {
         try {
           const { data: commenter } = await supabase
@@ -185,14 +157,11 @@ export class InteractionService {
             related_user_id: userId,
             post_id: postId,
           });
-          console.log('✅ Comment notification sent');
-        } catch (error) {
-          console.error('❌ Failed to send comment notification:', error);
-        }
+          } catch (error) {
+          }
       }
     }
 
-    // Track activity
     await supabase.from('user_activities').insert({
       user_id: userId,
       post_id: postId,
@@ -202,7 +171,6 @@ export class InteractionService {
     return comment;
   }
 
-  // Get comments
   async getComments(postId: string): Promise<any[]> {
     const { data: comments, error } = await supabase
       .from('comments')
@@ -220,7 +188,6 @@ export class InteractionService {
     return comments || [];
   }
 
-  // Delete comment
   async deleteComment(userId: string, commentId: string): Promise<void> {
     const { data: comment } = await supabase
       .from('comments')
@@ -242,7 +209,6 @@ export class InteractionService {
       throw new Error('Failed to delete comment');
     }
 
-    // Update comment count
     const { data: post } = await supabase
       .from('posts')
       .select('comment_count')
@@ -257,7 +223,6 @@ export class InteractionService {
     }
   }
 
-  // Save post
   async savePost(userId: string, postId: string): Promise<void> {
     const { data: existing } = await supabase
       .from('saved_posts')
@@ -279,7 +244,6 @@ export class InteractionService {
       throw new Error('Failed to save post');
     }
 
-    // Track activity
     await supabase.from('user_activities').insert({
       user_id: userId,
       post_id: postId,
@@ -287,7 +251,6 @@ export class InteractionService {
     });
   }
 
-  // Unsave post
   async unsavePost(userId: string, postId: string): Promise<void> {
     const { error } = await supabase
       .from('saved_posts')
@@ -300,7 +263,6 @@ export class InteractionService {
     }
   }
 
-  // Get saved posts
   async getSavedPosts(userId: string, page: number = 1, limit: number = 20): Promise<any> {
     const offset = (page - 1) * limit;
 

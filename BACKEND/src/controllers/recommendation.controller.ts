@@ -6,7 +6,6 @@ import { AuthRequest } from '../types';
 const recommendationService = new RecommendationService();
 
 export class RecommendationController {
-  // Get similar users
   async getSimilarUsers(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {

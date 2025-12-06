@@ -11,10 +11,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Client for public operations
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Admin client for privileged operations
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 export default supabase;

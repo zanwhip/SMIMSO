@@ -6,6 +6,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { FiHeart } from 'react-icons/fi';
+import FollowButton from './FollowButton';
 
 interface Creator {
   id: string;
@@ -87,9 +88,9 @@ export default function Sidebar() {
     <div className="w-full space-y-6">
       {/* Top Creators */}
       {topCreators.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-            <FiHeart className="mr-2 text-red-500" />
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-medium p-6 animate-fade-in">
+          <h3 className="font-bold text-lg text-gray-900 mb-5 flex items-center">
+            <FiHeart className="mr-2 text-red-500" size={20} />
             Top Creators
           </h3>
           <div className="space-y-3">
@@ -97,7 +98,7 @@ export default function Sidebar() {
               <Link
                 key={creator.id}
                 href={`/profile/${creator.id}`}
-                className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded-lg transition"
+                className="flex items-center space-x-3 hover:bg-gradient-to-r hover:from-primary-50 hover:to-secondary-50 p-3 rounded-xl transition-all duration-300 group card-hover"
               >
                 <div className="relative w-10 h-10 flex-shrink-0">
                   {creator.avatar_url ? (
@@ -123,6 +124,7 @@ export default function Sidebar() {
                     {creator.totalLikes} likes
                   </p>
                 </div>
+                <FollowButton userId={creator.id} size="sm" variant="minimal" />
               </Link>
             ))}
           </div>
@@ -131,8 +133,8 @@ export default function Sidebar() {
 
       {/* Related Users */}
       {relatedUsers.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <h3 className="font-semibold text-gray-900 mb-4">
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-medium p-6 animate-fade-in">
+          <h3 className="font-bold text-lg text-gray-900 mb-5">
             People You May Know
           </h3>
           <div className="space-y-3">
@@ -140,7 +142,7 @@ export default function Sidebar() {
               <Link
                 key={user.id}
                 href={`/profile/${user.id}`}
-                className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded-lg transition"
+                className="flex items-center space-x-3 hover:bg-gradient-to-r hover:from-primary-50 hover:to-secondary-50 p-3 rounded-xl transition-all duration-300 group card-hover"
               >
                 <div className="relative w-10 h-10 flex-shrink-0">
                   {user.avatar_url ? (
@@ -165,6 +167,7 @@ export default function Sidebar() {
                     <p className="text-xs text-gray-500 truncate">{user.job}</p>
                   )}
                 </div>
+                <FollowButton userId={user.id} size="sm" variant="minimal" />
               </Link>
             ))}
           </div>

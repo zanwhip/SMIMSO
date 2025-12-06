@@ -194,7 +194,7 @@ export default function CreatePostPage() {
     // }
 
     setIsLoading(true);
-    const loadingToast = toast.loading('📤 Đang tạo bài viết...');
+    const loadingToast = toast.loading('📤 Creating post...');
 
     try {
       const formDataToSend = new FormData();
@@ -240,13 +240,13 @@ export default function CreatePostPage() {
       });
 
       toast.dismiss(loadingToast);
-      toast.success('✅ Bài viết đã được tạo thành công!');
+      toast.success('✅ Post created successfully!');
       // Redirect to home and force refresh
       router.push('/?refresh=' + Date.now());
     } catch (error: any) {
       toast.dismiss(loadingToast);
       console.error('❌ Post creation error:', error);
-      toast.error(error.response?.data?.error || 'Không thể tạo bài viết');
+      toast.error(error.response?.data?.error || 'Failed to create post');
     } finally {
       setIsLoading(false);
     }
@@ -257,12 +257,14 @@ export default function CreatePostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Create New Post</h1>
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <div className="bg-white/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-large p-4 sm:p-6 md:p-8 animate-fade-in">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent mb-4 sm:mb-6 md:mb-8">
+            Create New Post
+          </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Image Upload */}
@@ -295,9 +297,9 @@ export default function CreatePostPage() {
                         {/* User Caption - only field visible to user */}
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Caption của bạn <span className="text-gray-500">(tùy chọn)</span>
+                            Your Caption <span className="text-gray-500">(optional)</span>
                             {isGeneratingCaptions[index] && (
-                              <span className="ml-2 text-purple-500 text-xs">(AI đang tạo caption...)</span>
+                              <span className="ml-2 text-purple-500 text-xs">(AI generating caption...)</span>
                             )}
                           </label>
                           <textarea
@@ -305,7 +307,7 @@ export default function CreatePostPage() {
                             onChange={(e) => updateUserCaption(index, e.target.value)}
                             rows={2}
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                            placeholder="Nhập caption của bạn cho hình ảnh này (để trống nếu không muốn nhập)..."
+                            placeholder="Enter your caption for this image (leave empty if you don't want to add one)..."
                           />
                         </div>
                         {/* AI Caption is generated but hidden - saved to database automatically */}
@@ -317,20 +319,20 @@ export default function CreatePostPage() {
 
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition ${
+                className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 ${
                   isDragActive
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? 'border-primary-500 bg-gradient-to-br from-primary-50 to-secondary-50 scale-105 shadow-medium'
+                    : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50 shadow-soft hover:shadow-medium'
                 }`}
               >
                 <input {...getInputProps()} />
-                <FiUpload className="mx-auto text-gray-400 mb-2" size={32} />
-                <p className="text-sm text-gray-600">
+                <FiUpload className={`mx-auto mb-4 transition-all duration-300 ${isDragActive ? 'text-primary-500 scale-125' : 'text-gray-400'}`} size={40} />
+                <p className="text-base font-medium text-gray-700 mb-2">
                   {isDragActive
                     ? 'Drop images here...'
                     : 'Drag & drop images or click to select'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm text-gray-500">
                   Supported: JPG, PNG, WebP (Max 10 images)
                 </p>
               </div>
@@ -348,7 +350,7 @@ export default function CreatePostPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, visibility: e.target.value as any })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
               >
                 <option value="public">Public</option>
                 <option value="friends">Friends</option>
@@ -361,14 +363,14 @@ export default function CreatePostPage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                className="px-6 py-2.5 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-300 font-medium shadow-soft hover:shadow-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-6 py-2 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-lg hover:from-primary-700 hover:to-secondary-700 disabled:opacity-50 transition"
+                className="px-8 py-2.5 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-xl hover:from-primary-700 hover:to-secondary-700 disabled:opacity-50 transition-all duration-300 shadow-medium hover:shadow-large hover:scale-[1.02] active:scale-[0.98] font-semibold ripple"
               >
                 {isLoading ? 'Publishing...' : 'Publish'}
               </button>

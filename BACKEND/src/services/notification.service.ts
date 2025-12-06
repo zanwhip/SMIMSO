@@ -9,7 +9,6 @@ interface SSEClient {
 export class NotificationService {
   private clients: Map<string, SSEClient[]> = new Map();
 
-  // Add SSE client
   addClient(userId: string, res: Response) {
     const client: SSEClient = { userId, response: res };
     
@@ -19,9 +18,8 @@ export class NotificationService {
     
     this.clients.get(userId)!.push(client);
     
-    console.log(`✅ SSE client connected: ${userId} (Total: ${this.clients.get(userId)!.length})`);
+    !.length})`);
     
-    // Send initial connection message
     this.sendToClient(client, {
       type: 'connected',
       message: 'Connected to notification stream',
@@ -29,7 +27,6 @@ export class NotificationService {
     });
   }
 
-  // Remove SSE client
   removeClient(userId: string, res: Response) {
     const userClients = this.clients.get(userId);
     if (userClients) {
@@ -39,34 +36,27 @@ export class NotificationService {
       } else {
         this.clients.delete(userId);
       }
-      console.log(`❌ SSE client disconnected: ${userId}`);
-    }
+      }
   }
 
-  // Send notification to specific user
   sendToUser(userId: string, notification: any) {
     const userClients = this.clients.get(userId);
     if (userClients && userClients.length > 0) {
-      console.log(`📤 Sending to ${userClients.length} client(s) for user ${userId}`);
+      for user ${userId}`);
       userClients.forEach(client => {
         this.sendToClient(client, notification);
       });
-      console.log(`✅ Sent notification to ${userId}:`, notification.type);
-    } else {
-      console.log(`⚠️ No connected clients for user ${userId}`);
-    }
+      } else {
+      }
   }
 
-  // Send to specific client
   private sendToClient(client: SSEClient, data: any) {
     try {
       client.response.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (error) {
-      console.error('Failed to send to client:', error);
-    }
+      }
   }
 
-  // Create notification in database
   async createNotification(data: {
     user_id: string;
     type: 'like' | 'comment' | 'follow' | 'mention';
@@ -87,12 +77,6 @@ export class NotificationService {
 
       if (error) throw error;
 
-      // Send via SSE
-      console.log(`📤 Sending SSE notification to user ${data.user_id}:`, {
-        type: data.type,
-        content: data.content,
-      });
-
       this.sendToUser(data.user_id, {
         type: 'notification',
         data: notification,
@@ -101,12 +85,10 @@ export class NotificationService {
 
       return notification;
     } catch (error: any) {
-      console.error('Failed to create notification:', error);
       throw error;
     }
   }
 
-  // Get unread count
   async getUnreadCount(userId: string): Promise<number> {
     const { count, error } = await supabase
       .from('notifications')
@@ -118,7 +100,6 @@ export class NotificationService {
     return count || 0;
   }
 
-  // Mark as read
   async markAsRead(notificationId: string, userId: string) {
     const { error } = await supabase
       .from('notifications')
@@ -129,7 +110,6 @@ export class NotificationService {
     if (error) throw error;
   }
 
-  // Mark all as read
   async markAllAsRead(userId: string) {
     const { error } = await supabase
       .from('notifications')
@@ -140,11 +120,9 @@ export class NotificationService {
     if (error) throw error;
   }
 
-  // Get notifications with unread count
   async getNotifications(userId: string, page: number = 1, limit: number = 20) {
     const offset = (page - 1) * limit;
 
-    // Get notifications
     const { data, error, count } = await supabase
       .from('notifications')
       .select(`
@@ -158,7 +136,6 @@ export class NotificationService {
 
     if (error) throw error;
 
-    // Get unread count
     const unreadCount = await this.getUnreadCount(userId);
 
     return {
@@ -169,6 +146,5 @@ export class NotificationService {
   }
 }
 
-// Export singleton instance for use across the application
 export const notificationService = new NotificationService();
 

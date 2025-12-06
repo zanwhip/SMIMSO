@@ -2,8 +2,7 @@ import { supabase } from '../config/supabase';
 import { User } from '../types';
 
 export class UserService {
-  // Get user profile
-  async getUserProfile(userId: string): Promise<any> {
+  async getUserProfile(userId: string, currentUserId?: string): Promise<any> {
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -14,7 +13,6 @@ export class UserService {
       throw new Error('User not found');
     }
 
-    // Get user statistics
     const { count: postCount } = await supabase
       .from('posts')
       .select('*', { count: 'exact', head: true })
@@ -28,7 +26,28 @@ export class UserService {
     const totalLikes = posts?.reduce((sum, post) => sum + post.like_count, 0) || 0;
     const totalComments = posts?.reduce((sum, post) => sum + post.comment_count, 0) || 0;
 
-    // Get survey data
+    const { count: followerCount } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('following_id', userId);
+
+    const { count: followingCount } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('follower_id', userId);
+
+    let isFollowing = false;
+    if (currentUserId && currentUserId !== userId) {
+      const { data: follow } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', currentUserId)
+        .eq('following_id', userId)
+        .maybeSingle();
+      
+      isFollowing = !!follow;
+    }
+
     const { data: survey } = await supabase
       .from('surveys')
       .select('*')
@@ -41,12 +60,14 @@ export class UserService {
         postCount: postCount || 0,
         totalLikes,
         totalComments,
+        followerCount: followerCount || 0,
+        followingCount: followingCount || 0,
       },
+      isFollowing,
       survey: survey || null,
     };
   }
 
-  // Search users
   async searchUsers(query: string, limit: number = 20): Promise<User[]> {
     const { data: users, error } = await supabase
       .from('users')
@@ -58,7 +79,6 @@ export class UserService {
     return users || [];
   }
 
-  // Update user profile
   async updateUserProfile(userId: string, updates: Partial<User>): Promise<User> {
     const allowedFields = [
       'first_name',
@@ -92,14 +112,14 @@ export class UserService {
     return updatedUser;
   }
 
-  // Get user posts
-  async getUserPosts(userId: string, page: number = 1, limit: number = 20): Promise<any> {
+  async getUserPosts(userId: string, page: number = 1, limit: number = 20, currentUserId?: string): Promise<any> {
     const offset = (page - 1) * limit;
 
     const { data: posts, error, count } = await supabase
       .from('posts')
       .select(`
         *,
+        user:users(id, first_name, last_name, avatar_url),
         category:categories(id, name, slug)
       `, { count: 'exact' })
       .eq('user_id', userId)
@@ -110,7 +130,6 @@ export class UserService {
       throw new Error('Failed to fetch user posts');
     }
 
-    // Get first image for each post
     const postsWithImages = await Promise.all(
       (posts || []).map(async (post) => {
         const { data: images } = await supabase
@@ -120,9 +139,22 @@ export class UserService {
           .order('display_order')
           .limit(1);
 
+        let isLiked = false;
+        if (currentUserId) {
+          const { data: like } = await supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', post.id)
+            .eq('user_id', currentUserId)
+            .maybeSingle();
+
+          isLiked = !!like;
+        }
+
         return {
           ...post,
           image: images?.[0] || null,
+          isLiked,
         };
       })
     );
@@ -133,7 +165,6 @@ export class UserService {
     };
   }
 
-  // Get user activities
   async getUserActivities(userId: string, activityType?: string): Promise<any[]> {
     let query = supabase
       .from('user_activities')
@@ -162,7 +193,6 @@ export class UserService {
     return activities || [];
   }
 
-  // Get liked posts
   async getLikedPosts(userId: string, page: number = 1, limit: number = 20): Promise<any> {
     const offset = (page - 1) * limit;
 
@@ -184,7 +214,6 @@ export class UserService {
       throw new Error('Failed to fetch liked posts');
     }
 
-    // Get first image for each post
     const postsWithImages = await Promise.all(
       (likes || []).map(async (like) => {
         const { data: images } = await supabase
@@ -207,10 +236,8 @@ export class UserService {
     };
   }
 
-  // Get top creators (users with most likes on their posts)
   async getTopCreators(limit: number = 10): Promise<any[]> {
     try {
-      // Get all users with their total likes
       const { data: users, error } = await supabase
         .from('users')
         .select(`
@@ -225,11 +252,9 @@ export class UserService {
         .limit(100); // Get more users to calculate likes
 
       if (error || !users) {
-        console.error('Error fetching users:', error);
         return [];
       }
 
-      // Calculate total likes for each user
       const usersWithLikes = await Promise.all(
         users.map(async (user) => {
           const { data: posts } = await supabase
@@ -246,28 +271,23 @@ export class UserService {
         })
       );
 
-      // Sort by total likes and return top creators
       return usersWithLikes
         .filter(user => user.totalLikes > 0)
         .sort((a, b) => b.totalLikes - a.totalLikes)
         .slice(0, limit);
     } catch (error) {
-      console.error('Error getting top creators:', error);
       return [];
     }
   }
 
-  // Get related users (users with common interests, follows, etc.)
   async getRelatedUsers(userId: string, limit: number = 10): Promise<any[]> {
     try {
-      // Get current user's liked posts to find common interests
       const { data: userLikes } = await supabase
         .from('likes')
         .select('post_id')
         .eq('user_id', userId);
 
       if (!userLikes || userLikes.length === 0) {
-        // If no likes, return random active users
         const { data: randomUsers } = await supabase
           .from('users')
           .select(`
@@ -287,7 +307,6 @@ export class UserService {
 
       const likedPostIds = userLikes.map(like => like.post_id);
 
-      // Find users who liked the same posts
       const { data: commonLikes } = await supabase
         .from('likes')
         .select('user_id')
@@ -295,7 +314,6 @@ export class UserService {
         .neq('user_id', userId);
 
       if (!commonLikes || commonLikes.length === 0) {
-        // If no common likes, return random users
         const { data: randomUsers } = await supabase
           .from('users')
           .select(`
@@ -313,19 +331,16 @@ export class UserService {
         return randomUsers || [];
       }
 
-      // Count common likes for each user
       const userLikeCounts: { [key: string]: number } = {};
       commonLikes.forEach(like => {
         userLikeCounts[like.user_id] = (userLikeCounts[like.user_id] || 0) + 1;
       });
 
-      // Sort users by common likes count
       const sortedUserIds = Object.entries(userLikeCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, limit)
         .map(entry => entry[0]);
 
-      // Get user details
       const { data: relatedUsers } = await supabase
         .from('users')
         .select(`
@@ -341,9 +356,177 @@ export class UserService {
 
       return relatedUsers || [];
     } catch (error) {
-      console.error('Error getting related users:', error);
       return [];
     }
+  }
+
+  async followUser(followerId: string, followingId: string): Promise<void> {
+    if (followerId === followingId) {
+      throw new Error('Cannot follow yourself');
+    }
+
+    const { data: existingFollow } = await supabase
+      .from('follows')
+      .select('id')
+      .eq('follower_id', followerId)
+      .eq('following_id', followingId)
+      .maybeSingle();
+
+    if (existingFollow) {
+      throw new Error('Already following this user');
+    }
+
+    const { data: follower } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', followerId)
+      .single();
+
+    const { data: following } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', followingId)
+      .single();
+
+    if (!follower || !following) {
+      throw new Error('User not found');
+    }
+
+    const { error } = await supabase
+      .from('follows')
+      .insert({
+        follower_id: followerId,
+        following_id: followingId,
+      });
+
+    if (error) {
+      throw new Error('Failed to follow user');
+    }
+  }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<void> {
+    if (followerId === followingId) {
+      throw new Error('Cannot unfollow yourself');
+    }
+
+    const { error } = await supabase
+      .from('follows')
+      .delete()
+      .eq('follower_id', followerId)
+      .eq('following_id', followingId);
+
+    if (error) {
+      throw new Error('Failed to unfollow user');
+    }
+  }
+
+  async isFollowing(followerId: string, followingId: string): Promise<boolean> {
+    const { data } = await supabase
+      .from('follows')
+      .select('id')
+      .eq('follower_id', followerId)
+      .eq('following_id', followingId)
+      .maybeSingle();
+
+    return !!data;
+  }
+
+  async getFollowers(userId: string, page: number = 1, limit: number = 20, currentUserId?: string): Promise<any> {
+    const offset = (page - 1) * limit;
+
+    const { data: follows, error, count } = await supabase
+      .from('follows')
+      .select(`
+        *,
+        follower:users!follows_follower_id_fkey(
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          bio,
+          job
+        )
+      `, { count: 'exact' })
+      .eq('following_id', userId)
+      .range(offset, offset + limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error('Failed to fetch followers');
+    }
+
+    const followers = (follows || []).map(f => f.follower);
+
+    if (currentUserId) {
+      const followerIds = followers.map(f => f.id);
+      if (followerIds.length > 0) {
+        const { data: followStatuses } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', currentUserId)
+          .in('following_id', followerIds);
+
+        const followingSet = new Set(followStatuses?.map(f => f.following_id) || []);
+        
+        followers.forEach(follower => {
+          follower.isFollowing = followingSet.has(follower.id);
+        });
+      }
+    }
+
+    return {
+      followers,
+      total: count || 0,
+    };
+  }
+
+  async getFollowing(userId: string, page: number = 1, limit: number = 20, currentUserId?: string): Promise<any> {
+    const offset = (page - 1) * limit;
+
+    const { data: follows, error, count } = await supabase
+      .from('follows')
+      .select(`
+        *,
+        following:users!follows_following_id_fkey(
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          bio,
+          job
+        )
+      `, { count: 'exact' })
+      .eq('follower_id', userId)
+      .range(offset, offset + limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error('Failed to fetch following');
+    }
+
+    const following = (follows || []).map(f => f.following);
+
+    if (currentUserId) {
+      const followingIds = following.map(f => f.id);
+      if (followingIds.length > 0) {
+        const { data: followStatuses } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', currentUserId)
+          .in('following_id', followingIds);
+
+        const followingSet = new Set(followStatuses?.map(f => f.following_id) || []);
+        
+        following.forEach(user => {
+          user.isFollowing = followingSet.has(user.id);
+        });
+      }
+    }
+
+    return {
+      following,
+      total: count || 0,
+    };
   }
 }
 

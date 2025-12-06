@@ -6,7 +6,6 @@ import { uploadImagineFile } from '../middleware/upload.middleware';
 const router = Router();
 const imagineController = new ImagineController();
 
-// All routes require authentication
 router.post('/text-to-image', authMiddleware, (req, res) => 
   imagineController.textToImage(req, res)
 );

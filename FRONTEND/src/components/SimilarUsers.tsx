@@ -5,6 +5,7 @@ import Link from 'next/link';
 import api from '@/lib/api';
 import { FiUsers } from 'react-icons/fi';
 import UserAvatar from './UserAvatar';
+import FollowButton from './FollowButton';
 
 interface SimilarUser {
   id: string;
@@ -114,10 +115,11 @@ export default function SimilarUsers() {
               )}
             </div>
 
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center space-x-2">
               <div className="text-xs text-gray-500">
                 {Math.round(user.similarity_score * 100)}% match
               </div>
+              <FollowButton userId={user.id} size="sm" variant="minimal" />
             </div>
           </Link>
         ))}

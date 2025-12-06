@@ -78,28 +78,30 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Search Results</h1>
+        <div className="mb-8 animate-fade-in">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent mb-4 sm:mb-6">
+            Search
+          </h1>
           
           {/* Search Form */}
-          <form onSubmit={handleSearch} className="mb-6">
+          <form onSubmit={handleSearch} className="mb-8">
             <div className="relative max-w-2xl">
               <input
                 type="text"
                 placeholder="Search for posts, tags, or descriptions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-12 pr-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-5 py-4 pl-14 pr-24 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
               />
-              <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <FiSearch className="absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-400" size={22} />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-xl hover:from-primary-700 hover:to-secondary-700 transition-all duration-300 shadow-medium hover:shadow-large font-semibold"
               >
                 Search
               </button>
@@ -107,13 +109,13 @@ export default function SearchPage() {
           </form>
 
           {/* Category Filter */}
-          <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+          <div className="flex items-center space-x-3 overflow-x-auto pb-3 scrollbar-hide">
             <button
               onClick={() => handleCategoryChange('')}
-              className={`px-4 py-2 rounded-full whitespace-nowrap transition ${
+              className={`px-5 py-2.5 rounded-full whitespace-nowrap font-medium transition-all duration-300 ${
                 selectedCategory === ''
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                  ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-medium'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-soft hover:shadow-medium'
               }`}
             >
               All Categories
@@ -122,10 +124,10 @@ export default function SearchPage() {
               <button
                 key={category.id}
                 onClick={() => handleCategoryChange(category.id)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap transition ${
+                className={`px-5 py-2.5 rounded-full whitespace-nowrap font-medium transition-all duration-300 ${
                   selectedCategory === category.id
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                    ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-medium'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-soft hover:shadow-medium'
                 }`}
               >
                 {category.name}
@@ -136,24 +138,26 @@ export default function SearchPage() {
 
         {/* Results */}
         {isLoading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex justify-center py-16">
             <div className="spinner"></div>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <FiSearch className="mx-auto text-gray-400 mb-4" size={48} />
-            <p className="text-gray-500 text-lg">
+          <div className="text-center py-16 animate-fade-in">
+            <FiSearch className="mx-auto text-gray-400 mb-4" size={64} />
+            <p className="text-gray-500 text-lg font-medium">
               {searchQuery ? 'No results found' : 'Enter a search query to find posts'}
             </p>
           </div>
         ) : (
-          <div>
-            <p className="text-gray-600 mb-4">
-              Found <strong>{posts.length}</strong> result{posts.length !== 1 ? 's' : ''} for "{searchQuery}"
+          <div className="animate-fade-in">
+            <p className="text-gray-600 mb-6 font-medium">
+              Found <strong className="text-primary-600">{posts.length}</strong> result{posts.length !== 1 ? 's' : ''} for "{searchQuery}"
             </p>
             <div className="masonry-grid">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+              {posts.map((post, index) => (
+                <div key={post.id} style={{ animationDelay: `${index * 0.1}s` }} className="animate-fade-in">
+                  <PostCard post={post} />
+                </div>
               ))}
             </div>
           </div>

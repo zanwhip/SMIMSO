@@ -12,7 +12,6 @@ const interactionService = new InteractionService();
 const aiService = new AIService();
 
 export class PostController {
-  // Generate caption for a single image using CLIP
   async generateCaption(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -25,40 +24,26 @@ export class PostController {
         return errorResponse(res, 'Image file is required', 400);
       }
 
-      console.log('🤖 [POST] Generating CLIP caption for image:', file.filename);
-      console.log('📁 [POST] Image path:', file.path);
-
-      // Get categories for CLIP classification
       let categoryLabels: string[] = [];
       try {
         const { data: categories } = await supabase
           .from('categories')
           .select('id, name, description');
         categoryLabels = categories?.map(c => c.name) || [];
-        console.log(`📂 [POST] Found ${categoryLabels.length} categories`);
-      } catch (error: any) {
-        console.warn('⚠️ [POST] Failed to fetch categories:', error.message);
-      }
+        } catch (error: any) {
+        }
 
-      // Generate caption using CLIP
       let result;
       try {
-        console.log('🚀 [POST] Calling CLIP service...');
         result = await aiService.generateCaptionWithClip(file.path, categoryLabels);
         
-        console.log('📝 [POST] CLIP result:', JSON.stringify(result, null, 2));
+        );
         
-        // Ensure we always have a caption
         if (!result.caption || result.caption.trim() === '') {
-          console.warn('⚠️ [POST] Empty caption, using fallback');
           result.caption = 'Beautiful Image';
         }
         
-        console.log('✅ [POST] Generated CLIP caption:', result.caption);
-      } catch (error: any) {
-        console.error('❌ [POST] CLIP generation failed:', error.message);
-        console.error('❌ [POST] Error stack:', error.stack);
-        // Return fallback result
+        } catch (error: any) {
         result = {
           caption: 'Beautiful Image',
           category_label: undefined,
@@ -68,9 +53,6 @@ export class PostController {
 
       return successResponse(res, result, 'Caption generated successfully');
     } catch (error: any) {
-      console.error('❌ [POST] Generate caption error:', error);
-      console.error('❌ [POST] Error stack:', error.stack);
-      // Always return a response, even on error
       return successResponse(res, {
         caption: 'Beautiful Image',
         category_label: undefined,
@@ -79,7 +61,6 @@ export class PostController {
     }
   }
 
-  // Generate metadata from image (for preview before creating post)
   async generateMetadata(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -93,30 +74,22 @@ export class PostController {
       }
 
       const firstImage = images[0];
-      console.log('🤖 Generating metadata for image:', firstImage.filename);
-
-      // Get categories for CLIP classification
       const { data: categories } = await supabase
         .from('categories')
         .select('id, name, description');
 
-      // Generate metadata using AI
       const metadata = await aiService.generateMetadataFromImage(
         firstImage.path,
         categories || [],
         firstImage.filename
       );
 
-      console.log('✅ Generated metadata:', metadata);
-
       return successResponse(res, metadata, 'Metadata generated successfully');
     } catch (error: any) {
-      console.error('❌ Generate metadata error:', error);
       return errorResponse(res, error.message, 500);
     }
   }
 
-  // Create post
   async createPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -126,12 +99,6 @@ export class PostController {
       const data: CreatePostDTO = req.body;
       const images = req.files as Express.Multer.File[];
 
-      console.log('📝 Create post request:', {
-        user: req.user.id,
-        data,
-        filesCount: images?.length || 0,
-      });
-
       if (!images || images.length === 0) {
         return errorResponse(res, 'At least one image is required', 400);
       }
@@ -140,12 +107,10 @@ export class PostController {
 
       return successResponse(res, post, 'Post created successfully', 201);
     } catch (error: any) {
-      console.error('❌ Create post error:', error);
       return errorResponse(res, error.message, 400);
     }
   }
 
-  // Get post by ID
   async getPostById(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
@@ -159,7 +124,6 @@ export class PostController {
     }
   }
 
-  // Get posts list
   async getPosts(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -179,7 +143,6 @@ export class PostController {
     }
   }
 
-  // Get user posts
   async getUserPosts(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { userId } = req.params;
@@ -197,7 +160,6 @@ export class PostController {
     }
   }
 
-  // Like post
   async likePost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -205,18 +167,27 @@ export class PostController {
       }
 
       const { postId } = req.params;
-      console.log('❤️ Like post request:', { userId: req.user.id, postId });
+      const { data: existingLike } = await supabase
+        .from('likes')
+        .select('id')
+        .eq('user_id', req.user.id)
+        .eq('post_id', postId)
+        .maybeSingle();
+
+      const wasLiked = !!existingLike;
 
       await interactionService.likePost(req.user.id, postId);
 
-      return successResponse(res, null, 'Post liked successfully');
+      if (wasLiked) {
+        return successResponse(res, null, 'Post unliked successfully');
+      } else {
+        return successResponse(res, null, 'Post liked successfully');
+      }
     } catch (error: any) {
-      console.error('❌ Like post error:', error);
       return errorResponse(res, error.message, 400);
     }
   }
 
-  // Unlike post
   async unlikePost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -224,18 +195,14 @@ export class PostController {
       }
 
       const { postId } = req.params;
-      console.log('💔 Unlike post request:', { userId: req.user.id, postId });
-
       await interactionService.unlikePost(req.user.id, postId);
 
       return successResponse(res, null, 'Post unliked successfully');
     } catch (error: any) {
-      console.error('❌ Unlike post error:', error);
       return errorResponse(res, error.message, 400);
     }
   }
 
-  // Add comment
   async addComment(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -258,7 +225,6 @@ export class PostController {
     }
   }
 
-  // Get comments
   async getComments(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { postId } = req.params;
@@ -270,7 +236,6 @@ export class PostController {
     }
   }
 
-  // Save post
   async savePost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -286,7 +251,6 @@ export class PostController {
     }
   }
 
-  // Unsave post
   async unsavePost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -302,7 +266,23 @@ export class PostController {
     }
   }
 
-  // Upload file (for chat or posts)
+  async updatePost(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
+      const { id } = req.params;
+      const data: UpdatePostDTO = req.body;
+
+      const post = await postService.updatePost(id, req.user.id, data);
+
+      return successResponse(res, post, 'Post updated successfully');
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
   async uploadFile(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -318,7 +298,6 @@ export class PostController {
 
       return successResponse(res, { url: fileUrl, filename: file.filename }, 'File uploaded successfully');
     } catch (error: any) {
-      console.error('❌ Upload file error:', error);
       return errorResponse(res, error.message, 500);
     }
   }

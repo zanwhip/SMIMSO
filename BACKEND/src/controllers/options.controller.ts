@@ -5,7 +5,6 @@ import { successResponse, errorResponse } from '../utils/response';
 const optionsService = new OptionsService();
 
 export class OptionsController {
-  // Get all options for forms
   async getFormOptions(req: Request, res: Response): Promise<Response> {
     try {
       const options = await optionsService.getFormOptions();
@@ -15,7 +14,6 @@ export class OptionsController {
     }
   }
 
-  // Get job options
   async getJobOptions(req: Request, res: Response): Promise<Response> {
     try {
       const jobs = await optionsService.getJobOptions();
@@ -25,7 +23,6 @@ export class OptionsController {
     }
   }
 
-  // Get categories
   async getCategories(req: Request, res: Response): Promise<Response> {
     try {
       const categories = await optionsService.getCategories();

@@ -1,7 +1,6 @@
 import webpush from 'web-push';
 import { supabaseAdmin } from '../config/supabase';
 
-// Configure VAPID keys
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
@@ -22,7 +21,6 @@ export interface PushSubscription {
 }
 
 export class PushNotificationService {
-  // Save user's push subscription
   async saveSubscription(userId: string, subscription: PushSubscription): Promise<void> {
     const { error } = await supabaseAdmin
       .from('user_push_subscriptions')
@@ -39,7 +37,6 @@ export class PushNotificationService {
     }
   }
 
-  // Get user's push subscription
   async getSubscription(userId: string): Promise<PushSubscription | null> {
     const { data, error } = await supabaseAdmin
       .from('user_push_subscriptions')
@@ -54,7 +51,6 @@ export class PushNotificationService {
     return data.subscription as PushSubscription;
   }
 
-  // Send push notification to user
   async sendNotification(
     userId: string,
     title: string,
@@ -62,13 +58,11 @@ export class PushNotificationService {
     data?: any
   ): Promise<void> {
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-      console.warn('VAPID keys not configured. Push notifications disabled.');
       return;
     }
 
     const subscription = await this.getSubscription(userId);
     if (!subscription) {
-      console.log(`No push subscription found for user ${userId}`);
       return;
     }
 
@@ -84,9 +78,6 @@ export class PushNotificationService {
         })
       );
     } catch (error: any) {
-      console.error('Failed to send push notification:', error);
-      
-      // If subscription is invalid, remove it
       if (error.statusCode === 410 || error.statusCode === 404) {
         await supabaseAdmin
           .from('user_push_subscriptions')
@@ -96,7 +87,6 @@ export class PushNotificationService {
     }
   }
 
-  // Send notification to multiple users
   async sendNotificationToUsers(
     userIds: string[],
     title: string,
@@ -108,7 +98,6 @@ export class PushNotificationService {
     );
   }
 
-  // Remove user's push subscription
   async removeSubscription(userId: string): Promise<void> {
     const { error } = await supabaseAdmin
       .from('user_push_subscriptions')

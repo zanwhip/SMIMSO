@@ -103,9 +103,16 @@ export default function ImageToVideoPage() {
       });
 
       // Use utility function to extract video URL
+      // Response structure: { success: true, message: "...", data: {...} }
       const videoUrl = extractVideoUrl(response.data);
       
       console.log('🔍 Extracted videoUrl:', videoUrl);
+      console.log('📋 Response structure:', {
+        hasSuccess: 'success' in response.data,
+        hasData: 'data' in response.data,
+        hasMessage: 'message' in response.data,
+        dataKeys: response.data?.data ? Object.keys(response.data.data) : Object.keys(response.data || {}),
+      });
 
       if (videoUrl) {
         setGeneratedVideo(videoUrl);
@@ -120,7 +127,18 @@ export default function ImageToVideoPage() {
       } else {
         console.error('❌ Could not extract video URL from response');
         console.error('Full response:', JSON.stringify(response.data, null, 2));
-        toast.error('⚠️ Could not extract video from response. Please check console for details and try again.', { id: 'video-generation' });
+        
+        // Try to provide more helpful error message
+        let errorMsg = '⚠️ Could not extract video from response. ';
+        if (response.data?.data) {
+          errorMsg += 'The API returned data but video URL could not be found. ';
+        } else if (response.data?.error) {
+          errorMsg += response.data.error;
+        } else {
+          errorMsg += 'Please check console for details and try again.';
+        }
+        
+        toast.error(errorMsg, { id: 'video-generation', duration: 5000 });
       }
     } catch (error: any) {
       console.error('❌ Generation error:', error);
@@ -132,19 +150,24 @@ export default function ImageToVideoPage() {
       
       let errorMessage = 'Failed to generate video';
       
+      // Extract error message from backend response structure
+      const backendError = error.response?.data?.error || error.response?.data?.message;
+      
       if (error.response?.status === 401) {
         errorMessage = '⚠️ Authentication failed. Please check your API token.';
       } else if (error.response?.status === 429) {
         errorMessage = '⚠️ Rate limit exceeded. Please try again later.';
       } else if (error.response?.status === 400) {
-        errorMessage = error.response?.data?.error || error.response?.data?.message || '⚠️ Invalid request. Please check your input.';
+        errorMessage = backendError || '⚠️ Invalid request. Please check your input.';
       } else if (error.response?.status >= 500) {
-        errorMessage = '⚠️ Server error. Please try again later.';
+        errorMessage = backendError || '⚠️ Server error. Please try again later.';
+      } else if (backendError) {
+        errorMessage = backendError;
       } else if (error.message) {
-        errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+        errorMessage = error.message;
       }
       
-      toast.error(errorMessage, { id: 'video-generation' });
+      toast.error(errorMessage, { id: 'video-generation', duration: 5000 });
     } finally {
       setIsGenerating(false);
     }

@@ -2,15 +2,17 @@ import { Response } from 'express';
 import { UserService } from '../services/user.service';
 import { successResponse, errorResponse, paginatedResponse } from '../utils/response';
 import { AuthRequest } from '../types';
+import { notificationService } from '../services/notification.service';
+import { supabase } from '../config/supabase';
 
 const userService = new UserService();
 
 export class UserController {
-  // Get user profile
   async getUserProfile(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { userId } = req.params;
-      const profile = await userService.getUserProfile(userId);
+      const currentUserId = req.user?.id;
+      const profile = await userService.getUserProfile(userId, currentUserId);
 
       return successResponse(res, profile);
     } catch (error: any) {
@@ -18,7 +20,6 @@ export class UserController {
     }
   }
 
-  // Search users
   async searchUsers(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -37,7 +38,6 @@ export class UserController {
     }
   }
 
-  // Get current user profile
   async getCurrentUserProfile(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -52,7 +52,6 @@ export class UserController {
     }
   }
 
-  // Update user profile
   async updateUserProfile(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -68,14 +67,16 @@ export class UserController {
     }
   }
 
-  // Get user posts
-  async getUserPosts(req: AuthRequest, res: Response): Promise<Response> {
+  async getCurrentUserPosts(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const { userId } = req.params;
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
-      const { posts, total } = await userService.getUserPosts(userId, page, limit);
+      const { posts, total } = await userService.getUserPosts(req.user.id, page, limit, req.user.id);
 
       return paginatedResponse(res, posts, page, limit, total);
     } catch (error: any) {
@@ -83,7 +84,21 @@ export class UserController {
     }
   }
 
-  // Get user activities
+  async getUserPosts(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { userId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const currentUserId = req.user?.id;
+
+      const { posts, total } = await userService.getUserPosts(userId, page, limit, currentUserId);
+
+      return paginatedResponse(res, posts, page, limit, total);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
   async getUserActivities(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -99,7 +114,6 @@ export class UserController {
     }
   }
 
-  // Get liked posts
   async getLikedPosts(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -117,7 +131,6 @@ export class UserController {
     }
   }
 
-  // Upload avatar
   async uploadAvatar(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -140,7 +153,6 @@ export class UserController {
     }
   }
 
-  // Upload cover
   async uploadCover(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -163,7 +175,6 @@ export class UserController {
     }
   }
 
-  // Get top creators
   async getTopCreators(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
@@ -175,7 +186,6 @@ export class UserController {
     }
   }
 
-  // Get related users
   async getRelatedUsers(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -186,6 +196,81 @@ export class UserController {
       const relatedUsers = await userService.getRelatedUsers(req.user.id, limit);
 
       return successResponse(res, relatedUsers);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  async followUser(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
+      const { userId } = req.params;
+      await userService.followUser(req.user.id, userId);
+
+      const { data: followingUser } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', userId)
+        .single();
+
+      if (followingUser) {
+        await notificationService.createNotification({
+          user_id: userId,
+          type: 'follow',
+          content: `${req.user.first_name} ${req.user.last_name} started following you`,
+          related_user_id: req.user.id,
+        });
+      }
+
+      return successResponse(res, null, 'Followed successfully');
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  async unfollowUser(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      if (!req.user) {
+        return errorResponse(res, 'Not authenticated', 401);
+      }
+
+      const { userId } = req.params;
+      await userService.unfollowUser(req.user.id, userId);
+
+      return successResponse(res, null, 'Unfollowed successfully');
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  async getFollowers(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { userId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const currentUserId = req.user?.id;
+
+      const { followers, total } = await userService.getFollowers(userId, page, limit, currentUserId);
+
+      return paginatedResponse(res, followers, page, limit, total);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  async getFollowing(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { userId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const currentUserId = req.user?.id;
+
+      const { following, total } = await userService.getFollowing(userId, page, limit, currentUserId);
+
+      return paginatedResponse(res, following, page, limit, total);
     } catch (error: any) {
       return errorResponse(res, error.message, 400);
     }

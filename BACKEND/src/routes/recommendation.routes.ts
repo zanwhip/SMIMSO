@@ -5,7 +5,6 @@ import { authMiddleware } from '../middleware/auth.middleware';
 const router = Router();
 const recommendationController = new RecommendationController();
 
-// All routes require authentication
 router.use(authMiddleware);
 
 router.get('/similar-users', (req, res) =>

@@ -1,8 +1,5 @@
 import { Request } from 'express';
 
-// =============================================
-// User Types
-// =============================================
 export interface User {
   id: string;
   email: string;
@@ -44,9 +41,6 @@ export interface GoogleLoginDTO {
   token: string;
 }
 
-// =============================================
-// Survey Types
-// =============================================
 export interface Survey {
   id: string;
   user_id: string;
@@ -64,9 +58,6 @@ export interface SurveyDTO {
   expectation_level?: number;
 }
 
-// =============================================
-// Category Types
-// =============================================
 export interface Category {
   id: string;
   name: string;
@@ -76,9 +67,6 @@ export interface Category {
   created_at: Date;
 }
 
-// =============================================
-// Post Types
-// =============================================
 export interface Post {
   id: string;
   user_id: string;
@@ -126,9 +114,6 @@ export interface UpdatePostDTO {
   visibility?: 'public' | 'friends' | 'private';
 }
 
-// =============================================
-// Comment Types
-// =============================================
 export interface Comment {
   id: string;
   user_id: string;
@@ -145,9 +130,6 @@ export interface CreateCommentDTO {
   content: string;
 }
 
-// =============================================
-// Activity Types
-// =============================================
 export interface UserActivity {
   id: string;
   user_id: string;
@@ -156,9 +138,6 @@ export interface UserActivity {
   created_at: Date;
 }
 
-// =============================================
-// AI Types
-// =============================================
 export interface ImageEmbedding {
   embedding: number[];
   caption?: string;
@@ -169,9 +148,6 @@ export interface SimilarityResult {
   similarity_score: number;
 }
 
-// =============================================
-// Request Types
-// =============================================
 export interface AuthRequest extends Request {
   user?: {
     id: string;
@@ -179,9 +155,6 @@ export interface AuthRequest extends Request {
   };
 }
 
-// =============================================
-// Response Types
-// =============================================
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;

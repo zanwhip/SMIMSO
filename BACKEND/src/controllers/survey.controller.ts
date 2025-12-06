@@ -6,7 +6,6 @@ import { AuthRequest, SurveyDTO } from '../types';
 const surveyService = new SurveyService();
 
 export class SurveyController {
-  // Submit survey
   async submitSurvey(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -22,7 +21,6 @@ export class SurveyController {
     }
   }
 
-  // Get user survey
   async getUserSurvey(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -41,7 +39,6 @@ export class SurveyController {
     }
   }
 
-  // Check if user has completed survey
   async checkSurveyStatus(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -56,7 +53,6 @@ export class SurveyController {
     }
   }
 
-  // Get survey options
   async getSurveyOptions(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const options = await surveyService.getSurveyOptions();

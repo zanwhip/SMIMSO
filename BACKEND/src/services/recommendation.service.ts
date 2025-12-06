@@ -12,12 +12,9 @@ interface SimilarUser {
 }
 
 export class RecommendationService {
-  /**
-   * Find similar users based on survey data and content similarity
-   */
+  
   async findSimilarUsers(userId: string, limit: number = 10): Promise<SimilarUser[]> {
     try {
-      // Get current user's survey data
       const { data: currentUserSurvey, error: surveyError } = await supabase
         .from('surveys')
         .select('favorite_categories, usage_purposes')
@@ -25,11 +22,9 @@ export class RecommendationService {
         .single();
 
       if (surveyError) {
-        console.error('Survey not found for user:', userId);
         return [];
       }
 
-      // Get all other users with their surveys
       const { data: otherUsers, error: usersError } = await supabase
         .from('users')
         .select(`
@@ -48,11 +43,9 @@ export class RecommendationService {
         .not('surveys', 'is', null);
 
       if (usersError || !otherUsers) {
-        console.error('Error fetching users:', usersError);
         return [];
       }
 
-      // Calculate similarity scores
       const usersWithScores = otherUsers
         .map((user: any) => {
           if (!user.surveys || user.surveys.length === 0) {
@@ -61,13 +54,11 @@ export class RecommendationService {
 
           const userSurvey = user.surveys[0];
           
-          // Calculate survey similarity
           const surveySimilarity = this.calculateSurveySimilarity(
             currentUserSurvey,
             userSurvey
           );
 
-          // Get shared interests
           const sharedInterests = this.getSharedInterests(
             currentUserSurvey.favorite_categories,
             userSurvey.favorite_categories
@@ -90,19 +81,14 @@ export class RecommendationService {
 
       return usersWithScores;
     } catch (error) {
-      console.error('Error finding similar users:', error);
       return [];
     }
   }
 
-  /**
-   * Calculate similarity between two surveys (0-1)
-   */
   private calculateSurveySimilarity(survey1: any, survey2: any): number {
     let score = 0;
     let maxScore = 0;
 
-    // Compare favorite categories (weight: 0.6)
     if (survey1.favorite_categories && survey2.favorite_categories) {
       const categories1 = Array.isArray(survey1.favorite_categories)
         ? survey1.favorite_categories
@@ -123,7 +109,6 @@ export class RecommendationService {
       maxScore += 0.6;
     }
 
-    // Compare usage purposes (weight: 0.4)
     if (survey1.usage_purposes && survey2.usage_purposes) {
       const purposes1 = Array.isArray(survey1.usage_purposes)
         ? survey1.usage_purposes
@@ -147,9 +132,6 @@ export class RecommendationService {
     return maxScore > 0 ? score / maxScore : 0;
   }
 
-  /**
-   * Get shared interests between two users
-   */
   private getSharedInterests(categories1: any, categories2: any): string[] {
     const cats1 = Array.isArray(categories1) ? categories1 : [];
     const cats2 = Array.isArray(categories2) ? categories2 : [];

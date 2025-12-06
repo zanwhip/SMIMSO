@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import Navbar from '@/components/Navbar';
 import PostCard from '@/components/PostCard';
 import Sidebar from '@/components/Sidebar';
+import InteractiveBanner from '@/components/InteractiveBanner';
 import api from '@/lib/api';
 import { Post, Category } from '@/types';
 import { useInView } from 'react-intersection-observer';
@@ -132,56 +133,61 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* AI Imagine Buttons */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Create with AI</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        {/* Interactive Banner */}
+        <InteractiveBanner />
+
+        {/* AI Features */}
+        <div className="mb-6 sm:mb-8 md:mb-10 animate-fade-in">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
             <button
               onClick={() => router.push('/imagine/text-to-image')}
-              className="group relative aspect-square bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center text-white"
+              className="group relative aspect-square bg-gradient-to-br from-purple-500 via-pink-500 to-rose-500 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 hover:shadow-large transition-all duration-500 hover:scale-105 flex flex-col items-center justify-center text-white overflow-hidden"
             >
-              <div className="text-4xl mb-3">🎨</div>
-              <h3 className="text-xl font-bold mb-2">Text to Image</h3>
-              <p className="text-sm opacity-90 text-center">Generate stunning images from text descriptions</p>
-              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 rounded-lg transition-opacity"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/50 to-pink-600/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="text-3xl sm:text-4xl md:text-5xl mb-2 sm:mb-3 md:mb-4 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">🎨</div>
+              <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1 sm:mb-2 relative z-10">Text to Image</h3>
+              <p className="text-xs sm:text-sm opacity-95 text-center relative z-10 px-2">Generate stunning images from text descriptions</p>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
             </button>
 
             <button
               onClick={() => router.push('/imagine/text-to-video')}
-              className="group relative aspect-square bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center text-white"
+              className="group relative aspect-square bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 hover:shadow-large transition-all duration-500 hover:scale-105 flex flex-col items-center justify-center text-white overflow-hidden"
             >
-              <div className="text-4xl mb-3">🎬</div>
-              <h3 className="text-xl font-bold mb-2">Text to Video</h3>
-              <p className="text-sm opacity-90 text-center">Create dynamic videos from text prompts</p>
-              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 rounded-lg transition-opacity"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/50 to-cyan-600/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="text-3xl sm:text-4xl md:text-5xl mb-2 sm:mb-3 md:mb-4 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">🎬</div>
+              <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1 sm:mb-2 relative z-10">Text to Video</h3>
+              <p className="text-xs sm:text-sm opacity-95 text-center relative z-10 px-2">Create dynamic videos from text prompts</p>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
             </button>
 
             <button
               onClick={() => router.push('/imagine/image-to-video')}
-              className="group relative aspect-square bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col items-center justify-center text-white"
+              className="group relative aspect-square bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 hover:shadow-large transition-all duration-500 hover:scale-105 flex flex-col items-center justify-center text-white overflow-hidden sm:col-span-2 lg:col-span-1"
             >
-              <div className="text-4xl mb-3">🎥</div>
-              <h3 className="text-xl font-bold mb-2">Image to Video</h3>
-              <p className="text-sm opacity-90 text-center">Bring static images to life with animation</p>
-              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 rounded-lg transition-opacity"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-green-600/50 to-emerald-600/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="text-3xl sm:text-4xl md:text-5xl mb-2 sm:mb-3 md:mb-4 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500">🎥</div>
+              <h3 className="text-base sm:text-lg md:text-xl font-bold mb-1 sm:mb-2 relative z-10">Image to Video</h3>
+              <p className="text-xs sm:text-sm opacity-95 text-center relative z-10 px-2">Bring static images to life with animation</p>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/30 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Main Content */}
           <div className="lg:col-span-3">
         {/* Tabs */}
-        <div className="flex space-x-4 mb-6 border-b border-gray-200">
+        <div className="inline-flex space-x-1 mb-4 sm:mb-6 md:mb-8 bg-gray-100 p-1 rounded-lg sm:rounded-xl">
           <button
             onClick={() => setActiveTab('newest')}
-            className={`pb-3 px-4 font-medium transition ${
+            className={`px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 rounded-lg font-semibold transition-all duration-300 text-sm sm:text-base ${
               activeTab === 'newest'
-                ? 'text-primary-600 border-b-2 border-primary-600'
+                ? 'bg-white text-primary-600 shadow-soft'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -189,9 +195,9 @@ export default function HomePage() {
           </button>
           <button
             onClick={() => setActiveTab('suggestion')}
-            className={`pb-3 px-4 font-medium transition ${
+            className={`px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 rounded-lg font-semibold transition-all duration-300 text-sm sm:text-base ${
               activeTab === 'suggestion'
-                ? 'text-primary-600 border-b-2 border-primary-600'
+                ? 'bg-white text-primary-600 shadow-soft'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -200,14 +206,14 @@ export default function HomePage() {
         </div>
 
         {/* Category Filter */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <div className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto pb-2 sm:pb-3 scrollbar-hide">
             <button
               onClick={() => handleCategoryChange('')}
-              className={`px-4 py-2 rounded-full whitespace-nowrap transition ${
+              className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full whitespace-nowrap font-medium transition-all duration-300 text-xs sm:text-sm ${
                 selectedCategory === ''
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                  ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-medium'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-soft hover:shadow-medium'
               }`}
             >
               All
@@ -216,10 +222,10 @@ export default function HomePage() {
               <button
                 key={category.id}
                 onClick={() => handleCategoryChange(category.id)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap transition ${
+                className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 rounded-full whitespace-nowrap font-medium transition-all duration-300 text-xs sm:text-sm ${
                   selectedCategory === category.id
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                    ? 'bg-gradient-to-r from-primary-600 to-secondary-600 text-white shadow-medium'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-soft hover:shadow-medium'
                 }`}
               >
                 {category.name}
@@ -230,20 +236,23 @@ export default function HomePage() {
 
         {/* Posts Grid */}
         {posts.length === 0 && !isLoading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No posts yet</p>
+          <div className="text-center py-16 animate-fade-in">
+            <div className="text-6xl mb-4">📭</div>
+            <p className="text-gray-500 text-lg font-medium">No posts yet</p>
           </div>
         ) : (
           <div className="masonry-grid">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+            {posts.map((post, index) => (
+              <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <PostCard post={post} />
+              </div>
             ))}
           </div>
         )}
 
         {/* Loading indicator */}
         {isLoading && (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-12">
             <div className="spinner"></div>
           </div>
         )}
@@ -253,14 +262,18 @@ export default function HomePage() {
 
         {/* No more posts */}
         {!hasMore && posts.length > 0 && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">All posts displayed</p>
+          <div className="text-center py-12 animate-fade-in">
+            <div className="inline-flex items-center space-x-2 text-gray-500">
+              <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
+              <p className="font-medium">All posts displayed</p>
+              <div className="w-2 h-2 bg-secondary-500 rounded-full"></div>
+            </div>
           </div>
         )}
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 hidden lg:block">
             <div className="sticky top-20">
               <Sidebar />
             </div>

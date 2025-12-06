@@ -6,7 +6,6 @@ import { AuthRequest } from '../types';
 const imagineService = new ImagineService();
 
 export class ImagineController {
-  // Text to Image
   async textToImage(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { prompt, style, aspect_ratio, seed } = req.body;
@@ -24,12 +23,10 @@ export class ImagineController {
 
       return successResponse(res, result, 'Image generated successfully');
     } catch (error: any) {
-      console.error('Text to Image error:', error.message);
       return errorResponse(res, error.message || 'Failed to generate image', 500);
     }
   }
 
-  // Text to Video
   async textToVideo(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { prompt, style } = req.body;
@@ -45,12 +42,10 @@ export class ImagineController {
 
       return successResponse(res, result, 'Video generated successfully');
     } catch (error: any) {
-      console.error('Text to Video error:', error.message);
       return errorResponse(res, error.message || 'Failed to generate video', 500);
     }
   }
 
-  // Image to Video
   async imageToVideo(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { prompt, style } = req.body;
@@ -72,7 +67,6 @@ export class ImagineController {
 
       return successResponse(res, result, 'Video generated successfully');
     } catch (error: any) {
-      console.error('Image to Video error:', error.message);
       return errorResponse(res, error.message || 'Failed to generate video', 500);
     }
   }

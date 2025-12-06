@@ -2,11 +2,9 @@ import { supabase } from '../config/supabase';
 import { Survey, SurveyDTO } from '../types';
 
 export class SurveyService {
-  // Submit survey
   async submitSurvey(userId: string, data: SurveyDTO): Promise<Survey> {
     const { favorite_categories, usage_purposes, awareness_source, expectation_level } = data;
 
-    // Check if survey already exists
     const { data: existingSurvey } = await supabase
       .from('surveys')
       .select('*')
@@ -14,7 +12,6 @@ export class SurveyService {
       .single();
 
     if (existingSurvey) {
-      // Update existing survey
       const { data: updatedSurvey, error } = await supabase
         .from('surveys')
         .update({
@@ -34,7 +31,6 @@ export class SurveyService {
 
       return updatedSurvey;
     } else {
-      // Create new survey
       const { data: newSurvey, error } = await supabase
         .from('surveys')
         .insert({
@@ -55,7 +51,6 @@ export class SurveyService {
     }
   }
 
-  // Get user survey
   async getUserSurvey(userId: string): Promise<Survey | null> {
     const { data: survey, error } = await supabase
       .from('surveys')
@@ -70,15 +65,12 @@ export class SurveyService {
     return survey;
   }
 
-  // Check if user has completed survey
   async hasCompletedSurvey(userId: string): Promise<boolean> {
     const survey = await this.getUserSurvey(userId);
     return survey !== null;
   }
 
-  // Get survey options
   async getSurveyOptions() {
-    // Get categories
     const { data: categories } = await supabase
       .from('categories')
       .select('id, name, slug, description')

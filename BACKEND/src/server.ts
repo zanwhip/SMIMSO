@@ -7,23 +7,27 @@ import fs from 'fs';
 import routes from './routes';
 import { initializeSocket } from './socket/socket';
 
-// Load environment variables
 dotenv.config();
+
+const originalWarn = console.warn;
+  const message = args[0]?.toString() || '';
+  if (message.includes('onnxruntime') && 
+      (message.includes('Removing initializer') || message.includes('Constant'))) {
+    return; // Suppress these warnings
+  }
+  originalWarn.apply(console, args);
+};
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
-// Create HTTP server for Socket.IO
 const httpServer = createServer(app);
 
-// Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('✅ Created uploads directory');
-}
+  }
 
-// Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
@@ -34,13 +38,10 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files (uploaded images)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// API routes
 app.use('/api', routes);
 
-// Root route
 app.get('/', (req: Request, res: Response) => {
   res.json({
     success: true,
@@ -56,15 +57,13 @@ app.get('/', (req: Request, res: Response) => {
         notifications: '/api/notifications',
         chat: '/api/chat',
         imagine: '/api/imagine',
+        search: '/api/search',
         health: '/api/health',
       },
   });
 });
 
-// Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-
   if (err.message.includes('File too large')) {
     return res.status(413).json({
       success: false,
@@ -86,7 +85,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,
@@ -94,35 +92,9 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// Initialize Socket.IO
 initializeSocket(httpServer);
-console.log('✅ Socket.IO initialized');
-
-// Start server
 httpServer.listen(PORT, () => {
-  console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   🚀 SMIMSO API Server                                    ║
-║   Smart Image & Idea Social Network                      ║
-║                                                           ║
-║   Server running on: http://localhost:${PORT}              ║
-║   Socket.IO: ws://localhost:${PORT}                        ║
-║   Environment: ${process.env.NODE_ENV || 'development'}                              ║
-║                                                           ║
-║   API Endpoints:                                          ║
-║   - Auth:     http://localhost:${PORT}/api/auth            ║
-║   - Survey:   http://localhost:${PORT}/api/survey          ║
-║   - Posts:    http://localhost:${PORT}/api/posts           ║
-║   - Users:    http://localhost:${PORT}/api/users           ║
-║   - Options:  http://localhost:${PORT}/api/options         ║
-║   - Chat:     http://localhost:${PORT}/api/chat            ║
-║   - Imagine:  http://localhost:${PORT}/api/imagine         ║
-║   - Health:   http://localhost:${PORT}/api/health          ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-  `);
-});
+  });
 
 export default app;
 

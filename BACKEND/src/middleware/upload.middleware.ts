@@ -4,13 +4,11 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import { Request, Response, NextFunction } from 'express';
 
-// Ensure upload directory exists
 const uploadDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -21,7 +19,6 @@ const storage = multer.diskStorage({
   },
 });
 
-// File filter
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -32,7 +29,6 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   }
 };
 
-// Configure multer
 export const upload = multer({
   storage,
   fileFilter,
@@ -42,7 +38,6 @@ export const upload = multer({
   },
 });
 
-// Error handling wrapper
 const handleMulterError = (err: any, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -73,27 +68,22 @@ const handleMulterError = (err: any, req: Request, res: Response, next: NextFunc
   next();
 };
 
-// Middleware for single image upload
 export const uploadSingle = (req: Request, res: Response, next: NextFunction) => {
   upload.single('image')(req, res, (err) => handleMulterError(err, req, res, next));
 };
 
-// Middleware for multiple images upload
 export const uploadMultiple = (req: Request, res: Response, next: NextFunction) => {
   upload.array('images', 10)(req, res, (err) => handleMulterError(err, req, res, next));
 };
 
-// Middleware for avatar upload
 export const uploadAvatar = (req: Request, res: Response, next: NextFunction) => {
   upload.single('avatar')(req, res, (err) => handleMulterError(err, req, res, next));
 };
 
-// Middleware for cover upload
 export const uploadCover = (req: Request, res: Response, next: NextFunction) => {
   upload.single('cover')(req, res, (err) => handleMulterError(err, req, res, next));
 };
 
-// File filter for chat (images and audio)
 const chatFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = [
     'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
@@ -107,7 +97,6 @@ const chatFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilt
   }
 };
 
-// Configure multer for chat uploads
 export const chatUpload = multer({
   storage,
   fileFilter: chatFileFilter,
@@ -117,12 +106,10 @@ export const chatUpload = multer({
   },
 });
 
-// Middleware for chat file upload (image or audio)
 export const uploadChatFile = (req: Request, res: Response, next: NextFunction) => {
   chatUpload.single('file')(req, res, (err) => handleMulterError(err, req, res, next));
 };
 
-// Middleware for imagine image upload (for image-to-video)
 export const uploadImagineFile = (req: Request, res: Response, next: NextFunction) => {
   upload.single('file')(req, res, (err) => handleMulterError(err, req, res, next));
 };

@@ -8,10 +8,10 @@ import recommendationRoutes from './recommendation.routes';
 import notificationRoutes from './notification.routes';
 import chatRoutes from './chat.routes';
 import imagineRoutes from './imagine.routes';
+import searchRoutes from './search.routes';
 
 const router = Router();
 
-// API routes
 router.use('/auth', authRoutes);
 router.use('/survey', surveyRoutes);
 router.use('/posts', postRoutes);
@@ -21,8 +21,8 @@ router.use('/recommendations', recommendationRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/chat', chatRoutes);
 router.use('/imagine', imagineRoutes);
+router.use('/search', searchRoutes);
 
-// Health check
 router.get('/health', (req, res) => {
   res.json({
     success: true,

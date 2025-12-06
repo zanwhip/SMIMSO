@@ -45,26 +45,34 @@ export default function RegisterPage() {
 
     try {
       await register(formData);
-      toast.success('Đăng ký thành công!');
+      toast.success('Registration successful!');
       router.push('/survey');
     } catch (error: any) {
-      toast.error(error.message || 'Đăng ký thất bại');
+      toast.error(error.message || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-slow"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
+      </div>
+      
+      <div className="max-w-2xl w-full space-y-8 bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-large relative z-10 animate-scale-in">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center mb-4">
-            <span className="text-white font-bold text-3xl">S</span>
+          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500 rounded-2xl flex items-center justify-center mb-6 shadow-glow hover:shadow-glow-blue transition-all duration-500 hover:scale-110">
+            <span className="text-white font-bold text-4xl">S</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Đăng ký tài khoản</h2>
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent mb-2">
+            Sign Up
+          </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Tham gia cộng đồng chia sẻ ý tưởng và hình ảnh
+            Join our community to share ideas and images
           </p>
         </div>
 
@@ -74,7 +82,7 @@ export default function RegisterPage() {
             {/* First Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Họ <span className="text-red-500">*</span>
+                First Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -85,8 +93,8 @@ export default function RegisterPage() {
                   required
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Nguyễn Văn"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
+                  placeholder="John"
                 />
               </div>
             </div>
@@ -94,7 +102,7 @@ export default function RegisterPage() {
             {/* Last Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tên <span className="text-red-500">*</span>
+                Last Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -105,8 +113,8 @@ export default function RegisterPage() {
                   required
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="A"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
+                  placeholder="Doe"
                 />
               </div>
             </div>
@@ -125,7 +133,7 @@ export default function RegisterPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
                   placeholder="email@example.com"
                 />
               </div>
@@ -134,7 +142,7 @@ export default function RegisterPage() {
             {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Số điện thoại
+                Phone Number
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -144,7 +152,7 @@ export default function RegisterPage() {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
                   placeholder="0123456789"
                 />
               </div>
@@ -153,7 +161,7 @@ export default function RegisterPage() {
             {/* Date of Birth */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ngày sinh
+                Date of Birth
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -163,7 +171,7 @@ export default function RegisterPage() {
                   type="date"
                   value={formData.date_of_birth}
                   onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
                 />
               </div>
             </div>
@@ -171,7 +179,7 @@ export default function RegisterPage() {
             {/* Job */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Công việc
+                Job
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
@@ -181,7 +189,7 @@ export default function RegisterPage() {
                   value={formData.job}
                   onChange={(e) => setFormData({ ...formData, job: e.target.value })}
                   disabled={jobsLoading}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white appearance-none cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm appearance-none cursor-pointer disabled:bg-gray-100 disabled:cursor-not-allowed transition-all duration-300 shadow-soft hover:shadow-medium"
                 >
                   <option value="">
                     {jobsLoading ? 'Đang tải...' : 'Chọn công việc'}
@@ -206,7 +214,7 @@ export default function RegisterPage() {
             {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mật khẩu <span className="text-red-500">*</span>
+                Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -217,8 +225,8 @@ export default function RegisterPage() {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Mật khẩu"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
+                  placeholder="Password"
                 />
                 <button
                   type="button"
@@ -233,7 +241,7 @@ export default function RegisterPage() {
             {/* Confirm Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Xác nhận mật khẩu <span className="text-red-500">*</span>
+                Confirm Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -244,8 +252,8 @@ export default function RegisterPage() {
                   required
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Xác nhận mật khẩu"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 bg-white/80 backdrop-blur-sm transition-all duration-300 shadow-soft hover:shadow-medium"
+                  placeholder="Confirm password"
                 />
                 <button
                   type="button"
@@ -262,17 +270,17 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition"
+            className="w-full py-3.5 px-4 border border-transparent rounded-xl shadow-medium text-base font-semibold text-white bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all duration-300 hover:shadow-large hover:scale-[1.02] active:scale-[0.98] ripple"
           >
-            {isLoading ? 'Đang đăng ký...' : 'Đăng ký'}
+            {isLoading ? 'Signing up...' : 'Sign Up'}
           </button>
         </form>
 
         {/* Login Link */}
         <p className="text-center text-sm text-gray-600">
-          Đã có tài khoản?{' '}
+          Already have an account?{' '}
           <Link href="/login" className="font-medium text-primary-600 hover:text-primary-500">
-            Đăng nhập ngay
+            Login now
           </Link>
         </p>
       </div>

@@ -120,8 +120,15 @@ export function extractImageUrl(response: any): string | null {
 export function extractVideoUrl(response: any): string | null {
   if (!response) return null;
 
-  // Handle if response is wrapped in data property
-  const result = response.data || response;
+  // Handle API response wrapper: { success: true, message: "...", data: {...} }
+  let result = response;
+  if (response.data && typeof response.data === 'object' && response.success !== undefined) {
+    // This is our API response wrapper
+    result = response.data;
+  } else if (response.data) {
+    // Could be nested data
+    result = response.data;
+  }
 
   // 1. Direct string URL
   if (typeof result === 'string') {
@@ -130,10 +137,13 @@ export function extractVideoUrl(response: any): string | null {
     }
   }
 
-  // 2. result.video
+  // 2. result.video (highest priority - often from our backend conversion)
   if (result?.video) {
     if (typeof result.video === 'string') {
-      return result.video;
+      // Check if it's a data URL or regular URL
+      if (result.video.startsWith('data:') || result.video.startsWith('http') || result.video.endsWith('.mp4')) {
+        return result.video;
+      }
     }
     if (result.video.url) {
       return result.video.url;
@@ -145,13 +155,20 @@ export function extractVideoUrl(response: any): string | null {
 
   // 3. result.url
   if (result?.url && typeof result.url === 'string') {
-    return result.url;
+    if (result.url.startsWith('http') || result.url.startsWith('data:') || result.url.endsWith('.mp4')) {
+      return result.url;
+    }
   }
 
-  // 4. result.data array
+  // 4. result.data (nested data)
   if (result?.data) {
     if (Array.isArray(result.data) && result.data.length > 0) {
       return extractVideoUrl(result.data[0]);
+    }
+    if (typeof result.data === 'string') {
+      if (result.data.startsWith('http') || result.data.startsWith('data:') || result.data.endsWith('.mp4')) {
+        return result.data;
+      }
     }
     if (result.data.url) {
       return result.data.url;
@@ -167,7 +184,9 @@ export function extractVideoUrl(response: any): string | null {
       return extractVideoUrl(result.output[0]);
     }
     if (typeof result.output === 'string') {
-      return result.output;
+      if (result.output.startsWith('http') || result.output.startsWith('data:') || result.output.endsWith('.mp4')) {
+        return result.output;
+      }
     }
     if (result.output.url) {
       return result.output.url;
@@ -198,7 +217,7 @@ export function extractVideoUrl(response: any): string | null {
       if (typeof value === 'string' && (value.startsWith('http') || value.startsWith('data:') || value.endsWith('.mp4'))) {
         return value;
       }
-      if (typeof value === 'object') {
+      if (typeof value === 'object' && value !== null) {
         const nested = extractVideoUrl(value);
         if (nested) return nested;
       }
@@ -206,5 +225,10 @@ export function extractVideoUrl(response: any): string | null {
   }
 
   // 9. Reuse image extraction logic as fallback
-  return extractImageUrl(response);
+  const imageUrl = extractImageUrl(response);
+  if (imageUrl && (imageUrl.endsWith('.mp4') || imageUrl.startsWith('data:video/'))) {
+    return imageUrl;
+  }
+
+  return null;
 }
