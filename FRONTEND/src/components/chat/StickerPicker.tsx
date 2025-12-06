@@ -8,7 +8,6 @@ interface StickerPickerProps {
   onStickerSelect: (stickerUrl: string) => void;
 }
 
-// Common sticker URLs - you can replace these with your own sticker pack URLs
 const STICKER_PACKS = {
   'Emoji': [
     'https://cdn.jsdelivr.net/npm/emoji-datasource-apple/img/apple/64/1f600.png',
@@ -132,12 +131,4 @@ export default function StickerPicker({ onStickerSelect }: StickerPickerProps) {
     </div>
   );
 }
-
-
-
-
-
-
-
-
 

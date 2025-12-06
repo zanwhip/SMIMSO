@@ -23,11 +23,9 @@ export default function ChatConversationItem({
   const hasUnread = (conversation.unread_count || 0) > 0;
 
   const handleClick = () => {
-    // Navigate to conversation detail page
     router.push(`/chat/${conversation.id}`);
   };
 
-  // Get other participant (not current user) for direct conversations
   const otherParticipant = conversation.type === 'direct' 
     ? conversation.participants?.find(p => p.user_id !== currentUserId)
     : null;
@@ -54,7 +52,7 @@ export default function ChatConversationItem({
                 className="rounded-full object-cover"
                 unoptimized
               />
-              {/* Online status indicator */}
+              
               {otherParticipant.user_id && 
                onlineStatus.get(otherParticipant.user_id)?.isOnline && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>

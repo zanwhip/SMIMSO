@@ -33,8 +33,7 @@ export default function SimilarUsers() {
       });
       setUsers(response.data.data);
     } catch (error) {
-      console.error('Failed to fetch similar users:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };

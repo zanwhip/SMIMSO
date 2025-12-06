@@ -105,7 +105,6 @@ export default function ConversationDetailPage() {
 
   // Handle new message
   const handleNewMessage = useCallback((message: Message) => {
-    console.log('📨 [ConversationDetail] Received message:', {
       id: message.id,
       convId: message.conversation_id,
       senderId: message.sender_id,
@@ -113,23 +112,19 @@ export default function ConversationDetailPage() {
     });
     
     if (!message?.id || !message?.conversation_id) {
-      console.error('❌ Invalid message:', message);
       return;
     }
     
     // Only handle messages for this conversation
     if (message.conversation_id !== conversationId) {
-      console.log('⚠️ Message for different conversation, ignoring');
       return;
     }
     
-    console.log('✅ Message for current conversation - updating UI');
     
     setMessages((prev) => {
       // Check if message already exists
       const existingIndex = prev.findIndex(m => m.id === message.id);
       if (existingIndex >= 0) {
-        console.log('📝 Updating existing message');
         const updated = [...prev];
         updated[existingIndex] = message;
         return updated.sort((a, b) => 
@@ -137,7 +132,6 @@ export default function ConversationDetailPage() {
         );
       }
       
-      console.log('➕ Adding new message');
       
       // Remove temp messages
       const filtered = prev.filter(m => 
@@ -159,7 +153,6 @@ export default function ConversationDetailPage() {
   useEffect(() => {
     if (!isAuthenticated || !conversationId) return;
 
-    console.log('📂 Loading conversation:', conversationId);
     setActiveConversation(conversationId);
     
     // Fetch conversation details
@@ -175,13 +168,11 @@ export default function ConversationDetailPage() {
           const isParticipant = conv.participants?.some((p: any) => p.user_id === user.id);
           if (!isParticipant && conv.type === 'direct') {
             // For direct conversations, refresh to get updated participant list
-            console.warn('User not in participant list, refreshing...');
             try {
               const refreshResponse = await api.get(`/chat/conversations/${conversationId}`);
               const refreshedConv = refreshResponse.data.data;
               setConversation(refreshedConv);
             } catch (refreshError) {
-              console.error('Failed to refresh conversation:', refreshError);
             }
           }
         }
@@ -192,7 +183,6 @@ export default function ConversationDetailPage() {
           fetchOnlineStatus(participantIds);
         }
       } catch (error: any) {
-        console.error('Failed to fetch conversation:', error);
         if (error.response?.status === 403 || error.response?.status === 404) {
           toast.error('Không tìm thấy cuộc trò chuyện hoặc bạn không có quyền truy cập');
         } else {
@@ -212,7 +202,6 @@ export default function ConversationDetailPage() {
       const socket = await socketService.getSocket();
       if (socket && socket.connected) {
         socketService.joinConversation(conversationId);
-        console.log('✅ Joined conversation room:', conversationId);
         
         // Register message handler
         socketService.onNewMessage(handleNewMessage);
@@ -237,7 +226,6 @@ export default function ConversationDetailPage() {
     setupSocket();
 
     return () => {
-      console.log('👋 Leaving conversation:', conversationId);
       setActiveConversation(null);
       socketService.leaveConversation(conversationId);
       socketService.offNewMessage(handleNewMessage);
@@ -257,10 +245,8 @@ export default function ConversationDetailPage() {
 
   const fetchMessages = async (convId: string) => {
     try {
-      console.log('📥 Fetching messages for conversation:', convId);
       const response = await api.get(`/chat/conversations/${convId}/messages`);
       const msgs = response.data.data || [];
-      console.log('📥 Fetched messages:', msgs.length);
       setMessages(msgs);
       
       // Mark as read
@@ -271,7 +257,6 @@ export default function ConversationDetailPage() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       }, 300);
     } catch (error: any) {
-      console.error('Failed to fetch messages:', error);
       toast.error('Failed to load messages');
     }
   };
@@ -281,7 +266,6 @@ export default function ConversationDetailPage() {
       await api.post(`/chat/conversations/${convId}/read`);
       resetUnread(convId);
     } catch (error) {
-      console.error('Failed to mark as read:', error);
     }
   };
 
@@ -301,7 +285,6 @@ export default function ConversationDetailPage() {
         return newMap;
       });
     } catch (error) {
-      console.error('Failed to fetch online status:', error);
     }
   };
 
@@ -348,13 +331,11 @@ export default function ConversationDetailPage() {
   };
 
   const handleReactionAdded = (data: { messageId: string; userId: string; emoji: string }) => {
-    console.log('📝 Reaction added:', data);
     // Reload messages to get updated reactions
     fetchMessages(conversationId);
   };
 
   const handleReactionRemoved = (data: { messageId: string; userId: string; emoji: string }) => {
-    console.log('📝 Reaction removed:', data);
     // Reload messages to get updated reactions
     fetchMessages(conversationId);
   };
@@ -385,7 +366,6 @@ export default function ConversationDetailPage() {
         const response = await api.get(`/users/${data.callerId}`);
         callerUser = response.data.data;
       } catch (error) {
-        console.error('Failed to fetch caller info:', error);
       }
     }
     
@@ -451,7 +431,6 @@ export default function ConversationDetailPage() {
         // Wait a bit for join to complete
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        console.error('Failed to join conversation:', error);
         // Continue anyway - backend will auto-join
       }
 
@@ -472,7 +451,6 @@ export default function ConversationDetailPage() {
         onCallEnd: () => endCall(),
       });
     } catch (error: any) {
-      console.error('Failed to start call:', error);
       toast.error('Không thể bắt đầu cuộc gọi');
       endCall();
     }
@@ -498,7 +476,6 @@ export default function ConversationDetailPage() {
       
       toast.success('Đã chấp nhận cuộc gọi');
     } catch (error: any) {
-      console.error('Failed to accept call:', error);
       toast.error('Không thể chấp nhận cuộc gọi');
       endCall();
     }
@@ -568,7 +545,6 @@ export default function ConversationDetailPage() {
       // Wait a bit for join to complete
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
-      console.error('Failed to setup socket:', error);
       toast.error('Không thể kết nối. Vui lòng refresh trang');
       return;
     }
@@ -598,7 +574,6 @@ export default function ConversationDetailPage() {
         content,
       });
     } catch (error: any) {
-      console.error('Failed to send message:', error);
       const errorMessage = error?.message || 'Không thể gửi tin nhắn';
       
       // If "Not a participant" error, try to refresh conversation
@@ -614,7 +589,6 @@ export default function ConversationDetailPage() {
             toast('Vui lòng thử gửi lại', { icon: 'ℹ️' });
           }, 1000);
         } catch (refreshError) {
-          console.error('Failed to refresh conversation:', refreshError);
           // Redirect to chat page if conversation doesn't exist
           router.push('/chat');
         }
@@ -674,10 +648,8 @@ export default function ConversationDetailPage() {
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col h-[calc(100vh-120px)]">
-          {/* Header */}
           <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              {/* Back button */}
               <button
                 onClick={() => router.push('/chat')}
                 className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
@@ -685,7 +657,6 @@ export default function ConversationDetailPage() {
                 <FiArrowLeft className="w-5 h-5" />
               </button>
 
-              {/* Avatar and name */}
               <div className="relative w-10 h-10 rounded-full bg-gray-200">
                 {conversation.type === 'direct' && otherParticipant?.user?.avatar_url ? (
                   <>
@@ -732,7 +703,6 @@ export default function ConversationDetailPage() {
               </div>
             </div>
 
-            {/* Call buttons */}
             <div className="flex items-center space-x-2">
               {conversation.type === 'group' && (
                 <button
@@ -760,7 +730,6 @@ export default function ConversationDetailPage() {
             </div>
           </div>
 
-          {/* Messages */}
           <div 
             className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4"
             id="messages-container"
@@ -784,7 +753,6 @@ export default function ConversationDetailPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Message Input */}
           <div className="p-2 sm:p-4 border-t border-gray-200">
             <div className="flex items-center space-x-1 sm:space-x-2">
               <div className="relative">
@@ -828,7 +796,6 @@ export default function ConversationDetailPage() {
         </div>
       </div>
 
-      {/* Call Modal */}
       {isCallActive && (
         <CallModal
           isOpen={isCallActive}
@@ -849,7 +816,6 @@ export default function ConversationDetailPage() {
         />
       )}
 
-      {/* Group Settings Modal */}
       {showGroupSettings && conversation && (
         <GroupSettings
           conversation={conversation}
@@ -859,14 +825,12 @@ export default function ConversationDetailPage() {
             // Reload conversation
             api.get(`/chat/conversations/${conversationId}`)
               .then((response) => setConversation(response.data.data))
-              .catch(console.error);
             fetchMessages(conversationId);
           }}
           onMemberRemoved={() => {
             // Reload conversation
             api.get(`/chat/conversations/${conversationId}`)
               .then((response) => setConversation(response.data.data))
-              .catch(console.error);
             fetchMessages(conversationId);
           }}
         />

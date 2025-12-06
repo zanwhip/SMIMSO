@@ -43,7 +43,6 @@ export default function FollowModal({
     if (isOpen) {
       fetchUsers(1, true);
     } else {
-      // Reset when modal closes
       setUsers([]);
       setPage(1);
       setHasMore(true);
@@ -79,8 +78,7 @@ export default function FollowModal({
       setHasMore(pagination && pageNum < pagination.totalPages);
     } catch (error: any) {
       toast.error('Failed to load list');
-      console.error('Failed to fetch users:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };
@@ -96,7 +94,7 @@ export default function FollowModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col animate-scale-in">
-        {/* Header */}
+        
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">{title}</h2>
           <button
@@ -107,7 +105,6 @@ export default function FollowModal({
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
           {users.length === 0 && !isLoading ? (
             <div className="text-center py-12">
@@ -163,7 +160,6 @@ export default function FollowModal({
             </div>
           )}
 
-          {/* Load More Button */}
           {hasMore && users.length > 0 && (
             <div className="mt-4 text-center">
               <button

@@ -3,13 +3,11 @@ import { Message, Conversation } from '@/types';
 import { getAuthToken } from './api';
 import { getSession } from 'next-auth/react';
 
-// Simple toast for errors (avoid circular dependency)
 const showError = (message: string) => {
   if (typeof window !== 'undefined' && (window as any).toast) {
     (window as any).toast.error(message);
   } else {
-    console.error(message);
-  }
+    }
 };
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
@@ -29,7 +27,6 @@ class SocketService {
 
     this.isConnecting = true;
     
-    // Try to get token from NextAuth session first, then fallback to localStorage
     let token: string | null = null;
     try {
       const session = await getSession();
@@ -39,7 +36,6 @@ class SocketService {
     }
 
     if (!token) {
-      console.error('No token available for socket connection');
       this.isConnecting = false;
       return null;
     }
@@ -59,66 +55,49 @@ class SocketService {
       });
 
       this.socket.on('connect', () => {
-        console.log('✅ Socket connected:', this.socket?.id);
         this.isConnecting = false;
         
-        // Re-register all message callbacks on reconnect
         if (this.newMessageCallbacks.size > 0) {
           const messageHandler = (message: Message) => {
-            console.log('📨 [Reconnect] new_message:', message.id);
             this.newMessageCallbacks.forEach(cb => {
               try {
                 cb(message);
               } catch (error) {
-                console.error('Error in callback:', error);
-              }
+                }
             });
           };
-          // Remove all existing listeners first
           this.socket?.removeAllListeners('new_message');
           this.socket?.on('new_message', messageHandler);
-          console.log('✅ Re-registered listeners after reconnect');
-        }
+          }
       });
 
       this.socket.on('disconnect', (reason) => {
-        console.log('👋 Socket disconnected:', reason);
         if (reason === 'io server disconnect') {
-          // Server disconnected the socket, reconnect manually
           this.socket?.connect();
         }
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('❌ Socket connection error:', error);
         this.isConnecting = false;
-        // Don't show error toast on every connection attempt
-        // Only show after multiple failed attempts
         if (error.message?.includes('websocket error')) {
-          console.warn('⚠️ WebSocket connection failed, will retry with polling...');
-        }
+          }
       });
 
       this.socket.on('reconnect', (attemptNumber) => {
-        console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
-      });
+        });
 
       this.socket.on('reconnect_attempt', (attemptNumber) => {
-        console.log('🔄 Reconnection attempt', attemptNumber);
-      });
+        });
 
       this.socket.on('reconnect_error', (error) => {
-        console.error('❌ Reconnection error:', error);
-      });
+        });
 
       this.socket.on('reconnect_failed', () => {
-        console.error('❌ Reconnection failed');
         showError('Không thể kết nối đến server. Vui lòng refresh trang.');
       });
 
       return this.socket;
     } catch (error) {
-      console.error('Failed to create socket connection:', error);
       this.isConnecting = false;
       return null;
     }
@@ -132,7 +111,6 @@ class SocketService {
     this.isConnecting = false;
   }
 
-  // Get socket synchronously if already connected, otherwise return null
   getSocketSync(): Socket | null {
     if (this.socket?.connected) {
       return this.socket;
@@ -147,24 +125,18 @@ class SocketService {
     return this.socket;
   }
 
-  // Conversation events
   joinConversation(conversationId: string) {
     const join = (socket: Socket) => {
       if (socket && socket.connected) {
-        console.log('🔌 Joining conversation:', conversationId);
         socket.emit('join_conversation', conversationId);
-        // Also ensure we're listening for messages in this conversation
-        console.log('✅ Joined and listening for conversation:', conversationId);
-      } else {
-        console.warn('⚠️ Socket not connected, cannot join conversation:', conversationId);
-      }
+        } else {
+        }
     };
 
     const socket = this.getSocketSync();
     if (socket && socket.connected) {
       join(socket);
     } else {
-      // Connect first, then join
       this.connect().then((socket) => {
         if (socket) {
           if (socket.connected) {
@@ -186,34 +158,25 @@ class SocketService {
     }
   }
 
-  // Message events
   private newMessageCallbacks: Set<(message: Message) => void> = new Set();
 
   onNewMessage(callback: (message: Message) => void) {
-    // Store callback
     this.newMessageCallbacks.add(callback);
-    console.log('📝 Registered callback, total:', this.newMessageCallbacks.size);
-    
     const setupListener = (socket: Socket) => {
       if (!socket) return;
       
-      // Create handler that calls all callbacks
       const handler = (message: Message) => {
-        console.log('📨 [Socket] new_message received:', message.id, 'conversation:', message.conversation_id);
         this.newMessageCallbacks.forEach(cb => {
           try {
             cb(message);
           } catch (error) {
-            console.error('Callback error:', error);
-          }
+            }
         });
       };
       
-      // Remove all existing listeners first to avoid duplicates
       socket.removeAllListeners('new_message');
       socket.on('new_message', handler);
-      console.log('✅ Listener setup complete for new_message');
-    };
+      };
 
     const socket = this.getSocketSync();
     if (socket?.connected) {
@@ -235,10 +198,7 @@ class SocketService {
     this.newMessageCallbacks.delete(callback);
     const socket = this.getSocketSync();
     if (socket) {
-      // Note: We can't remove specific callback since we use a wrapper
-      // But removing from Set is enough to prevent it from being called
-      console.log('✅ Removed new_message callback, remaining:', this.newMessageCallbacks.size);
-    }
+      }
   }
 
   onConversationUpdated(callback: (data: { conversationId: string; message: Message }) => void) {
@@ -246,7 +206,6 @@ class SocketService {
     if (socket) {
       socket.on('conversation_updated', callback);
     } else {
-      // Try to connect and then add listener
       this.connect().then((socket) => {
         if (socket) {
           socket.on('conversation_updated', callback);
@@ -293,18 +252,15 @@ class SocketService {
   }) {
     const send = (socket: Socket) => {
       if (socket && socket.connected) {
-        console.log('📤 Sending message:', data);
         socket.emit('send_message', data);
       } else {
-        console.error('❌ Socket not connected, cannot send message');
-      }
+        }
     };
 
     const socket = this.getSocketSync();
     if (socket && socket.connected) {
       send(socket);
     } else {
-      // Connect first, then send
       this.connect().then((socket) => {
         if (socket) {
           if (socket.connected) {
@@ -316,12 +272,10 @@ class SocketService {
           }
         }
       }).catch((error) => {
-        console.error('Failed to connect socket for sending message:', error);
-      });
+        });
     }
   }
 
-  // Typing events
   onUserTyping(callback: (data: { userId: string; conversationId: string; isTyping: boolean }) => void) {
     const socket = this.getSocketSync();
     if (socket) {
@@ -368,7 +322,6 @@ class SocketService {
     }
   }
 
-  // Call events (WebRTC)
   onCallOffer(callback: (data: {
     conversationId: string;
     callType: 'audio' | 'video';
@@ -496,7 +449,6 @@ class SocketService {
     }
   }
 
-  // Send call signaling
   sendCallOffer(conversationId: string, callType: 'audio' | 'video', offer: RTCSessionDescriptionInit) {
     const socket = this.getSocketSync();
     if (socket) {
@@ -562,7 +514,6 @@ class SocketService {
     }
   }
 
-  // Error handling
   onError(callback: (error: { message: string; conversationId?: string }) => void) {
     const socket = this.getSocketSync();
     if (socket) {
@@ -583,7 +534,6 @@ class SocketService {
     }
   }
 
-  // Reactions
   addReaction(messageId: string, emoji: string) {
     const socket = this.getSocketSync();
     if (socket) {
@@ -650,7 +600,6 @@ class SocketService {
     }
   }
 
-  // Edit/Delete messages
   editMessage(messageId: string, content: string) {
     const socket = this.getSocketSync();
     if (socket) {
@@ -717,7 +666,6 @@ class SocketService {
     }
   }
 
-  // Online status
   updateOnlineStatus(isOnline: boolean) {
     const socket = this.getSocketSync();
     if (socket) {
@@ -751,7 +699,6 @@ class SocketService {
     }
   }
 
-  // Group management
   addGroupMember(conversationId: string, userId: string) {
     const socket = this.getSocketSync();
     if (socket) {

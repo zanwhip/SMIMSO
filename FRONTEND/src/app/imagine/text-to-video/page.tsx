@@ -52,26 +52,14 @@ export default function TextToVideoPage() {
         style,
       });
 
-      // Log full response for debugging
-      console.log('📥 Full Text to Video response:', {
-        fullResponse: response,
-        responseData: response.data,
-        responseDataType: typeof response.data,
-        isArray: Array.isArray(response.data),
+      ,
         keys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : [],
         stringified: JSON.stringify(response.data, null, 2).substring(0, 1000), // First 1000 chars
       });
 
-      // Use utility function to extract video URL
-      // Response structure: { success: true, message: "...", data: {...} }
       const videoUrl = extractVideoUrl(response.data);
       
-      console.log('🔍 Extracted videoUrl:', videoUrl);
-      console.log('📋 Response structure:', {
-        hasSuccess: 'success' in response.data,
-        hasData: 'data' in response.data,
-        hasMessage: 'message' in response.data,
-        dataKeys: response.data?.data ? Object.keys(response.data.data) : Object.keys(response.data || {}),
+      : Object.keys(response.data || {}),
       });
 
       if (videoUrl) {
@@ -84,10 +72,8 @@ export default function TextToVideoPage() {
         }, ...prev]);
         toast.success('✅ Video generated successfully!', { id: 'video-generation' });
       } else {
-        console.error('❌ Could not extract video URL from response');
-        console.error('Full response:', JSON.stringify(response.data, null, 2));
+        );
         
-        // Try to provide more helpful error message
         let errorMsg = '⚠️ Could not extract video from response. ';
         if (response.data?.data) {
           errorMsg += 'The API returned data but video URL could not be found. ';
@@ -100,16 +86,8 @@ export default function TextToVideoPage() {
         toast.error(errorMsg, { id: 'video-generation', duration: 5000 });
       }
     } catch (error: any) {
-      console.error('❌ Generation error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-      
       let errorMessage = 'Failed to generate video';
       
-      // Extract error message from backend response structure
       const backendError = error.response?.data?.error || error.response?.data?.message;
       
       if (error.response?.status === 401) {
@@ -177,7 +155,7 @@ export default function TextToVideoPage() {
           <h1 className="text-3xl font-bold mb-6">Text to Video</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left: Input Form */}
+            
             <div>
               <div className="space-y-4">
                 <div>
@@ -228,7 +206,6 @@ export default function TextToVideoPage() {
                 </button>
               </div>
 
-              {/* Prompt Templates */}
               <div className="mt-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Prompt Templates</h3>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -245,7 +222,6 @@ export default function TextToVideoPage() {
               </div>
             </div>
 
-            {/* Right: Generated Video */}
             <div>
               <div className="sticky top-4">
                 {generatedVideo ? (
@@ -285,5 +261,4 @@ export default function TextToVideoPage() {
     </div>
   );
 }
-
 

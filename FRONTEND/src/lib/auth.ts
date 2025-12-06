@@ -22,5 +22,3 @@ export async function getAuthToken(): Promise<string | null> {
   return (session as ExtendedSession)?.accessToken || null;
 }
 
-
-

@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { FiHome, FiPlusCircle, FiUser, FiLogOut, FiSearch, FiBell, FiMessageCircle } from 'react-icons/fi';
-import { useState, useEffect } from 'react';
+import { FiHome, FiPlusCircle, FiUser, FiLogOut, FiSearch, FiBell, FiMessageCircle, FiSettings, FiBookmark } from 'react-icons/fi';
+import { useState, useEffect, useRef } from 'react';
 import NotificationDropdown from './NotificationDropdown';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useChat } from '@/contexts/ChatContext';
@@ -17,18 +17,32 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfilePopover, setShowProfilePopover] = useState(false);
+  const profilePopoverRef = useRef<HTMLDivElement>(null);
   const { unreadCount: notificationUnreadCount } = useNotifications();
   const { unreadCount: chatUnreadCount } = useChat();
 
-  // Debug: Log when unreadCount changes
   useEffect(() => {
-    console.log('🔔 Navbar: notificationUnreadCount changed to:', notificationUnreadCount);
-  }, [notificationUnreadCount]);
+    }, [notificationUnreadCount]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profilePopoverRef.current && !profilePopoverRef.current.contains(event.target as Node)) {
+        setShowProfilePopover(false);
+      }
+    };
+
+    if (showProfilePopover) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfilePopover]);
 
   const handleLogout = async () => {
-    // Sign out from NextAuth
     await signOut({ redirect: false });
-    // Also clear Zustand store
     logout();
     router.push('/login');
     setShowLogoutModal(false);
@@ -42,101 +56,89 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="glass sticky top-0 z-50 border-b border-gray-200/50 shadow-soft backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 sm:h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-1.5 sm:space-x-2 group flex-shrink-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500 rounded-lg sm:rounded-xl flex items-center justify-center shadow-glow group-hover:shadow-glow-blue transition-all duration-300 group-hover:scale-110">
-              <span className="text-white font-bold text-lg sm:text-xl">S</span>
+    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <div className="max-w-[1920px] mx-auto px-4 md:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          
+          <Link href="/" className="flex items-center space-x-2 group flex-shrink-0">
+            <div className="w-9 h-9 bg-gradient-to-br from-accent-500 to-accent-600 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105">
+              <span className="text-white font-bold text-xl">S</span>
             </div>
-            <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent hidden xs:inline">SMIMSO</span>
+            <span className="text-xl font-bold text-gray-900 hidden sm:inline">SMIMSO</span>
           </Link>
 
-          {/* Search Bar */}
           {isAuthenticated && (
-            <form onSubmit={handleSearch} className="flex-1 max-w-md mx-2 sm:mx-4 md:mx-8 hidden md:block">
-              <div className="relative group">
+            <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-6 hidden md:block">
+              <div className="relative search-focus rounded-lg">
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search for free photos"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 pl-9 sm:pl-11 pr-4 rounded-full border border-gray-200 bg-white/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-300 transition-all duration-300 shadow-soft hover:shadow-medium text-sm sm:text-base"
+                  className="w-full px-4 py-2.5 pl-11 pr-4 rounded-lg border border-gray-300 bg-gray-50 hover:bg-white focus:bg-white focus:border-accent-500 focus:outline-none transition-all text-sm"
                 />
-                <FiSearch className="absolute left-2.5 sm:left-3.5 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={18} />
+                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               </div>
             </form>
           )}
 
-          {/* Navigation Links */}
-          <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
+          <div className="flex items-center space-x-2">
             {isAuthenticated ? (
               <>
                 <Link
                   href="/"
-                  className="flex items-center justify-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-700 hover:text-primary-600 hover:bg-primary-50/50 transition-all duration-300 group"
+                  className="p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all active-scale"
                   title="Home"
                 >
-                  <FiHome size={18} className="sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                  <span className="hidden lg:inline font-medium text-sm sm:text-base">Home</span>
+                  <FiHome className="w-5 h-5" />
                 </Link>
 
                 <Link
                   href="/create"
-                  className="flex items-center justify-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-700 hover:text-primary-600 hover:bg-primary-50/50 transition-all duration-300 group"
-                  title="Create"
+                  className="hidden sm:flex items-center space-x-1.5 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all font-medium active-scale"
+                  title="Upload"
                 >
-                  <FiPlusCircle size={18} className="sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                  <span className="hidden lg:inline font-medium text-sm sm:text-base">Create</span>
+                  <FiPlusCircle className="w-5 h-5" />
+                  <span className="hidden lg:inline">Upload</span>
                 </Link>
 
-                {/* Chat */}
                 <Link
                   href="/chat"
-                  className="relative flex items-center justify-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-700 hover:text-primary-600 hover:bg-primary-50/50 transition-all duration-300 group"
+                  className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all active-scale"
                   title="Messages"
                 >
-                  <div className="relative">
-                    <FiMessageCircle size={18} className="sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                    {chatUnreadCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] sm:text-xs font-bold rounded-full min-w-[16px] sm:min-w-[20px] h-4 sm:h-5 flex items-center justify-center px-1 sm:px-1.5 shadow-lg animate-pulse-slow">
-                        {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
-                      </span>
-                    )}
-                  </div>
-                  <span className="hidden lg:inline font-medium text-sm sm:text-base">Messages</span>
+                  <FiMessageCircle className="w-5 h-5" />
+                  {chatUnreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                      {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
+                    </span>
+                  )}
                 </Link>
 
-                {/* Notification Bell */}
                 <div className="relative">
                   <button
                     onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative flex items-center justify-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-700 hover:text-primary-600 hover:bg-primary-50/50 transition-all duration-300 group"
+                    className="relative p-2.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all active-scale"
                     title="Notifications"
                   >
-                    <div className="relative">
-                      <FiBell size={18} className="sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                      {notificationUnreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] sm:text-xs font-bold rounded-full min-w-[16px] sm:min-w-[20px] h-4 sm:h-5 flex items-center justify-center px-1 sm:px-1.5 shadow-lg animate-pulse-slow">
-                          {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
-                        </span>
-                      )}
-                    </div>
-                    <span className="hidden lg:inline font-medium text-sm sm:text-base">Notifications</span>
+                    <FiBell className="w-5 h-5" />
+                    {notificationUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                        {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
+                      </span>
+                    )}
                   </button>
                   {showNotifications && (
                     <NotificationDropdown onClose={() => setShowNotifications(false)} />
                   )}
                 </div>
 
-                <Link
-                  href="/profile"
-                  className="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-700 hover:text-primary-600 hover:bg-primary-50/50 transition-all duration-300 group"
-                  title="Profile"
-                >
-                  {user && (
-                    <div className="group-hover:scale-110 transition-transform">
+                <div className="relative" ref={profilePopoverRef}>
+                  <div
+                    onMouseEnter={() => setShowProfilePopover(true)}
+                    className="flex items-center space-x-2 px-3 py-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all active-scale cursor-pointer"
+                  >
+                    {user && (
                       <UserAvatar
                         userId={user.id}
                         avatarUrl={user.avatar_url || undefined}
@@ -145,33 +147,72 @@ export default function Navbar() {
                         size="sm"
                         showOnlineStatus={false}
                       />
+                    )}
+                    <span className="hidden xl:inline font-medium">{user?.first_name}</span>
+                  </div>
+
+                  {showProfilePopover && (
+                    <div
+                      className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 animate-fade-in"
+                      onMouseEnter={() => setShowProfilePopover(true)}
+                      onMouseLeave={() => setShowProfilePopover(false)}
+                    >
+                      <Link
+                        href="/profile"
+                        className="flex items-center space-x-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
+                        onClick={() => setShowProfilePopover(false)}
+                      >
+                        <FiUser className="w-5 h-5" />
+                        <span className="font-medium">My Profile</span>
+                      </Link>
+
+                      <Link
+                        href="/settings"
+                        className="flex items-center space-x-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
+                        onClick={() => setShowProfilePopover(false)}
+                      >
+                        <FiSettings className="w-5 h-5" />
+                        <span className="font-medium">Settings</span>
+                      </Link>
+
+                      <Link
+                        href="/collection"
+                        className="flex items-center space-x-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
+                        onClick={() => setShowProfilePopover(false)}
+                      >
+                        <FiBookmark className="w-5 h-5" />
+                        <span className="font-medium">My Collection</span>
+                      </Link>
+
+                      <div className="border-t border-gray-200 my-2" />
+
+                      <button
+                        onClick={() => {
+                          setShowProfilePopover(false);
+                          setShowLogoutModal(true);
+                        }}
+                        className="w-full flex items-center space-x-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-red-600 hover:text-red-700"
+                      >
+                        <FiLogOut className="w-5 h-5" />
+                        <span className="font-medium">Log Out</span>
+                      </button>
                     </div>
                   )}
-                  <span className="hidden xl:inline font-medium text-sm sm:text-base">{user?.first_name}</span>
-                </Link>
-
-                <button
-                  onClick={() => setShowLogoutModal(true)}
-                  className="flex items-center justify-center space-x-1 sm:space-x-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-gray-700 hover:text-red-600 hover:bg-red-50/50 transition-all duration-300 group"
-                  title="Logout"
-                >
-                  <FiLogOut size={18} className="sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
-                  <span className="hidden lg:inline font-medium text-sm sm:text-base">Logout</span>
-                </button>
+                </div>
               </>
             ) : (
               <>
                 <Link
                   href="/login"
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors duration-300 text-sm sm:text-base"
+                  className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-lg hover:from-primary-700 hover:to-secondary-700 transition-all duration-300 shadow-medium hover:shadow-large font-medium ripple text-sm sm:text-base"
+                  className="bg-accent-600 hover:bg-accent-700 text-white px-5 py-2 rounded-lg font-medium transition-all active-scale"
                 >
-                  Sign Up
+                  Join
                 </Link>
               </>
             )}
@@ -179,7 +220,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
       {showLogoutModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-large animate-scale-in">

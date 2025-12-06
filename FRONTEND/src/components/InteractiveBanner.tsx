@@ -27,7 +27,6 @@ export default function InteractiveBanner() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Initialize particles
     const particleCount = 50;
     particlesRef.current = Array.from({ length: particleCount }, () => ({
       x: Math.random() * canvas.width,
@@ -50,9 +49,7 @@ export default function InteractiveBanner() {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Update and draw particles
       particlesRef.current.forEach((particle, index) => {
-        // Attract to mouse
         const dx = mousePos.x - particle.x;
         const dy = mousePos.y - particle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -64,27 +61,22 @@ export default function InteractiveBanner() {
           particle.vy += (dy / distance) * force * 0.05;
         }
 
-        // Apply velocity
         particle.x += particle.vx;
         particle.y += particle.vy;
 
-        // Damping
         particle.vx *= 0.95;
         particle.vy *= 0.95;
 
-        // Boundary check
         if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
         if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
         particle.x = Math.max(0, Math.min(canvas.width, particle.x));
         particle.y = Math.max(0, Math.min(canvas.height, particle.y));
 
-        // Draw particle
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(239, 68, 68, ${0.3 + Math.random() * 0.2})`;
         ctx.fill();
 
-        // Draw connections
         particlesRef.current.slice(index + 1).forEach((otherParticle) => {
           const dx = particle.x - otherParticle.x;
           const dy = particle.y - otherParticle.y;
@@ -123,8 +115,7 @@ export default function InteractiveBanner() {
         className="absolute inset-0 w-full h-full"
         style={{ background: 'linear-gradient(135deg, #fef2f2 0%, #f0f9ff 100%)' }}
       />
-      
-      {/* Content */}
+
       <div className="relative z-10 h-full flex items-center justify-center px-4">
         <button className="flex flex-col items-center space-y-2 sm:space-y-3 md:space-y-4 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 bg-white/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-large hover:shadow-glow transition-all duration-300 hover:scale-105 group-hover:scale-110">
           <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full flex items-center justify-center shadow-medium group-hover:shadow-glow transition-all duration-300">

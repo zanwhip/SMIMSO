@@ -19,7 +19,6 @@ export default function MessageReactions({
   onReactionClick,
   onShowPicker,
 }: MessageReactionsProps) {
-  // Group reactions by emoji
   const reactionsByEmoji = reactions.reduce((acc, reaction) => {
     if (!acc[reaction.emoji]) {
       acc[reaction.emoji] = [];
@@ -67,14 +66,4 @@ export default function MessageReactions({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
 

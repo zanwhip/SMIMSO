@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Post } from '@/types';
 import { getImageUrl, formatNumber } from '@/lib/utils';
-import { FiHeart, FiMessageCircle } from 'react-icons/fi';
+import { FiHeart, FiMessageCircle, FiDownload, FiBookmark } from 'react-icons/fi';
 import { FaHeart } from 'react-icons/fa';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -14,11 +14,12 @@ interface PostCardProps {
   post: Post;
 }
 
-export default function PostCard({ post: initialPost }: PostCardProps) {
+function PostCard({ post: initialPost }: PostCardProps) {
   const [post, setPost] = useState(initialPost);
   const [isLiking, setIsLiking] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Sync state when prop changes
   useEffect(() => {
     setPost(initialPost);
   }, [initialPost]);
@@ -32,7 +33,6 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
     setIsLiking(true);
     const wasLiked = post.isLiked;
 
-    // Optimistic update
     setPost((prev) => ({
       ...prev,
       isLiked: !wasLiked,
@@ -46,7 +46,6 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
         await api.post(`/posts/${post.id}/like`);
       }
     } catch (error) {
-      // Revert on error
       setPost((prev) => ({
         ...prev,
         isLiked: wasLiked,
@@ -59,54 +58,141 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
   };
 
   const imageUrl = post.image?.image_url || post.images?.[0]?.image_url;
+  const userName = post.user ? `${post.user.first_name} ${post.user.last_name}` : 'Unknown';
+
+  if (!imageUrl) return null;
 
   return (
-    <Link href={`/post/${post.id}`} className="block">
-      <div className="post-card-item bg-white rounded-2xl overflow-hidden shadow-soft hover:shadow-large transition-all duration-500 cursor-pointer relative group w-full card-hover">
-        {/* Image */}
-        {imageUrl && (
-          <div className="relative w-full aspect-square overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
-            <Image
-              src={getImageUrl(imageUrl)}
-              alt={post.title || 'Post image'}
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-110"
-              unoptimized
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            />
-            {/* Gradient overlay at bottom */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          </div>
-        )}
+    <div 
+      className="post-card-item group relative cursor-pointer"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Link href={`/post/${post.id}`} className="block">
+        <div className="relative overflow-hidden rounded-lg bg-gray-100">
+          
+          {!imageLoaded && (
+            <div className="absolute inset-0 skeleton" />
+          )}
 
-        {/* Like and Comment Icons at Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 md:p-4 flex items-center justify-center space-x-4 sm:space-x-5 md:space-x-6 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-4 group-hover:translate-y-0">
-          <button
-            onClick={handleLike}
-            className={`flex items-center space-x-1.5 sm:space-x-2 transition-all duration-300 transform hover:scale-110 ${
-              post.isLiked ? 'text-red-500 hover:text-red-600' : 'text-white hover:text-red-200'
+          <Image
+            src={getImageUrl(imageUrl)}
+            alt={post.title || 'Post image'}
+            width={500}
+            height={500}
+            className={`w-full h-auto object-cover transition-all duration-700 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            } ${isHovered ? 'scale-105 brightness-75' : 'scale-100'}`}
+            onLoad={() => setImageLoaded(true)}
+            loading="lazy"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          />
+
+          <div 
+            className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-opacity duration-300 ${
+              isHovered ? 'opacity-100' : 'opacity-0'
             }`}
-            title={post.isLiked ? 'Unlike' : 'Like'}
-          >
-            {post.isLiked ? (
-              <FaHeart className="text-lg sm:text-xl md:text-2xl text-red-500" />
-            ) : (
-              <FiHeart className="text-lg sm:text-xl md:text-2xl" />
-            )}
-            <span className="font-bold text-sm sm:text-base md:text-lg drop-shadow-lg">{formatNumber(post.like_count)}</span>
-          </button>
+          />
 
-          <Link
-            href={`/post/${post.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center space-x-1.5 sm:space-x-2 text-white hover:text-blue-300 transition-all duration-300 transform hover:scale-110"
+          <div 
+            className={`absolute top-3 right-3 flex space-x-2 transition-all duration-300 ${
+              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+            }`}
           >
-            <FiMessageCircle className="text-lg sm:text-xl md:text-2xl" />
-            <span className="font-bold text-sm sm:text-base md:text-lg drop-shadow-lg">{formatNumber(post.comment_count)}</span>
-          </Link>
+            <button
+              onClick={handleLike}
+              className={`p-2.5 rounded-full backdrop-blur-md transition-all duration-200 active-scale ${
+                post.isLiked 
+                  ? 'bg-red-500 text-white' 
+                  : 'bg-white/90 text-gray-700 hover:bg-white'
+              }`}
+              title={post.isLiked ? 'Unlike' : 'Like'}
+            >
+              {post.isLiked ? (
+                <FaHeart className="w-4 h-4" />
+              ) : (
+                <FiHeart className="w-4 h-4" />
+              )}
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toast.success('Bookmark feature coming soon!');
+              }}
+              className="p-2.5 rounded-full bg-white/90 backdrop-blur-md text-gray-700 hover:bg-white transition-all duration-200 active-scale"
+              title="Bookmark"
+            >
+              <FiBookmark className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div 
+            className={`absolute bottom-0 left-0 right-0 p-4 transition-all duration-300 ${
+              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            
+            <div className="flex items-center justify-between mb-3">
+              <Link
+                href={`/profile/${post.user_id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center space-x-2 group/user"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xs font-semibold overflow-hidden">
+                  {post.user?.avatar_url ? (
+                    <Image
+                      src={getImageUrl(post.user.avatar_url)}
+                      alt={userName}
+                      width={32}
+                      height={32}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    userName.split(' ').map(n => n[0]).join('')
+                  )}
+                </div>
+                <span className="text-white text-sm font-medium group-hover/user:underline">
+                  {userName}
+                </span>
+              </Link>
+
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toast.success('Download feature coming soon!');
+                }}
+                className="p-2 rounded-lg bg-white/90 backdrop-blur-md text-gray-700 hover:bg-white transition-all duration-200 active-scale"
+                title="Download"
+              >
+                <FiDownload className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center space-x-4 text-white text-sm">
+              <div className="flex items-center space-x-1.5">
+                <FiHeart className="w-4 h-4" />
+                <span className="font-medium">{formatNumber(post.like_count)}</span>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <FiMessageCircle className="w-4 h-4" />
+                <span className="font-medium">{formatNumber(post.comment_count)}</span>
+              </div>
+            </div>
+
+            {post.title && (
+              <p className="text-white text-sm mt-2 line-clamp-2 font-medium">
+                {post.title}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
+
+export default memo(PostCard);
 

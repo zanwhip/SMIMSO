@@ -41,16 +41,13 @@ export default function GifPicker({ onGifSelect }: GifPickerProps) {
   const loadTrendingGifs = async () => {
     try {
       setIsLoading(true);
-      // Fallback to a demo API or you can use your backend to proxy Giphy requests
       const response = await fetch(`${GIPHY_API_URL}/trending?api_key=${GIPHY_API_KEY}&limit=20`);
       if (response.ok) {
         const data = await response.json();
         setGifs(data.data || []);
       }
     } catch (error) {
-      console.error('Failed to load GIFs:', error);
-      // Fallback: show message or use placeholder
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };
@@ -71,8 +68,7 @@ export default function GifPicker({ onGifSelect }: GifPickerProps) {
         setGifs(data.data || []);
       }
     } catch (error) {
-      console.error('Failed to search GIFs:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   };
@@ -138,6 +134,4 @@ export default function GifPicker({ onGifSelect }: GifPickerProps) {
     </div>
   );
 }
-
-
 

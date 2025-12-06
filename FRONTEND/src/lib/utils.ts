@@ -8,15 +8,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: string | Date | null | undefined): string {
-  // Handle null, undefined, or empty values
   if (!date) {
     return 'Vừa xong';
   }
 
-  // Convert to Date object if it's a string
   const dateObj = date instanceof Date ? date : new Date(date);
   
-  // Check if date is valid
   if (isNaN(dateObj.getTime())) {
     return 'Vừa xong';
   }
@@ -27,7 +24,6 @@ export function formatDate(date: string | Date | null | undefined): string {
       locale: vi,
     });
   } catch (error) {
-    console.error('Error formatting date:', error, date);
     return 'Vừa xong';
   }
 }

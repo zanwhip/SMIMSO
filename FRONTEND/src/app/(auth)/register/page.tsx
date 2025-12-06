@@ -30,7 +30,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Validate
     if (formData.password !== formData.confirmPassword) {
       toast.error('Mật khẩu xác nhận không khớp');
       setIsLoading(false);
@@ -56,14 +55,14 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background decoration */}
+      
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-slow"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
       </div>
       
       <div className="max-w-2xl w-full space-y-8 bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-large relative z-10 animate-scale-in">
-        {/* Header */}
+        
         <div className="text-center">
           <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500 rounded-2xl flex items-center justify-center mb-6 shadow-glow hover:shadow-glow-blue transition-all duration-500 hover:scale-110">
             <span className="text-white font-bold text-4xl">S</span>
@@ -76,10 +75,9 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* First Name */}
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 First Name <span className="text-red-500">*</span>
@@ -99,7 +97,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Last Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Last Name <span className="text-red-500">*</span>
@@ -119,7 +116,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email <span className="text-red-500">*</span>
@@ -139,7 +135,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Phone Number
@@ -158,7 +153,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Date of Birth */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date of Birth
@@ -176,7 +170,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Job */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Job
@@ -209,9 +202,8 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Password Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Password */}
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Password <span className="text-red-500">*</span>
@@ -238,7 +230,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Confirm Password <span className="text-red-500">*</span>
@@ -266,7 +257,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -276,7 +266,6 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        {/* Login Link */}
         <p className="text-center text-sm text-gray-600">
           Already have an account?{' '}
           <Link href="/login" className="font-medium text-primary-600 hover:text-primary-500">

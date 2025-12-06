@@ -40,25 +40,20 @@ export default function Sidebar() {
     try {
       setLoading(true);
       
-      // Fetch top creators
       const creatorsRes = await api.get('/users/top-creators?limit=5');
       if (creatorsRes.data.success) {
         setTopCreators(creatorsRes.data.data);
       }
 
-      // Fetch related users (only if authenticated)
       try {
         const relatedRes = await api.get('/users/related-users?limit=5');
         if (relatedRes.data.success) {
           setRelatedUsers(relatedRes.data.data);
         }
       } catch (error) {
-        // User not authenticated, skip related users
-        console.log('Not authenticated, skipping related users');
-      }
+        }
     } catch (error) {
-      console.error('Error fetching sidebar data:', error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };
@@ -85,22 +80,22 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="w-full space-y-6">
-      {/* Top Creators */}
+    <div className="w-full space-y-4">
+      
       {topCreators.length > 0 && (
-        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-medium p-6 animate-fade-in">
-          <h3 className="font-bold text-lg text-gray-900 mb-5 flex items-center">
-            <FiHeart className="mr-2 text-red-500" size={20} />
+        <div className="bg-white rounded-lg border border-gray-200 p-5 animate-fade-in">
+          <h3 className="font-bold text-base text-gray-900 mb-4 flex items-center">
+            <FiHeart className="mr-2 text-red-500" size={18} />
             Top Creators
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {topCreators.map((creator) => (
               <Link
                 key={creator.id}
                 href={`/profile/${creator.id}`}
-                className="flex items-center space-x-3 hover:bg-gradient-to-r hover:from-primary-50 hover:to-secondary-50 p-3 rounded-xl transition-all duration-300 group card-hover"
+                className="flex items-center space-x-3 hover:bg-gray-50 p-2.5 rounded-lg transition-all group"
               >
-                <div className="relative w-10 h-10 flex-shrink-0">
+                <div className="relative w-9 h-9 flex-shrink-0">
                   {creator.avatar_url ? (
                     <Image
                       src={getImageUrl(creator.avatar_url)}
@@ -110,7 +105,7 @@ export default function Sidebar() {
                       unoptimized
                     />
                   ) : (
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div className="w-9 h-9 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
                       {creator.first_name[0]}{creator.last_name[0]}
                     </div>
                   )}
@@ -120,7 +115,7 @@ export default function Sidebar() {
                     {creator.first_name} {creator.last_name}
                   </p>
                   <p className="text-xs text-gray-500 flex items-center">
-                    <FiHeart className="mr-1 text-red-500" size={12} />
+                    <FiHeart className="mr-1 text-red-500" size={11} />
                     {creator.totalLikes} likes
                   </p>
                 </div>
@@ -131,20 +126,19 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Related Users */}
       {relatedUsers.length > 0 && (
-        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-medium p-6 animate-fade-in">
-          <h3 className="font-bold text-lg text-gray-900 mb-5">
-            People You May Know
+        <div className="bg-white rounded-lg border border-gray-200 p-5 animate-fade-in">
+          <h3 className="font-bold text-base text-gray-900 mb-4">
+            Suggested
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {relatedUsers.map((user) => (
               <Link
                 key={user.id}
                 href={`/profile/${user.id}`}
-                className="flex items-center space-x-3 hover:bg-gradient-to-r hover:from-primary-50 hover:to-secondary-50 p-3 rounded-xl transition-all duration-300 group card-hover"
+                className="flex items-center space-x-3 hover:bg-gray-50 p-2.5 rounded-lg transition-all group"
               >
-                <div className="relative w-10 h-10 flex-shrink-0">
+                <div className="relative w-9 h-9 flex-shrink-0">
                   {user.avatar_url ? (
                     <Image
                       src={getImageUrl(user.avatar_url)}
@@ -154,7 +148,7 @@ export default function Sidebar() {
                       unoptimized
                     />
                   ) : (
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div className="w-9 h-9 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
                       {user.first_name[0]}{user.last_name[0]}
                     </div>
                   )}

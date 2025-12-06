@@ -93,7 +93,6 @@ export default function UserProfilePage() {
       const response = await api.get(`/users/${userId}/posts`);
       setPosts(response.data.data);
     } catch (error) {
-      console.error('Failed to fetch posts:', error);
     }
   };
 
@@ -117,9 +116,7 @@ export default function UserProfilePage() {
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Header */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-          {/* Cover Image */}
           <div className="h-48 bg-gradient-to-r from-purple-500 to-pink-500">
             {profile.cover_url && (
               <Image
@@ -133,7 +130,6 @@ export default function UserProfilePage() {
             )}
           </div>
 
-          {/* Profile Info */}
           <div className="px-6 pb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-end -mt-16 mb-4">
               <div className="relative">
@@ -166,7 +162,6 @@ export default function UserProfilePage() {
               </div>
             </div>
 
-            {/* Stats and Actions */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-gray-200">
               <div className="flex items-center space-x-6 mb-4 sm:mb-0">
                 <div className="flex items-center space-x-2">
@@ -201,7 +196,6 @@ export default function UserProfilePage() {
                 </div>
               </div>
               
-              {/* Action Buttons */}
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleFollow}
@@ -250,7 +244,6 @@ export default function UserProfilePage() {
           </div>
         </div>
 
-        {/* Posts Grid */}
         <div>
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Posts</h2>
           {posts.length === 0 ? (
@@ -267,7 +260,6 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {/* Follow Modal */}
       {modalType && (
         <FollowModal
           isOpen={!!modalType}

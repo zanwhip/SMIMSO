@@ -58,7 +58,6 @@ export default function ChatPage() {
   const [isLoadingSuggested, setIsLoadingSuggested] = useState(false);
   const suggestedScrollRef = useRef<HTMLDivElement>(null);
   
-  // Call state
   const [isCallActive, setIsCallActive] = useState(false);
   const [callType, setCallType] = useState<'audio' | 'video'>('audio');
   const [isIncomingCall, setIsIncomingCall] = useState(false);
@@ -70,7 +69,6 @@ export default function ChatPage() {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   
-  // Voice recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -81,7 +79,6 @@ export default function ChatPage() {
   const selectedConversationRef = useRef<Conversation | null>(null);
   const messagesRef = useRef<Message[]>([]);
   
-  // Keep refs in sync with state
   useEffect(() => {
     selectedConversationRef.current = selectedConversation;
   }, [selectedConversation]);
@@ -90,10 +87,8 @@ export default function ChatPage() {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (messages.length > 0) {
-      // Use requestAnimationFrame and setTimeout to ensure DOM is updated
       requestAnimationFrame(() => {
         setTimeout(() => {
           const messagesContainer = document.getElementById('messages-container');
@@ -106,37 +101,23 @@ export default function ChatPage() {
     }
   }, [messages]);
 
-  // Define handleNewMessage early to avoid hoisting issues
   const handleNewMessage = useCallback((message: Message) => {
-    console.log('📨 [handleNewMessage] Received:', {
-      id: message.id,
-      convId: message.conversation_id,
-      senderId: message.sender_id,
-      currentUserId: user?.id,
-      selectedConvId: selectedConversationRef.current?.id,
-      timestamp: new Date().toISOString(),
+    .toISOString(),
     });
     
     if (!message?.id || !message?.conversation_id) {
-      console.error('❌ Invalid message:', message);
       return;
     }
     
-    // Update conversation list immediately
     updateConversationInList(message.conversation_id);
     
-    // Use ref to get latest selectedConversation (avoid stale closure)
     const currentConversation = selectedConversationRef.current;
     const isCurrent = message.conversation_id === currentConversation?.id;
     
     if (isCurrent) {
-      console.log('✅ Message for current conversation - updating UI immediately');
-      
       setMessages((prev) => {
-        // Check if message already exists (avoid duplicates)
         const existingIndex = prev.findIndex(m => m.id === message.id);
         if (existingIndex >= 0) {
-          console.log('📝 Updating existing message at index:', existingIndex);
           const updated = [...prev];
           updated[existingIndex] = message;
           return updated.sort((a, b) => 
@@ -144,24 +125,16 @@ export default function ChatPage() {
           );
         }
         
-        console.log('➕ Adding new message. Previous count:', prev.length);
-        
-        // Remove temp messages with same content from same sender
         const filtered = prev.filter(m => 
           !(m.id.startsWith('temp-') && m.content === message.content && m.sender_id === message.sender_id)
         );
         
-        // Add new message and sort
         const updated = [...filtered, message].sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         
-        console.log('✅ New count:', updated.length);
-        
-        // Update ref
         messagesRef.current = updated;
         
-        // Force scroll to bottom after state update
         requestAnimationFrame(() => {
           setTimeout(() => {
             const container = document.getElementById('messages-container');
@@ -175,28 +148,20 @@ export default function ChatPage() {
         return updated;
       });
       
-      // Mark as read if not our own message
       if (message.sender_id !== user?.id && currentConversation) {
         markAsRead(currentConversation.id);
       }
     } else {
-      // Other conversation - update unread count
-      console.log('📨 Message for other conversation:', message.conversation_id);
-      
-      // Update local state
       setConversations((prev) => prev.map(conv => 
         conv.id === message.conversation_id 
           ? { ...conv, unread_count: (conv.unread_count || 0) + 1, last_message_at: message.created_at }
           : conv
       ));
       
-      // Update ChatContext for navbar badge
       incrementUnread(message.conversation_id);
       
-      // Show browser notification (only if not already shown by ChatContext)
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
       if (currentPath.startsWith('/chat')) {
-        // We're on chat page, show notification for other conversations
         if ('Notification' in window && Notification.permission === 'granted') {
           const senderName = message.sender 
             ? `${message.sender.first_name} ${message.sender.last_name}` 
@@ -229,17 +194,14 @@ export default function ChatPage() {
             
             setTimeout(() => notification.close(), 5000);
           } catch (error) {
-            console.error('Failed to show notification:', error);
-          }
+            }
         }
       }
     }
   }, [user?.id, incrementUnread, router]);
 
-  // Scroll to bottom when conversation changes
   useEffect(() => {
     if (selectedConversation) {
-      // Scroll to bottom when entering conversation
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       }, 300);
@@ -254,81 +216,58 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      // Request notification permission
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().then(permission => {
-          console.log('Notification permission:', permission);
-        }).catch(console.error);
+          }).catch(console.error);
       }
       
-      // Error handler for chat page
       const handleError = (error: { message: string; conversationId?: string }) => {
-        console.error('Socket error:', error);
         if (error.message.includes('Not a participant')) {
           toast.error('Bạn không phải là thành viên của cuộc trò chuyện này');
-          // Refresh conversation if error is for current conversation
           if (error.conversationId === selectedConversationRef.current?.id) {
             updateConversationInList(error.conversationId);
           }
         } else if (error.message.includes('Failed to join')) {
-          // Don't show toast for join errors - they're handled automatically
-          console.warn('Join conversation error (handled automatically):', error);
+          :', error);
         } else {
           toast.error(error.message || 'Có lỗi xảy ra');
         }
       };
 
-      // Helper function to setup all listeners
       const setupSocketListeners = () => {
-        console.log('🔌 Setting up socket listeners...');
-        
-        // Remove old listeners first to avoid duplicates
         socketService.offNewMessage(handleNewMessage);
         socketService.offError(handleError);
         
-        // Set up socket event listeners
         socketService.onNewMessage(handleNewMessage);
         socketService.onConversationUpdated(handleConversationUpdated);
         socketService.onUserTyping(handleUserTyping);
         socketService.onError(handleError);
         
-        // Call event listeners
         socketService.onCallOffer(handleCallOffer);
         socketService.onCallAnswer(handleCallAnswer);
         socketService.onCallIceCandidate(handleCallIceCandidate);
         socketService.onCallEnd(handleCallEnd);
         socketService.onCallDecline(handleCallDecline);
         
-        // Message edit/delete listeners
         socketService.onMessageEdited(handleMessageEdited);
         socketService.onMessageDeleted(handleMessageDeleted);
         
-        // Online status listeners
         socketService.onUserOnlineStatus(handleUserOnlineStatus);
         
-        // Group management listeners
         socketService.onMemberAdded(handleMemberAdded);
         socketService.onMemberRemoved(handleMemberRemoved);
         
-        // Update online status
         socketService.updateOnlineStatus(true);
         
-        // Rejoin current conversation if one is selected
         const currentConv = selectedConversationRef.current;
         if (currentConv) {
           socketService.joinConversation(currentConv.id);
-          console.log('✅ Rejoined conversation:', currentConv.id);
-        }
+          }
         
-        console.log('✅ All socket listeners registered');
-      };
+        };
 
-      // Connect to socket first, then setup listeners
       socketService.connect().then((socket) => {
         if (socket) {
-          console.log('✅ Socket connected, setting up listeners');
-          
-          // Wait for socket to be fully connected
           if (socket.connected) {
             setupSocketListeners();
           } else {
@@ -337,15 +276,12 @@ export default function ChatPage() {
             });
           }
         } else {
-          console.error('❌ Failed to connect socket');
           toast.error('Không thể kết nối đến server chat');
         }
       }).catch((error) => {
-        console.error('❌ Socket connection error:', error);
         toast.error('Lỗi kết nối chat server');
       });
 
-      // Subscribe to push notifications if not already subscribed and permission is not denied
       if (isSupported && !isSubscribed && permissionStatus !== 'denied') {
         subscribe().catch(console.error);
       }
@@ -354,7 +290,6 @@ export default function ChatPage() {
       fetchRecommendedContacts();
 
       return () => {
-        // Cleanup socket listeners
         socketService.offNewMessage(handleNewMessage);
         socketService.offConversationUpdated(handleConversationUpdated);
         socketService.offUserTyping(handleUserTyping);
@@ -370,7 +305,6 @@ export default function ChatPage() {
         socketService.offMemberAdded(handleMemberAdded);
         socketService.offMemberRemoved(handleMemberRemoved);
         
-        // Update offline status
         socketService.updateOnlineStatus(false);
       };
     }
@@ -378,30 +312,21 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (selectedConversation) {
-      console.log('📂 Selected conversation:', selectedConversation.id);
       setActiveConversation(selectedConversation.id);
       
-      // Ensure socket is connected before joining
       const joinConversationRoom = async () => {
         try {
           const socket = await socketService.getSocket();
           if (socket && socket.connected) {
             socketService.joinConversation(selectedConversation.id);
-            console.log('✅ Joined conversation room:', selectedConversation.id);
-            
-            // Re-register message handler to ensure it has latest selectedConversation
             socketService.offNewMessage(handleNewMessage);
             socketService.onNewMessage(handleNewMessage);
-            console.log('✅ Re-registered message handler for conversation:', selectedConversation.id);
-          } else {
-            console.warn('⚠️ Socket not connected, will join when connected');
+            } else {
             socket?.once('connect', () => {
               socketService.joinConversation(selectedConversation.id);
               socketService.offNewMessage(handleNewMessage);
               socketService.onNewMessage(handleNewMessage);
-              console.log('✅ Joined conversation room after reconnect:', selectedConversation.id);
-            });
-            // Also try to connect if not already connecting
+              });
             if (!socket) {
               await socketService.connect();
               const newSocket = await socketService.getSocket();
@@ -413,16 +338,12 @@ export default function ChatPage() {
             }
           }
         } catch (error) {
-          console.error('Failed to join conversation room:', error);
-        }
+          }
       };
       
       joinConversationRoom();
       fetchMessages(selectedConversation.id);
-      // KHÔNG TỰ ĐỘNG mark as read khi vào conversation
-      // Sẽ mark as read khi user thực sự xem messages (scroll hoặc có messages)
       
-      // Fetch online status for participants
       if (selectedConversation.type === 'direct' && selectedConversation.participants?.[0]?.user_id) {
         const participantId = selectedConversation.participants[0].user_id;
         fetchOnlineStatus([participantId]);
@@ -437,8 +358,7 @@ export default function ChatPage() {
     return () => {
       if (selectedConversation) {
         socketService.leaveConversation(selectedConversation.id);
-        console.log('👋 Left conversation room:', selectedConversation.id);
-      }
+        }
     };
   }, [selectedConversation, setActiveConversation, handleNewMessage]);
 
@@ -458,8 +378,7 @@ export default function ChatPage() {
         return newMap;
       });
     } catch (error) {
-      console.error('Failed to fetch online status:', error);
-    }
+      }
   };
 
   const handleConversationUpdated = (data: { conversationId: string; message: Message }) => {
@@ -481,7 +400,6 @@ export default function ChatPage() {
       }
     }
   };
-
 
   const handleMessageEdited = (message: Message) => {
     if (message.conversation_id === selectedConversation?.id) {
@@ -532,7 +450,6 @@ export default function ChatPage() {
     updateConversationInList(data.conversationId);
   };
 
-  // Call handlers
   const handleCallOffer = async (data: {
     conversationId: string;
     callType: 'audio' | 'video';
@@ -540,40 +457,31 @@ export default function ChatPage() {
     callerId: string;
     caller?: User; // Caller info from backend
   }) => {
-    // CHỈ hiển thị popup cho người được gọi (không phải người gọi)
     if (data.callerId === user?.id) {
-      console.log('📞 Ignoring call offer - this is our own call');
       return;
     }
     
-    // Clear global call state - we're handling it locally
     setCallState(null);
     
-    // Show call popup even if conversation is not selected
     let callerUser: User | undefined = data.caller; // Use caller from backend first
     let callConversation: Conversation | undefined;
     
-    // If not provided, try to find from conversations
     if (!callerUser) {
       if (data.conversationId === selectedConversation?.id) {
         callerUser = selectedConversation?.participants?.find(p => p.user_id === data.callerId)?.user;
         callConversation = selectedConversation;
       } else {
-        // Find from conversations list
         const conv = conversations.find(c => c.id === data.conversationId);
         callerUser = conv?.participants?.find(p => p.user_id === data.callerId)?.user;
         callConversation = conv;
       }
     }
     
-    // If still not found, fetch from API
     if (!callerUser) {
       try {
         const response = await api.get(`/users/${data.callerId}`);
         callerUser = response.data.data;
       } catch (error) {
-        console.error('Failed to fetch caller info:', error);
-        // Create a minimal user object
         callerUser = {
           id: data.callerId,
           first_name: 'Unknown',
@@ -582,24 +490,20 @@ export default function ChatPage() {
       }
     }
     
-    // Fetch conversation if not found
     if (!callConversation) {
       try {
         const response = await api.get(`/chat/conversations/${data.conversationId}`);
         callConversation = response.data.data;
-        // Add to conversations list if not already there
         setConversations((prev) => {
           const exists = prev.find(c => c.id === callConversation?.id);
           if (exists) return prev;
           return [callConversation!, ...prev];
         });
       } catch (error) {
-        console.error('Failed to fetch conversation:', error);
-      }
+        }
     }
     
     if (callerUser && callConversation) {
-      // SET conversation trước khi show call modal
       setSelectedConversation(callConversation);
       
       setCaller(callerUser);
@@ -608,22 +512,12 @@ export default function ChatPage() {
       setIsIncomingCall(true);
       setIsCallActive(true);
       
-      console.log('📞 Call offer setup complete:', {
-        callerId: data.callerId,
-        conversationId: data.conversationId,
-        caller: callerUser,
-        conversation: callConversation,
-      });
-      
-      // Play notification sound
       try {
         const audio = new Audio('/notification.mp3');
         audio.play().catch(() => {}); // Ignore if audio fails
       } catch (e) {
-        // Ignore
       }
       
-      // Show browser notification if permission granted
       if ('Notification' in window && Notification.permission === 'granted') {
         try {
           const notification = new Notification(`Incoming ${data.callType === 'video' ? 'Video' : 'Audio'} Call`, {
@@ -639,8 +533,7 @@ export default function ChatPage() {
             notification.close();
           };
         } catch (error) {
-          console.error('Failed to show call notification:', error);
-        }
+          }
       }
     }
   };
@@ -677,27 +570,19 @@ export default function ChatPage() {
   const startCall = async (type: 'audio' | 'video') => {
     if (!selectedConversation) return;
 
-    console.log('📞 Starting call:', type, 'conversation:', selectedConversation.id);
-
     try {
-      // Ensure socket is connected
       const socket = await socketService.getSocket();
       if (!socket || !socket.connected) {
         toast.error('Socket not connected. Please refresh the page.');
         return;
       }
 
-      // Ensure we're joined to the conversation room
       try {
         socketService.joinConversation(selectedConversation.id);
-        // Wait a bit for join to complete
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        console.error('Failed to join conversation:', error);
-        // Continue anyway - backend will auto-join
-      }
+        }
 
-      // Clear global call state if any (we're handling call locally)
       setCallState(null);
 
       setCallType(type);
@@ -710,15 +595,13 @@ export default function ChatPage() {
         callType: type,
         userId: user?.id || '',
         onLocalStream: (stream) => {
-          console.log('📹 Local stream received:', stream);
-          console.log('📹 Local video tracks:', stream.getVideoTracks().length);
-          console.log('📹 Local audio tracks:', stream.getAudioTracks().length);
+          .length);
+          .length);
           setLocalStream(stream);
         },
         onRemoteStream: (stream) => {
-          console.log('📹 Remote stream received:', stream);
-          console.log('📹 Remote video tracks:', stream.getVideoTracks().length);
-          console.log('📹 Remote audio tracks:', stream.getAudioTracks().length);
+          .length);
+          .length);
           setRemoteStream(stream);
         },
         onCallEnd: () => {
@@ -726,9 +609,7 @@ export default function ChatPage() {
         },
       });
       
-      console.log('✅ Call started, waiting for answer...');
-    } catch (error: any) {
-      console.error('Failed to start call:', error);
+      } catch (error: any) {
       toast.error('Failed to start call');
       endCall();
     }
@@ -738,7 +619,6 @@ export default function ChatPage() {
     if (!selectedConversation || !caller || !callOffer) return;
 
     try {
-      // Clear global call state
       setCallState(null);
       
       setIsIncomingCall(false);
@@ -748,15 +628,15 @@ export default function ChatPage() {
         callType: callType,
         userId: user?.id || '',
         onLocalStream: (stream) => {
-          console.log('📹 Local stream received (accept):', stream);
-          console.log('📹 Local video tracks:', stream.getVideoTracks().length);
-          console.log('📹 Local audio tracks:', stream.getAudioTracks().length);
+          :', stream);
+          .length);
+          .length);
           setLocalStream(stream);
         },
         onRemoteStream: (stream) => {
-          console.log('📹 Remote stream received (accept):', stream);
-          console.log('📹 Remote video tracks:', stream.getVideoTracks().length);
-          console.log('📹 Remote audio tracks:', stream.getAudioTracks().length);
+          :', stream);
+          .length);
+          .length);
           setRemoteStream(stream);
         },
         onCallEnd: () => {
@@ -764,11 +644,8 @@ export default function ChatPage() {
         },
       }, callOffer);
       
-      console.log('✅ Call accepted');
-      
       toast.success('Đã chấp nhận cuộc gọi');
     } catch (error: any) {
-      console.error('Failed to accept call:', error);
       toast.error('Không thể chấp nhận cuộc gọi');
       endCall();
     }
@@ -787,11 +664,9 @@ export default function ChatPage() {
     
     if (selectedConversation) {
       webrtcService.endCall(selectedConversation.id);
-      // Send call end event with duration - backend will create the summary message
       socketService.sendCallEnd(selectedConversation.id, callTypeToEnd, duration);
     }
     
-    // Clear global call state
     setCallState(null);
     
     setIsCallActive(false);
@@ -825,7 +700,6 @@ export default function ChatPage() {
       
       if (append) {
         setRecommendedContacts((prev) => {
-          // Remove duplicates
           const combined = [...prev, ...newContacts];
           const unique = Array.from(
             new Map(combined.map(contact => [contact.id, contact])).values()
@@ -836,16 +710,13 @@ export default function ChatPage() {
         setRecommendedContacts(newContacts);
       }
       
-      // Check if there are more contacts to load
       setSuggestedHasMore(newContacts.length === 20);
       setIsLoadingSuggested(false);
     } catch (error: any) {
-      console.error('Failed to fetch recommended contacts:', error);
       setIsLoadingSuggested(false);
     }
   };
   
-  // Handle horizontal scroll for suggested contacts
   const handleSuggestedScroll = () => {
     const container = suggestedScrollRef.current;
     if (!container || isLoadingSuggested || !suggestedHasMore) return;
@@ -867,17 +738,14 @@ export default function ChatPage() {
       const conversationsData = response.data.data;
       setConversations(conversationsData);
       
-      // Sync unread counts to ChatContext for navbar badge
       conversationsData.forEach((conv: Conversation) => {
         if (conv.unread_count && conv.unread_count > 0) {
           setUnreadCount(conv.id, conv.unread_count);
         }
       });
       
-      // Check if userId is in query params
       const userId = searchParams?.get('userId');
       if (userId && user && userId !== user.id) {
-        // Find existing conversation with this user
         const existingConv = conversationsData.find((conv: Conversation) => 
           conv.type === 'direct' && 
           conv.participants?.some(p => p.user_id === userId)
@@ -887,29 +755,24 @@ export default function ChatPage() {
           setSelectedConversation(existingConv);
           router.replace('/chat');
         } else {
-          // Create new conversation with this user
           try {
             const convResponse = await api.get(`/chat/conversations/direct/${userId}`);
             const newConversation = convResponse.data.data;
             setSelectedConversation(newConversation);
             setConversations((prev) => [newConversation, ...prev]);
             
-            // Join conversation room immediately
             try {
               socketService.joinConversation(newConversation.id);
             } catch (error) {
-              console.error('Failed to join new conversation:', error);
-            }
+              }
             
             router.replace('/chat');
           } catch (error: any) {
-            console.error('Failed to create conversation:', error);
             toast.error('Failed to start conversation');
           }
         }
       }
     } catch (error: any) {
-      console.error('Failed to fetch conversations:', error);
       toast.error('Failed to load conversations');
     } finally {
       setIsLoading(false);
@@ -918,21 +781,16 @@ export default function ChatPage() {
 
   const fetchMessages = async (conversationId: string) => {
     try {
-      console.log('📥 Fetching messages for conversation:', conversationId);
       const response = await api.get(`/chat/conversations/${conversationId}/messages`);
       const messages = response.data.data || [];
-      console.log('📥 Fetched messages:', messages.length);
       setMessages(messages);
       
-      // Mark as read sau khi load messages thành công
       markAsRead(conversationId);
       
-      // Scroll to bottom after fetching messages
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       }, 300);
     } catch (error: any) {
-      console.error('Failed to fetch messages:', error);
       toast.error('Failed to load messages');
     }
   };
@@ -941,7 +799,6 @@ export default function ChatPage() {
     try {
       await api.post(`/chat/conversations/${conversationId}/read`);
       
-      // Update read receipts for messages in this conversation
       setReadReceipts((prev) => {
         const newMap = new Map(prev);
         messages.forEach((msg) => {
@@ -952,7 +809,6 @@ export default function ChatPage() {
         return newMap;
       });
       
-      // Update unread count in conversation list
       setConversations((prev) => {
         return prev.map((conv) => {
           if (conv.id === conversationId) {
@@ -962,45 +818,36 @@ export default function ChatPage() {
         });
       });
       
-      // Reset unread count in ChatContext (for navbar badge)
       resetUnread(conversationId);
     } catch (error) {
-      console.error('Failed to mark as read:', error);
-    }
+      }
   };
 
   const updateConversationInList = (conversationId: string) => {
-    // Refresh conversation
     api.get(`/chat/conversations/${conversationId}`)
       .then((response) => {
         const updatedConv = response.data.data;
         setConversations((prev) => {
-          // Tìm index của conversation cần update
           const index = prev.findIndex((c) => c.id === conversationId);
           
           let newConvs: Conversation[];
           if (index >= 0) {
-            // Update existing conversation
             newConvs = [...prev];
             newConvs[index] = updatedConv;
           } else {
-            // Add new conversation if not found
             newConvs = [updatedConv, ...prev];
           }
           
-          // Remove duplicates (just in case)
           const uniqueConvs = Array.from(
             new Map(newConvs.map(conv => [conv.id, conv])).values()
           );
           
-          // Sync unread count to ChatContext
           if (updatedConv.unread_count && updatedConv.unread_count > 0) {
             setUnreadCount(conversationId, updatedConv.unread_count);
           } else {
             resetUnread(conversationId);
           }
           
-          // Sort by last message time
           return uniqueConvs.sort((a, b) => {
             const aTime = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
             const bTime = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
@@ -1009,8 +856,7 @@ export default function ChatPage() {
         });
       })
       .catch((error) => {
-        console.error('Failed to update conversation:', error);
-      });
+        });
   };
 
   const sendMessage = async () => {
@@ -1024,37 +870,25 @@ export default function ChatPage() {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    console.log('📤 Sending message:', { conversationId: selectedConversation.id, content });
-
-    // Check socket connection first
     const socket = await socketService.getSocket();
     if (!socket || !socket.connected) {
-      console.error('❌ Socket not connected, attempting to connect...');
       toast.error('Đang kết nối... Vui lòng thử lại');
       try {
         await socketService.connect();
-        // Wait a bit for connection
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
-        console.error('Failed to connect socket:', error);
         toast.error('Không thể kết nối. Vui lòng refresh trang');
         return;
       }
     }
 
-    // Ensure we're joined to the conversation room
     try {
       socketService.joinConversation(selectedConversation.id);
-      // Wait a bit for join to complete
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
-      console.error('Failed to join conversation:', error);
-      // Continue anyway - backend will auto-join
-    }
+      }
 
-    // Send via socket - backend will emit back the message via new_message event
     try {
-      // Optimistically add message to UI (will be replaced by server response)
       const tempMessage: Message = {
         id: `temp-${Date.now()}`,
         conversation_id: selectedConversation.id,
@@ -1083,36 +917,26 @@ export default function ChatPage() {
         content,
       });
       
-      console.log('✅ Message sent via socket');
-      
-      // Remove temp message when real message arrives (handled by handleNewMessage)
-      // The message will be received via handleNewMessage when backend emits it
-    } catch (error: any) {
-      console.error('Failed to send message:', error);
+      } catch (error: any) {
       const errorMessage = error?.message || 'Không thể gửi tin nhắn';
       
-      // If "Not a participant" error, try to refresh conversation
       if (errorMessage.includes('Not a participant')) {
         toast.error('Bạn không phải là thành viên. Đang làm mới...');
-        // Refresh conversation
         if (selectedConversation) {
           try {
             const response = await api.get(`/chat/conversations/${selectedConversation.id}`);
             const updatedConv = response.data.data;
             setSelectedConversation(updatedConv);
-            // Try sending again after refresh
             setTimeout(() => {
               toast('Vui lòng thử gửi lại', { icon: 'ℹ️' });
             }, 1000);
           } catch (refreshError) {
-            console.error('Failed to refresh conversation:', refreshError);
-          }
+            }
         }
       } else {
         toast.error(errorMessage);
       }
       
-      // Remove temp message on error
       setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-')));
     }
   };
@@ -1125,12 +949,10 @@ export default function ChatPage() {
       socketService.startTyping(selectedConversation.id);
     }
 
-    // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Stop typing after 2 seconds of inactivity
     typingTimeoutRef.current = setTimeout(() => {
       if (selectedConversation) {
         setIsTyping(false);
@@ -1168,11 +990,9 @@ export default function ChatPage() {
 
       toast.success('Image sent');
     } catch (error: any) {
-      console.error('Failed to upload image:', error);
       toast.error('Failed to send image');
     }
     
-    // Reset input
     e.target.value = '';
   };
 
@@ -1200,11 +1020,9 @@ export default function ChatPage() {
 
       toast.success('File sent');
     } catch (error: any) {
-      console.error('Failed to upload file:', error);
       toast.error('Failed to send file');
     }
     
-    // Reset input
     e.target.value = '';
   };
 
@@ -1237,11 +1055,9 @@ export default function ChatPage() {
 
       toast.success('Video sent');
     } catch (error: any) {
-      console.error('Failed to upload video:', error);
       toast.error('Failed to send video');
     }
     
-    // Reset input
     e.target.value = '';
   };
 
@@ -1254,7 +1070,6 @@ export default function ChatPage() {
     if (!selectedConversation) return;
 
     try {
-      // Upload GIF URL as a file or send directly
       socketService.sendMessage({
         conversationId: selectedConversation.id,
         messageType: 'gif',
@@ -1263,7 +1078,6 @@ export default function ChatPage() {
       });
       toast.success('GIF sent');
     } catch (error: any) {
-      console.error('Failed to send GIF:', error);
       toast.error('Failed to send GIF');
     }
   };
@@ -1272,7 +1086,6 @@ export default function ChatPage() {
     if (!selectedConversation) return;
 
     try {
-      // Upload sticker URL as a file or send directly
       socketService.sendMessage({
         conversationId: selectedConversation.id,
         messageType: 'sticker',
@@ -1281,7 +1094,6 @@ export default function ChatPage() {
       });
       toast.success('Sticker sent');
     } catch (error: any) {
-      console.error('Failed to send sticker:', error);
       toast.error('Failed to send sticker');
     }
   };
@@ -1309,7 +1121,6 @@ export default function ChatPage() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         await sendVoiceMessage(audioBlob);
         
-        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -1317,12 +1128,10 @@ export default function ChatPage() {
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Start timer
       recordingTimerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
     } catch (error: any) {
-      console.error('Failed to start recording:', error);
       toast.error('Failed to start recording. Please check microphone permissions.');
     }
   };
@@ -1362,7 +1171,6 @@ export default function ChatPage() {
 
       toast.success('Voice message sent');
     } catch (error: any) {
-      console.error('Failed to upload voice message:', error);
       toast.error('Failed to send voice message');
     }
   };
@@ -1391,15 +1199,14 @@ export default function ChatPage() {
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)]">
-          {/* Conversations List */}
+          
           <div className={`lg:col-span-1 bg-white rounded-lg shadow-sm overflow-hidden flex flex-col ${
             selectedConversation ? 'hidden lg:flex' : 'flex'
           }`}>
             <div className="p-3 sm:p-4 border-b border-gray-200">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Messages</h2>
             </div>
-            
-            {/* Recommended Contacts */}
+
             {recommendedContacts.length > 0 && (
               <div className="p-2 sm:p-4 border-b border-gray-200">
                 <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Gợi ý</h3>
@@ -1417,21 +1224,17 @@ export default function ChatPage() {
                           const response = await api.get(`/chat/conversations/direct/${contact.id}`);
                           const conversation = response.data.data;
                           setSelectedConversation(conversation);
-                          // Check if conversation already exists in list
                           setConversations((prev) => {
                             const exists = prev.find(c => c.id === conversation.id);
                             if (exists) return prev;
                             return [conversation, ...prev];
                           });
                           
-                          // Join conversation room immediately
                           try {
                             socketService.joinConversation(conversation.id);
                           } catch (error) {
-                            console.error('Failed to join new conversation:', error);
-                          }
+                            }
                         } catch (error: any) {
-                          console.error('Failed to create conversation:', error);
                           toast.error('Failed to start conversation');
                         }
                       }}
@@ -1483,9 +1286,7 @@ export default function ChatPage() {
                       key={conv.id}
                       onClick={() => {
                         setSelectedConversation(conv);
-                        // On mobile, hide conversation list after selection
                         if (window.innerWidth < 1024) {
-                          // Will be handled by CSS
                         }
                       }}
                       className={`p-3 sm:p-4 border-b border-gray-100 cursor-pointer transition ${
@@ -1499,7 +1300,6 @@ export default function ChatPage() {
                     <div className="flex items-center space-x-2 sm:space-x-3">
                       <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-200 flex-shrink-0">
                         {(() => {
-                          // Lấy người còn lại (không phải user hiện tại) trong direct conversation
                           const otherParticipant = conv.type === 'direct' 
                             ? conv.participants?.find(p => p.user_id !== user?.id)
                             : null;
@@ -1514,7 +1314,7 @@ export default function ChatPage() {
                                   className="rounded-full object-cover"
                                   unoptimized
                                 />
-                                {/* Online status indicator */}
+                                
                                 {otherParticipant.user_id && 
                                  onlineStatus.get(otherParticipant.user_id)?.isOnline && (
                                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
@@ -1540,7 +1340,6 @@ export default function ChatPage() {
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {conv.type === 'direct'
                               ? (() => {
-                                  // Lấy người còn lại (không phải user hiện tại)
                                   const otherParticipant = conv.participants?.find(p => p.user_id !== user?.id);
                                   return otherParticipant?.user 
                                     ? `${otherParticipant.user.first_name} ${otherParticipant.user.last_name}`
@@ -1566,25 +1365,22 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Chat Window */}
           <div className={`lg:col-span-2 bg-white rounded-lg shadow-sm overflow-hidden flex flex-col ${
             !selectedConversation ? 'hidden lg:flex' : 'flex'
           }`}>
             {selectedConversation ? (
               <>
-                {/* Back button for mobile */}
+                
                 <button
                   onClick={() => setSelectedConversation(null)}
                   className="lg:hidden p-2 border-b border-gray-200 text-gray-600 hover:text-gray-900"
                 >
                   ← Back
                 </button>
-                
-                {/* Chat Header */}
+
                 <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     {(() => {
-                      // Lấy người còn lại (không phải user hiện tại) trong direct conversation
                       const otherParticipant = selectedConversation.type === 'direct' 
                         ? selectedConversation.participants?.find(p => p.user_id !== user?.id)
                         : null;
@@ -1600,7 +1396,7 @@ export default function ChatPage() {
                                 className="rounded-full object-cover"
                                 unoptimized
                               />
-                              {/* Online status indicator */}
+                              
                               {otherParticipant.user_id && 
                                onlineStatus.get(otherParticipant.user_id)?.isOnline && (
                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
@@ -1623,7 +1419,6 @@ export default function ChatPage() {
                       <h3 className="text-sm font-medium text-gray-900">
                         {selectedConversation.type === 'direct'
                           ? (() => {
-                              // Lấy người còn lại (không phải user hiện tại)
                               const otherParticipant = selectedConversation.participants?.find(p => p.user_id !== user?.id);
                               return otherParticipant?.user 
                                 ? `${otherParticipant.user.first_name} ${otherParticipant.user.last_name}`
@@ -1676,7 +1471,6 @@ export default function ChatPage() {
                   </div>
                 </div>
 
-                {/* Messages */}
                 <div 
                   className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4"
                   id="messages-container"
@@ -1700,7 +1494,6 @@ export default function ChatPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input */}
                 <div className="p-2 sm:p-4 border-t border-gray-200">
                   {isRecording && (
                     <div className="mb-2 flex items-center justify-center space-x-2 text-red-600">
@@ -1796,7 +1589,6 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Call Modal */}
       {isCallActive && (
         <CallModal
           isOpen={isCallActive}
@@ -1817,7 +1609,6 @@ export default function ChatPage() {
         />
       )}
 
-      {/* Group Settings Modal */}
       {showGroupSettings && selectedConversation && (
         <GroupSettings
           conversation={selectedConversation}

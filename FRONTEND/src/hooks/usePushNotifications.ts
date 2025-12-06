@@ -13,19 +13,15 @@ export function usePushNotifications() {
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionType>('default');
 
   useEffect(() => {
-    // Check if browser supports push notifications
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       setIsSupported(true);
       
-      // Check permission status
       if ('Notification' in window) {
         setPermissionStatus(Notification.permission as NotificationPermissionType);
       }
       
-      // Register service worker
       notificationService.registerServiceWorker();
       
-      // Check existing subscription
       checkSubscription();
     }
   }, []);
@@ -44,8 +40,7 @@ export function usePushNotifications() {
       const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
     } catch (error) {
-      console.error('Error checking subscription:', error);
-    }
+      }
   };
 
   const subscribe = async () => {
@@ -55,7 +50,6 @@ export function usePushNotifications() {
     }
 
     try {
-      // Check current permission status
       if (Notification.permission === 'denied') {
         toast.error(
           'Quyền thông báo đã bị từ chối. Vui lòng bật lại trong cài đặt trình duyệt:\n' +
@@ -66,7 +60,6 @@ export function usePushNotifications() {
         return false;
       }
 
-      // Request permission
       const permission = await notificationService.requestPermission();
       if (permission === 'denied') {
         toast.error(
@@ -84,14 +77,12 @@ export function usePushNotifications() {
         return false;
       }
 
-      // Subscribe to push
       const subscription = await notificationService.subscribeToPushNotifications();
       if (!subscription) {
         toast.error('Failed to subscribe to push notifications');
         return false;
       }
 
-      // Send subscription to server
       await api.post('/chat/push/subscribe', {
         subscription: {
           endpoint: subscription.endpoint,
@@ -106,7 +97,6 @@ export function usePushNotifications() {
       toast.success('Push notifications enabled');
       return true;
     } catch (error: any) {
-      console.error('Error subscribing to push:', error);
       toast.error('Failed to enable push notifications');
       return false;
     }
@@ -124,7 +114,6 @@ export function usePushNotifications() {
       toast.success('Push notifications disabled');
       return true;
     } catch (error: any) {
-      console.error('Error unsubscribing from push:', error);
       toast.error('Failed to disable push notifications');
       return false;
     }

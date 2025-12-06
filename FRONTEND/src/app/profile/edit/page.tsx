@@ -89,10 +89,8 @@ export default function EditProfilePage() {
     setIsSaving(true);
 
     try {
-      // Update profile data
       const response = await api.put('/users/profile', formData);
       
-      // Upload avatar if changed
       if (avatarFile) {
         const avatarFormData = new FormData();
         avatarFormData.append('avatar', avatarFile);
@@ -101,7 +99,6 @@ export default function EditProfilePage() {
         });
       }
 
-      // Upload cover if changed
       if (coverFile) {
         const coverFormData = new FormData();
         coverFormData.append('cover', coverFile);
@@ -110,7 +107,6 @@ export default function EditProfilePage() {
         });
       }
 
-      // Update auth store
       setUser(response.data.data);
       
       toast.success('Profile updated successfully');
@@ -150,7 +146,7 @@ export default function EditProfilePage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Cover Image */}
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Cover Image
@@ -178,7 +174,6 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              {/* Avatar */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Profile Picture
@@ -209,7 +204,6 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              {/* Name Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -238,7 +232,6 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              {/* Phone */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Phone
@@ -251,7 +244,6 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              {/* Date of Birth */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Date of Birth
@@ -264,7 +256,6 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              {/* Job */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Job
@@ -277,7 +268,6 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              {/* Bio */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Bio
@@ -291,7 +281,6 @@ export default function EditProfilePage() {
                 />
               </div>
 
-              {/* Submit Button */}
               <div className="flex justify-end space-x-4">
                 <button
                   type="button"
@@ -316,5 +305,4 @@ export default function EditProfilePage() {
     </div>
   );
 }
-
 

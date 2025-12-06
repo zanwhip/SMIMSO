@@ -24,10 +24,7 @@ export default function LoginPage() {
     try {
       await login(formData.emailOrPhone, formData.password);
       
-      // Verify state before redirect
       const state = useAuthStore.getState();
-      console.log('Login completed, state:', state);
-      
       if (!state.isAuthenticated || !state.token) {
         toast.error('Login failed. Please try again.');
         setIsLoading(false);
@@ -36,15 +33,10 @@ export default function LoginPage() {
       
       toast.success('Login successful!');
       
-      // Wait a bit longer to ensure state is persisted and updated
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Verify one more time
       const finalState = useAuthStore.getState();
-      console.log('Before redirect, final state:', finalState);
-      
       if (finalState.isAuthenticated && finalState.token) {
-        // Use window.location for a full page reload to ensure state is properly initialized
         window.location.href = '/';
       } else {
         toast.error('Lỗi xác thực. Vui lòng thử lại.');
@@ -61,20 +53,19 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    // Implement Google OAuth login
     toast.error('Google login feature is under development');
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background decoration */}
+      
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-slow"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse-slow" style={{ animationDelay: '2s' }}></div>
       </div>
       
       <div className="max-w-md w-full space-y-8 bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-large relative z-10 animate-scale-in">
-        {/* Header */}
+        
         <div className="text-center">
           <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500 rounded-2xl flex items-center justify-center mb-6 shadow-glow hover:shadow-glow-blue transition-all duration-500 hover:scale-110">
             <span className="text-white font-bold text-4xl">S</span>
@@ -87,10 +78,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {/* Email or Phone */}
+            
             <div>
               <label htmlFor="emailOrPhone" className="block text-sm font-medium text-gray-700 mb-1">
                 Email hoặc Số điện thoại
@@ -112,7 +102,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Mật khẩu
@@ -145,7 +134,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Remember Me */}
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
@@ -163,7 +151,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={isLoading}
@@ -172,7 +159,6 @@ export default function LoginPage() {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
 
-          {/* Divider */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300" />
@@ -182,7 +168,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Google Login */}
           <button
             type="button"
             onClick={handleGoogleLogin}
@@ -193,7 +178,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Register Link */}
         <p className="text-center text-sm text-gray-600">
           Don't have an account?{' '}
           <Link href="/register" className="font-medium text-primary-600 hover:text-primary-500">

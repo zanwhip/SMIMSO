@@ -62,7 +62,6 @@ export default function PostDetailPage() {
       const response = await api.get(`/posts/${params.id}/comments`);
       setComments(response.data.data);
     } catch (error) {
-      console.error('Failed to fetch comments:', error);
     }
   };
 
@@ -137,9 +136,7 @@ export default function PostDetailPage() {
 
       <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 animate-fade-in">
-            {/* Images */}
             <div className="bg-white/90 backdrop-blur-xl rounded-2xl overflow-hidden shadow-large mb-6">
               {post.images && post.images.length > 0 && (
                 <div className="space-y-2">
@@ -159,13 +156,11 @@ export default function PostDetailPage() {
               )}
             </div>
 
-            {/* Comments */}
             <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-large p-6">
               <h3 className="text-xl font-bold mb-6 bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
                 Comments ({post.comment_count})
               </h3>
 
-              {/* Comment Form */}
               <form onSubmit={handleComment} className="mb-6">
                 <textarea
                   value={newComment}
@@ -183,7 +178,6 @@ export default function PostDetailPage() {
                 </button>
               </form>
 
-              {/* Comments List */}
               <div className="space-y-4">
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex space-x-3">
@@ -223,10 +217,8 @@ export default function PostDetailPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="lg:col-span-1 animate-fade-in">
             <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-large p-6 sticky top-20">
-              {/* User Info */}
               {post.user && (
                 <div className="flex items-center justify-between mb-6">
                   <Link
@@ -254,7 +246,6 @@ export default function PostDetailPage() {
                     </div>
                   </Link>
                   
-                  {/* Edit Button - Only show for post owner */}
                   {user && post.user_id === user.id && (
                     <button
                       onClick={() => setIsEditModalOpen(true)}
@@ -267,12 +258,10 @@ export default function PostDetailPage() {
                 </div>
               )}
 
-              {/* Title & Description */}
               <h1 className="text-2xl font-bold text-gray-900 mb-3">
                 {post.title}
               </h1>
 
-              {/* AI Caption */}
               {post.caption && (
                 <div className="mb-4 p-3 bg-purple-50 border-l-4 border-purple-500 rounded">
                   <p className="text-sm text-purple-700">
@@ -285,7 +274,6 @@ export default function PostDetailPage() {
                 <p className="text-gray-700 mb-4">{post.description}</p>
               )}
 
-              {/* Category */}
               {post.category && (
                 <div className="mb-4">
                   <span className="inline-block px-3 py-1 text-sm font-medium text-primary-600 bg-primary-50 rounded-full">
@@ -294,7 +282,6 @@ export default function PostDetailPage() {
                 </div>
               )}
 
-              {/* Tags */}
               {post.tags && post.tags.length > 0 && (
                 <div className="mb-4 flex flex-wrap gap-2">
                   {post.tags.map((tag, index) => (
@@ -308,7 +295,6 @@ export default function PostDetailPage() {
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex items-center space-x-6 py-5 border-t border-b border-gray-200">
                 <button
                   onClick={handleLike}
@@ -330,7 +316,6 @@ export default function PostDetailPage() {
                 </div>
               </div>
 
-              {/* Stats */}
               <div className="mt-4 text-sm text-gray-600">
                 <p>{formatNumber(post.view_count)} views</p>
               </div>
@@ -339,7 +324,6 @@ export default function PostDetailPage() {
         </div>
       </div>
 
-      {/* Edit Post Modal */}
       {post && (
         <EditPostModal
           isOpen={isEditModalOpen}

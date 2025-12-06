@@ -49,7 +49,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
-  // Fetch notifications from API
   const fetchNotifications = useCallback(async () => {
     try {
       const response = await api.get('/notifications?page=1&limit=50');
@@ -58,19 +57,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setUnreadCount(data.unreadCount || 0);
       setLoading(false);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
       setLoading(false);
     }
   }, []);
 
-  // Connect to SSE stream
   const connectToSSE = useCallback(() => {
     if (!isAuthenticated || !token) {
-      console.log('🔔 Not authenticated, skipping SSE connection');
       return;
     }
 
-    // Close existing connection if any
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
@@ -79,14 +74,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const sseUrl = `${API_URL}/notifications/stream?token=${encodeURIComponent(token)}`;
 
-    console.log('🔌 Connecting to SSE stream:', sseUrl);
-
     try {
       const eventSource = new EventSource(sseUrl);
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
-        console.log('✅ SSE connection opened');
         setConnected(true);
         reconnectAttempts.current = 0;
       };
@@ -94,62 +86,45 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📨 Received SSE message:', data);
-
           if (data.type === 'connected') {
-            console.log('✅ Connected to notification stream');
-          } else if (data.type === 'initial_data') {
-            // Set initial data
+            } else if (data.type === 'initial_data') {
             setNotifications(data.data.notifications || []);
             setUnreadCount(data.data.unreadCount || 0);
             setLoading(false);
-            console.log(`📦 Initial data loaded: ${data.data.notifications.length} notifications, ${data.data.unreadCount} unread`);
-          } else if (data.type === 'notification') {
-            // New notification received
+            } else if (data.type === 'notification') {
             const notification = data.data;
             setNotifications((prev) => [notification, ...prev]);
             setUnreadCount((prev) => prev + 1);
-            console.log('🔔 New notification received:', notification);
-          } else if (data.type === 'error') {
-            console.error('❌ SSE error:', data.message);
-          }
+            } else if (data.type === 'error') {
+            }
         } catch (error) {
-          console.error('Failed to parse SSE message:', error);
-        }
+          }
       };
 
       eventSource.onerror = (error) => {
-        console.error('❌ SSE connection error:', error);
         setConnected(false);
         eventSource.close();
 
-        // Attempt to reconnect
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000); // Exponential backoff, max 30s
-          console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`);
+          `);
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connectToSSE();
           }, delay);
         } else {
-          console.error('❌ Max reconnection attempts reached');
-          // Fallback to polling
           fetchNotifications();
         }
       };
     } catch (error) {
-      console.error('Failed to create SSE connection:', error);
       setConnected(false);
-      // Fallback to polling
       fetchNotifications();
     }
   }, [isAuthenticated, token, fetchNotifications]);
 
-  // Disconnect from SSE
   const disconnectFromSSE = useCallback(() => {
     if (eventSourceRef.current) {
-      console.log('🔌 Disconnecting from SSE stream');
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
@@ -161,7 +136,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     reconnectAttempts.current = 0;
   }, []);
 
-  // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
       await api.put(`/notifications/${notificationId}/read`);
@@ -172,52 +146,41 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
+      }
   }, []);
 
-  // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
       await api.put('/notifications/read-all');
       setNotifications((prev) => prev.map((notif) => ({ ...notif, is_read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
-    }
+      }
   }, []);
 
-  // Refresh notifications
   const refreshNotifications = useCallback(async () => {
     await fetchNotifications();
   }, [fetchNotifications]);
 
-  // Initialize connection when authenticated
   useEffect(() => {
     if (isAuthenticated && token) {
-      // Initial fetch
       fetchNotifications();
-      // Connect to SSE
       connectToSSE();
     } else {
-      // Clear state when not authenticated
       setNotifications([]);
       setUnreadCount(0);
       setLoading(false);
       disconnectFromSSE();
     }
 
-    // Cleanup on unmount
     return () => {
       disconnectFromSSE();
     };
   }, [isAuthenticated, token, connectToSSE, disconnectFromSSE, fetchNotifications]);
 
-  // Reconnect when page becomes visible (user comes back to tab)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isAuthenticated && token && !connected) {
-        console.log('👁️ Page visible, reconnecting SSE');
         connectToSSE();
       }
     };

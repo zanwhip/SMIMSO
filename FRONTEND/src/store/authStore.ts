@@ -33,8 +33,6 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
 
-          console.log('Login response:', response.data);
-
           const { user, token } = response.data.data;
 
           if (!user || !token) {
@@ -50,22 +48,16 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           };
 
-          console.log('Setting auth state:', newState);
           set(newState);
 
-          // Force persist to complete
           await new Promise(resolve => setTimeout(resolve, 100));
           
-          // Verify state was set
           const verifyState = get();
-          console.log('Verified auth state:', verifyState);
-          
           if (!verifyState.isAuthenticated || !verifyState.token) {
             throw new Error('Failed to set authentication state');
           }
         } catch (error: any) {
           set({ isLoading: false, isAuthenticated: false });
-          console.error('Login error:', error);
           throw new Error(error.response?.data?.error || error.message || 'Login failed');
         }
       },
@@ -124,7 +116,6 @@ export const useAuthStore = create<AuthState>()(
       fetchCurrentUser: async () => {
         try {
           const state = get();
-          // Don't fetch if already loading (e.g., during login) or already authenticated with user
           if (state.isLoading || (state.isAuthenticated && state.user)) {
             return;
           }
@@ -172,7 +163,6 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true 
           });
         } else if (state.token) {
-          // Have token but no user - will be fetched by fetchCurrentUser
           setAuthToken(state.token);
           set({ isLoading: false });
         } else {

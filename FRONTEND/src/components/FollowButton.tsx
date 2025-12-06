@@ -26,7 +26,6 @@ export default function FollowButton({
   const [isLoading, setIsLoading] = useState(false);
   const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
 
-  // Sync state with prop when prop changes
   useEffect(() => {
     if (initialIsFollowing !== undefined) {
       setIsFollowing(initialIsFollowing);
@@ -34,7 +33,6 @@ export default function FollowButton({
     }
   }, [initialIsFollowing]);
 
-  // Fetch follow status on mount if prop is not provided
   useEffect(() => {
     if (!user || user.id === userId || hasCheckedStatus || initialIsFollowing !== undefined) {
       return;
@@ -42,14 +40,12 @@ export default function FollowButton({
 
     const checkFollowStatus = async () => {
       try {
-        // Check if following by trying to get the follow relationship
         const response = await api.get(`/users/${userId}`);
         if (response.data.data?.isFollowing !== undefined) {
           setIsFollowing(response.data.data.isFollowing);
           setHasCheckedStatus(true);
         }
       } catch (error) {
-        // If error, assume not following
         setIsFollowing(false);
         setHasCheckedStatus(true);
       }
@@ -58,7 +54,6 @@ export default function FollowButton({
     checkFollowStatus();
   }, [user, userId, hasCheckedStatus, initialIsFollowing]);
 
-  // Don't show button if viewing own profile
   if (!user || user.id === userId) {
     return null;
   }
@@ -71,18 +66,15 @@ export default function FollowButton({
 
     const currentState = isFollowing;
     
-    // Optimistic update
     setIsFollowing(!currentState);
     setIsLoading(true);
     
     try {
       if (currentState) {
-        // Unfollow
         await api.delete(`/users/${userId}/follow`);
         onFollowChange?.(false);
         toast.success('Unfollowed');
       } else {
-        // Follow
         await api.post(`/users/${userId}/follow`);
         onFollowChange?.(true);
         toast.success('Following');
@@ -90,13 +82,11 @@ export default function FollowButton({
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.response?.data?.error || '';
       
-      // If already following, update state to true and allow unfollow
       if (errorMessage.includes('Already following') || errorMessage.includes('already following')) {
         setIsFollowing(true);
         onFollowChange?.(true);
         toast.success('You are already following this user');
       } else {
-        // Revert on other errors
         setIsFollowing(currentState);
         toast.error(errorMessage || 'An error occurred');
       }

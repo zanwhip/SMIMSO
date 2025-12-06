@@ -40,7 +40,6 @@ export default function MessageItem({
   }, [isEditing]);
 
   useEffect(() => {
-    // Listen for reaction updates
     const handleReactionAdded = (data: { messageId: string; userId: string; emoji: string }) => {
       if (data.messageId === message.id) {
         fetchReactions();
@@ -67,8 +66,7 @@ export default function MessageItem({
       const response = await api.get(`/chat/messages/${message.id}/reactions`);
       setReactions(response.data.data || []);
     } catch (error) {
-      console.error('Failed to fetch reactions:', error);
-    }
+      }
   };
 
   const handleEdit = () => {
@@ -84,8 +82,7 @@ export default function MessageItem({
       setIsEditing(false);
       onMessageUpdate();
     } catch (error: any) {
-      console.error('Failed to edit message:', error);
-    }
+      }
   };
 
   const handleCancelEdit = () => {
@@ -98,8 +95,7 @@ export default function MessageItem({
       socketService.deleteMessage(message.id);
       onMessageUpdate();
     } catch (error: any) {
-      console.error('Failed to delete message:', error);
-    }
+      }
   };
 
   const handleReaction = async (emoji: string) => {
@@ -320,6 +316,4 @@ export default function MessageItem({
     </div>
   );
 }
-
-
 

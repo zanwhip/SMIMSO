@@ -27,10 +27,8 @@ export default function ReactionPicker({
     );
 
     if (existingReaction) {
-      // Remove reaction
       onSelect(emoji);
     } else {
-      // Add reaction
       onSelect(emoji);
     }
     onClose();
@@ -87,14 +85,4 @@ export default function ReactionPicker({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
 

@@ -2,7 +2,6 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-// Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -11,7 +10,6 @@ const api: AxiosInstance = axios.create({
   timeout: 30000, // 30 seconds timeout to prevent infinite hanging
 });
 
-// Helper to create API instance with custom timeout for AI operations
 export const createApiWithTimeout = (timeout: number = 90000): AxiosInstance => {
   return axios.create({
     baseURL: API_URL,
@@ -22,7 +20,6 @@ export const createApiWithTimeout = (timeout: number = 90000): AxiosInstance => 
   });
 };
 
-// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -36,26 +33,13 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Log error for debugging
-    console.error('API Error:', {
-      message: error.message,
-      code: error.code,
-      status: error.response?.status,
-      url: error.config?.url,
-      baseURL: error.config?.baseURL,
-    });
-
-    // Handle network errors (no response from server)
     if (!error.response) {
       if (error.code === 'ECONNABORTED') {
-        // Timeout error
         return Promise.reject(new Error('Kết nối quá lâu. Vui lòng kiểm tra kết nối mạng và thử lại.'));
       } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        // Network error - could be wrong API URL on mobile
         const apiUrl = error.config?.baseURL || API_URL;
         const isLocalhost = apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
         if (isLocalhost && typeof window !== 'undefined') {
@@ -69,7 +53,6 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       if (typeof window !== 'undefined') {
@@ -82,7 +65,6 @@ api.interceptors.response.use(
 
 export default api;
 
-// API helper functions
 export const setAuthToken = (token: string) => {
   localStorage.setItem('token', token);
 };

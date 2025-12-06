@@ -44,8 +44,7 @@ export default function SurveyPage() {
       const response = await api.get('/survey/options');
       setCategories(response.data.data.categories);
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    }
+      }
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -222,7 +221,7 @@ export default function SurveyPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Progress */}
+          
           <div className="mb-8">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-600">
@@ -240,10 +239,8 @@ export default function SurveyPage() {
             </div>
           </div>
 
-          {/* Content */}
           {renderStep()}
 
-          {/* Navigation */}
           <div className="flex justify-between mt-8">
             <button
               onClick={() => setStep(step - 1)}

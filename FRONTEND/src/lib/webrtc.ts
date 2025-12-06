@@ -24,7 +24,6 @@ class WebRTCService {
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:stun4.l.google.com:19302' },
-      // TURN servers for better NAT traversal (free public TURN servers)
       {
         urls: 'turn:openrelay.metered.ca:80',
         username: 'openrelayproject',
@@ -44,7 +43,6 @@ class WebRTCService {
     iceCandidatePoolSize: 10,
   };
 
-  // Helper to track timeouts
   private addTimeout(conversationId: string, timeout: NodeJS.Timeout): void {
     if (!this.activeTimeouts.has(conversationId)) {
       this.activeTimeouts.set(conversationId, []);
@@ -52,7 +50,6 @@ class WebRTCService {
     this.activeTimeouts.get(conversationId)!.push(timeout);
   }
 
-  // Helper to clear all timeouts for a conversation
   private clearTimeouts(conversationId: string): void {
     const timeouts = this.activeTimeouts.get(conversationId);
     if (timeouts) {
@@ -61,33 +58,24 @@ class WebRTCService {
     }
   }
 
-  // Helper to check if connection is still active
   private isConnectionActive(conversationId: string): boolean {
     return !this.callEnded.get(conversationId) && this.peerConnections.has(conversationId);
   }
 
-  // Setup connection state change handlers (reusable for both startCall and acceptCall)
   private setupConnectionStateHandlers(peerConnection: RTCPeerConnection, config: CallConfig): void {
     let reconnectAttempts = 0;
     const MAX_RECONNECT_ATTEMPTS = 3;
     
     peerConnection.onconnectionstatechange = () => {
-      // Check if call has ended
       if (!this.isConnectionActive(config.conversationId)) {
-        console.log('⚠️ Call already ended, ignoring state change');
         return;
       }
       
       const state = peerConnection.connectionState;
-      console.log(`🔌 [${config.conversationId}] Connection State: ${state}`);
-      
       if (state === 'connected') {
-        console.log('✅ WebRTC Connected');
         reconnectAttempts = 0;
       } else if (state === 'connecting') {
-        console.log('🔄 WebRTC Connecting...');
-      } else if (state === 'disconnected') {
-        console.log('⚠️ WebRTC Disconnected, waiting 10s before considering failed...');
+        } else if (state === 'disconnected') {
         reconnectAttempts++;
         const timeout = setTimeout(() => {
           if (!this.isConnectionActive(config.conversationId)) return;
@@ -98,10 +86,9 @@ class WebRTCService {
           const currentState = currentPeerConnection.connectionState;
           if (currentState === 'disconnected' || currentState === 'failed') {
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-              console.log(`🔄 Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+              ...`);
               currentPeerConnection.restartIce().catch(console.error);
             } else {
-              console.log('❌ Max reconnect attempts reached, ending call');
               this.endCall(config.conversationId);
               config.onCallEnd();
             }
@@ -110,10 +97,9 @@ class WebRTCService {
         this.addTimeout(config.conversationId, timeout);
       } else if (state === 'failed') {
         reconnectAttempts++;
-        console.log(`❌ WebRTC Failed (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}), restarting ICE...`);
+        , restarting ICE...`);
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && this.isConnectionActive(config.conversationId)) {
           peerConnection.restartIce().catch((err) => {
-            console.error('ICE restart failed:', err);
             const timeout = setTimeout(() => {
               if (!this.isConnectionActive(config.conversationId)) return;
               
@@ -122,7 +108,6 @@ class WebRTCService {
               
               const currentState = currentPeerConnection.connectionState;
               if (currentState === 'failed' && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-                console.log('❌ Max attempts reached, ending call');
                 this.endCall(config.conversationId);
                 config.onCallEnd();
               }
@@ -130,57 +115,46 @@ class WebRTCService {
             this.addTimeout(config.conversationId, timeout);
           });
         } else {
-          console.log('❌ Max attempts reached, ending call');
           this.endCall(config.conversationId);
           config.onCallEnd();
         }
       } else if (state === 'closed') {
-        console.log('🔒 WebRTC Connection closed');
         reconnectAttempts = 0;
       }
     };
 
-    // Handle ICE connection state
     let iceReconnectAttempts = 0;
     const MAX_ICE_RECONNECT_ATTEMPTS = 3;
     
     peerConnection.oniceconnectionstatechange = () => {
       if (!this.isConnectionActive(config.conversationId)) {
-        console.log('⚠️ Call already ended, ignoring ICE state change');
         return;
       }
       
       const iceState = peerConnection.iceConnectionState;
-      console.log(`🧊 [${config.conversationId}] ICE State: ${iceState}`);
-      
       if (iceState === 'connected' || iceState === 'completed') {
         iceReconnectAttempts = 0;
       } else if (iceState === 'failed') {
         iceReconnectAttempts++;
-        console.log(`❌ ICE failed (attempt ${iceReconnectAttempts}/${MAX_ICE_RECONNECT_ATTEMPTS}), restarting...`);
+        , restarting...`);
         if (iceReconnectAttempts < MAX_ICE_RECONNECT_ATTEMPTS && this.isConnectionActive(config.conversationId)) {
           peerConnection.restartIce().catch((err) => {
-            console.error('ICE restart error:', err);
-          });
+            });
         } else {
-          console.log('❌ Max ICE reconnect attempts reached');
-        }
+          }
       }
     };
 
     peerConnection.onicegatheringstatechange = () => {
       if (this.isConnectionActive(config.conversationId)) {
-        console.log(`🧊 [${config.conversationId}] Gathering: ${peerConnection.iceGatheringState}`);
-      }
+        }
     };
   }
 
   async startCall(config: CallConfig): Promise<void> {
     try {
-      // Reset call ended flag
       this.callEnded.set(config.conversationId, false);
       
-      // Get user media
       const constraints: MediaStreamConstraints = {
         audio: true,
         video: config.callType === 'video',
@@ -190,16 +164,13 @@ class WebRTCService {
       this.localStreams.set(config.conversationId, localStream);
       config.onLocalStream(localStream);
 
-      // Create peer connection
       const peerConnection = new RTCPeerConnection(this.iceServers);
       this.peerConnections.set(config.conversationId, peerConnection);
 
-      // Add local tracks to peer connection
       localStream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, localStream);
       });
 
-      // Handle remote stream
       peerConnection.ontrack = (event) => {
         const remoteStream = event.streams[0];
         if (remoteStream) {
@@ -208,17 +179,14 @@ class WebRTCService {
         }
       };
 
-      // Handle ICE candidates
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           socketService.sendCallIceCandidate(config.conversationId, event.candidate);
         }
       };
 
-      // Setup connection state handlers
       this.setupConnectionStateHandlers(peerConnection, config);
 
-      // Create and send offer
       const offer = await peerConnection.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: config.callType === 'video',
@@ -226,13 +194,10 @@ class WebRTCService {
       await peerConnection.setLocalDescription(offer);
       socketService.sendCallOffer(config.conversationId, config.callType, offer);
 
-      // Store call start time
       this.callStartTime.set(config.conversationId, Date.now());
 
-      // Set up event listeners
       this.setupCallListeners(config);
     } catch (error: any) {
-      console.error('Failed to start call:', error);
       toast.error('Failed to start call. Please check your camera/microphone permissions.');
       config.onCallEnd();
     }
@@ -240,10 +205,8 @@ class WebRTCService {
 
   async acceptCall(config: CallConfig, offer: RTCSessionDescriptionInit): Promise<void> {
     try {
-      // Reset call ended flag
       this.callEnded.set(config.conversationId, false);
       
-      // Get user media
       const constraints: MediaStreamConstraints = {
         audio: true,
         video: config.callType === 'video',
@@ -253,16 +216,13 @@ class WebRTCService {
       this.localStreams.set(config.conversationId, localStream);
       config.onLocalStream(localStream);
 
-      // Create peer connection
       const peerConnection = new RTCPeerConnection(this.iceServers);
       this.peerConnections.set(config.conversationId, peerConnection);
 
-      // Add local tracks to peer connection
       localStream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, localStream);
       });
 
-      // Handle remote stream
       peerConnection.ontrack = (event) => {
         const remoteStream = event.streams[0];
         if (remoteStream) {
@@ -271,17 +231,14 @@ class WebRTCService {
         }
       };
 
-      // Handle ICE candidates
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
           socketService.sendCallIceCandidate(config.conversationId, event.candidate);
         }
       };
 
-      // Setup connection state handlers
       this.setupConnectionStateHandlers(peerConnection, config);
 
-      // Set remote description and create answer
       await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
       const answer = await peerConnection.createAnswer({
         offerToReceiveAudio: true,
@@ -290,13 +247,10 @@ class WebRTCService {
       await peerConnection.setLocalDescription(answer);
       socketService.sendCallAnswer(config.conversationId, answer);
 
-      // Store call start time
       this.callStartTime.set(config.conversationId, Date.now());
 
-      // Set up event listeners
       this.setupCallListeners(config);
     } catch (error: any) {
-      console.error('Failed to accept call:', error);
       toast.error('Failed to accept call. Please check your camera/microphone permissions.');
       config.onCallEnd();
     }
@@ -309,8 +263,7 @@ class WebRTCService {
     try {
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
     } catch (error) {
-      console.error('Failed to handle answer:', error);
-    }
+      }
   }
 
   async handleIceCandidate(conversationId: string, candidate: RTCIceCandidateInit): Promise<void> {
@@ -320,57 +273,43 @@ class WebRTCService {
     try {
       await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (error) {
-      console.error('Failed to handle ICE candidate:', error);
-    }
+      }
   }
 
   endCall(conversationId: string): void {
-    console.log(`🔚 Ending call for conversation: ${conversationId}`);
-    
-    // Set call ended flag first to prevent any further actions
     this.callEnded.set(conversationId, true);
     
-    // Clear all timeouts
     this.clearTimeouts(conversationId);
     
     const peerConnection = this.peerConnections.get(conversationId);
     const localStream = this.localStreams.get(conversationId);
     const startTime = this.callStartTime.get(conversationId);
 
-    // Stop local stream
     if (localStream) {
       localStream.getTracks().forEach((track) => {
         track.stop();
-        console.log(`🛑 Stopped track: ${track.kind}`);
-      });
+        });
       this.localStreams.delete(conversationId);
     }
 
-    // Close peer connection
     if (peerConnection) {
       try {
         peerConnection.close();
-        console.log(`🔒 Closed peer connection`);
-      } catch (error) {
-        console.error('Error closing peer connection:', error);
-      }
+        } catch (error) {
+        }
       this.peerConnections.delete(conversationId);
     }
 
-    // Calculate call duration
     const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
     this.callStartTime.delete(conversationId);
 
-    // Clean up remote stream
     this.remoteStreams.delete(conversationId);
     
-    // Clean up call ended flag after a delay to prevent race conditions
     setTimeout(() => {
       this.callEnded.delete(conversationId);
     }, 5000);
     
-    console.log(`✅ Call cleanup complete for conversation: ${conversationId}`);
-  }
+    }
 
   toggleMic(conversationId: string): boolean {
     const localStream = this.localStreams.get(conversationId);
@@ -397,21 +336,18 @@ class WebRTCService {
   }
 
   private setupCallListeners(config: CallConfig): void {
-    // Handle call answer
     const handleAnswer = (data: { conversationId: string; answer: RTCSessionDescriptionInit; userId: string }) => {
       if (data.conversationId === config.conversationId && data.userId !== config.userId) {
         this.handleAnswer(data.conversationId, data.answer);
       }
     };
 
-    // Handle ICE candidate
     const handleIceCandidate = (data: { conversationId: string; candidate: RTCIceCandidateInit; userId: string }) => {
       if (data.conversationId === config.conversationId && data.userId !== config.userId) {
         this.handleIceCandidate(data.conversationId, data.candidate);
       }
     };
 
-    // Handle call end
     const handleCallEnd = (data: { conversationId: string; userId: string }) => {
       if (data.conversationId === config.conversationId) {
         this.endCall(data.conversationId);
@@ -419,12 +355,10 @@ class WebRTCService {
       }
     };
 
-    // Register listeners
     socketService.onCallAnswer(handleAnswer);
     socketService.onCallIceCandidate(handleIceCandidate);
     socketService.onCallEnd(handleCallEnd);
 
-    // Cleanup function (will be called when component unmounts)
     return () => {
       socketService.offCallAnswer(handleAnswer);
       socketService.offCallIceCandidate(handleIceCandidate);
@@ -434,5 +368,4 @@ class WebRTCService {
 }
 
 export const webrtcService = new WebRTCService();
-
 

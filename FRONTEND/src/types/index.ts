@@ -1,4 +1,3 @@
-// User Types
 export interface User {
   id: string;
   email: string;
@@ -32,7 +31,6 @@ export interface LoginData {
   rememberMe?: boolean;
 }
 
-// Survey Types
 export interface Survey {
   id: string;
   user_id: string;
@@ -58,7 +56,6 @@ export interface Category {
   icon_url?: string;
 }
 
-// Post Types
 export interface Post {
   id: string;
   user_id: string;
@@ -102,7 +99,6 @@ export interface CreatePostData {
   images: File[];
 }
 
-// Comment Types
 export interface Comment {
   id: string;
   user_id: string;
@@ -115,7 +111,6 @@ export interface Comment {
   replies?: Comment[];
 }
 
-// API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
@@ -134,7 +129,6 @@ export interface PaginatedResponse<T> {
   };
 }
 
-// User Profile Types
 export interface UserProfile extends User {
   statistics: {
     postCount: number;
@@ -147,7 +141,6 @@ export interface UserProfile extends User {
   survey?: Survey;
 }
 
-// Chat Types
 export interface Conversation {
   id: string;
   type: 'direct' | 'group';

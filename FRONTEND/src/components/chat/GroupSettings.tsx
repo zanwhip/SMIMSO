@@ -35,14 +35,12 @@ export default function GroupSettings({
     setIsSearching(true);
     try {
       const response = await api.get(`/users/search?q=${encodeURIComponent(query)}`);
-      // Filter out users who are already members
       const memberIds = conversation.participants?.map((p) => p.user_id) || [];
       const filtered = response.data.data.filter(
         (user: User) => !memberIds.includes(user.id) && user.id !== currentUser.id
       );
       setSearchResults(filtered);
     } catch (error) {
-      console.error('Search error:', error);
       toast.error('Failed to search users');
     } finally {
       setIsSearching(false);
@@ -170,14 +168,4 @@ export default function GroupSettings({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
 

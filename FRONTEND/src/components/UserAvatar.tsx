@@ -43,7 +43,6 @@ export default function UserAvatar({
   useEffect(() => {
     if (!showOnlineStatus) return;
 
-    // Fetch online status
     const fetchOnlineStatus = async () => {
       try {
         const response = await api.get(`/chat/status?userIds=${userId}`);
@@ -52,13 +51,11 @@ export default function UserAvatar({
           setIsOnline(statusData[userId].isOnline);
         }
       } catch (error) {
-        console.error('Failed to fetch online status:', error);
-      }
+        }
     };
 
     fetchOnlineStatus();
 
-    // Poll every 30 seconds
     const interval = setInterval(fetchOnlineStatus, 30000);
 
     return () => clearInterval(interval);

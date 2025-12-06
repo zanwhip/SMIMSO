@@ -59,11 +59,9 @@ export default function ProfilePage() {
       }
 
       const response = await api.get(endpoint);
-      // Handle paginated response
       const postsData = response.data.data || response.data;
       setPosts(Array.isArray(postsData) ? postsData : []);
     } catch (error) {
-      console.error('Failed to fetch posts:', error);
       toast.error('Failed to load posts');
       setPosts([]);
     }
@@ -89,9 +87,9 @@ export default function ProfilePage() {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-        {/* Profile Header */}
+        
         <div className="bg-white/90 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-large overflow-hidden mb-4 sm:mb-6 md:mb-8 animate-fade-in">
-          {/* Cover Image */}
+          
           {profile.cover_url && (
             <div className="h-48 bg-gradient-to-r from-primary-500 to-secondary-500">
               <Image
@@ -108,7 +106,7 @@ export default function ProfilePage() {
           )}
 
           <div className="px-6 pb-6">
-            {/* Avatar */}
+            
             <div className="flex items-end justify-between -mt-16 mb-4">
               <div className="flex items-end space-x-4">
                 {profile.avatar_url ? (
@@ -141,12 +139,10 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            {/* Bio */}
             {profile.bio && (
               <p className="text-gray-700 mb-4">{profile.bio}</p>
             )}
 
-            {/* Stats */}
             <div className="flex space-x-8 text-center">
               <div>
                 <p className="text-2xl font-bold text-gray-900">
@@ -182,7 +178,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="inline-flex space-x-1 mb-8 bg-gray-100 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab('posts')}
@@ -218,7 +213,6 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Posts Grid */}
         {posts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">No posts yet</p>
@@ -231,7 +225,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Follow Modal */}
         {modalType && user && (
           <FollowModal
             isOpen={!!modalType}

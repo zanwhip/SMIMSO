@@ -17,7 +17,6 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -56,7 +55,7 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
       ref={dropdownRef}
       className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[600px] overflow-hidden flex flex-col"
     >
-      {/* Header */}
+      
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
           <h3 className="text-lg font-semibold text-gray-900">Thông báo</h3>
@@ -84,7 +83,6 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
         </div>
       </div>
 
-      {/* Notifications List */}
       <div className="overflow-y-auto flex-1">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -107,12 +105,11 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
                 }`}
               >
                 <div className="flex items-start space-x-3">
-                  {/* Icon */}
+                  
                   <div className="flex-shrink-0 mt-1">
                     {getNotificationIcon(notification.type)}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-900">
                       {notification.content}
@@ -125,7 +122,6 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
                     </p>
                   </div>
 
-                  {/* Unread indicator */}
                   {!notification.is_read && (
                     <div className="flex-shrink-0">
                       <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
@@ -138,7 +134,6 @@ export default function NotificationDropdown({ onClose }: NotificationDropdownPr
         )}
       </div>
 
-      {/* Footer */}
       {notifications.length > 0 && (
         <div className="border-t border-gray-200 p-3">
           <Link

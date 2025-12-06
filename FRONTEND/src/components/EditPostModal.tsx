@@ -32,7 +32,6 @@ export default function EditPostModal({
   useEffect(() => {
     if (isOpen) {
       fetchCategories();
-      // Reset form data when modal opens
       setFormData({
         title: post.title || '',
         description: post.description || '',
@@ -48,8 +47,7 @@ export default function EditPostModal({
       const response = await api.get('/options/categories');
       setCategories(response.data.data);
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    }
+      }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +60,6 @@ export default function EditPostModal({
 
     setIsLoading(true);
     try {
-      // Parse tags
       const tags = formData.tags
         ? formData.tags.split(',').map(t => t.trim()).filter(t => t)
         : [];
@@ -91,7 +88,7 @@ export default function EditPostModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-scale-in">
-        {/* Header */}
+        
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Edit Post</h2>
           <button
@@ -102,10 +99,9 @@ export default function EditPostModal({
           </button>
         </div>
 
-        {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
           <div className="space-y-4">
-            {/* Title */}
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Title <span className="text-red-500">*</span>
@@ -120,7 +116,6 @@ export default function EditPostModal({
               />
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description
@@ -134,7 +129,6 @@ export default function EditPostModal({
               />
             </div>
 
-            {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category
@@ -153,7 +147,6 @@ export default function EditPostModal({
               </select>
             </div>
 
-            {/* Tags */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tags
@@ -170,7 +163,6 @@ export default function EditPostModal({
               </p>
             </div>
 
-            {/* Visibility */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Visibility
@@ -187,7 +179,6 @@ export default function EditPostModal({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
             <button
               type="button"

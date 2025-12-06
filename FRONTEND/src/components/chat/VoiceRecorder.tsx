@@ -62,7 +62,6 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
       };
 
       mediaRecorder.onerror = (error) => {
-        console.error('Recording error:', error);
         toast.error('Failed to record audio');
         stopRecording();
       };
@@ -72,7 +71,6 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
       setRecordingTime(0);
       toast.success('Recording started');
     } catch (error) {
-      console.error('Failed to start recording:', error);
       toast.error('Failed to access microphone');
     }
   };
@@ -122,6 +120,4 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
     </div>
   );
 }
-
-
 

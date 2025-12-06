@@ -21,13 +21,10 @@ export default function GlobalCallHandler() {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
 
-  // Only show if not on chat page (chat pages handle their own calls)
   const isOnChatPage = pathname?.startsWith('/chat') || false;
 
-  // Navigate to chat page when call is active (if not already there)
   useEffect(() => {
     if (callState?.isActive && callState.conversationId && !isOnChatPage) {
-      // Navigate to conversation page
       router.push(`/chat/${callState.conversationId}`);
     }
   }, [callState?.isActive, callState?.conversationId, router, isOnChatPage]);
@@ -38,15 +35,12 @@ export default function GlobalCallHandler() {
     }
 
     try {
-      // Navigate to chat page first - the chat page will handle the call
       router.push(`/chat/${callState.conversationId}`);
       
-      // Clear global call state - chat page will handle it
       setCallState(null);
       
       toast.success('Đang chuyển đến cuộc trò chuyện...');
     } catch (error: any) {
-      console.error('Failed to accept call:', error);
       toast.error('Không thể chấp nhận cuộc gọi');
       endCall();
     }
@@ -91,8 +85,6 @@ export default function GlobalCallHandler() {
     setIsVideoOff(!enabled);
   };
 
-  // Only show if call is active and we're not on chat page
-  // (chat pages handle their own call modals)
   if (!callState || !callState.isActive || isOnChatPage) {
     return null;
   }

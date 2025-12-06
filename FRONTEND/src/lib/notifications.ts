@@ -1,4 +1,3 @@
-// Push Notifications Service
 type NotificationPermissionType = 'granted' | 'denied' | 'default';
 
 export class NotificationService {
@@ -6,27 +5,21 @@ export class NotificationService {
 
   async requestPermission(): Promise<NotificationPermissionType> {
     if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications');
       return 'denied';
     }
 
-    // If already granted, return immediately
     if (Notification.permission === 'granted') {
       return 'granted';
     }
 
-    // If denied, cannot request again (user must change in browser settings)
     if (Notification.permission === 'denied') {
-      console.warn('Notification permission is denied. User must enable it in browser settings.');
       return 'denied';
     }
 
-    // Request permission (default state)
     try {
       const permission = await Notification.requestPermission();
       return permission;
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
       return 'denied';
     }
   }
@@ -44,16 +37,13 @@ export class NotificationService {
 
   async registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
     if (!('serviceWorker' in navigator)) {
-      console.warn('Service workers are not supported');
       return null;
     }
 
     try {
       this.registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered:', this.registration);
       return this.registration;
     } catch (error) {
-      console.error('Service Worker registration failed:', error);
       return null;
     }
   }
@@ -75,10 +65,8 @@ export class NotificationService {
         ),
       });
 
-      console.log('Push subscription:', subscription);
       return subscription;
     } catch (error) {
-      console.error('Push subscription failed:', error);
       return null;
     }
   }
@@ -96,7 +84,6 @@ export class NotificationService {
       }
       return false;
     } catch (error) {
-      console.error('Push unsubscription failed:', error);
       return false;
     }
   }
