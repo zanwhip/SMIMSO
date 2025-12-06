@@ -22,8 +22,8 @@ export const sseAuthMiddleware = (req: AuthRequest, res: Response, next: NextFun
       });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; username: string };
-    req.user = decoded;
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string };
+    req.user = { id: decoded.id, email: decoded.email };
     next();
   } catch (error: any) {
     return res.status(401).json({

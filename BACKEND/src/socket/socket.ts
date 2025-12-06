@@ -43,7 +43,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
   io.on('connection', (socket: AuthenticatedSocket) => {
     const userId = socket.userId!;
-    `);
 
     if (!userSockets.has(userId)) {
       userSockets.set(userId, new Set());
@@ -55,9 +54,10 @@ export const initializeSocket = (httpServer: HttpServer) => {
     chatService.getUserConversations(userId).then((conversations) => {
       conversations.forEach((conv) => {
         socket.join(`conversation:${conv.id}`);
-        });
-    }).catch((error) => {
       });
+    }).catch((error) => {
+      // Error handling
+    });
 
     socket.on('join_conversation', async (conversationId: string) => {
       try {
@@ -77,13 +77,14 @@ export const initializeSocket = (httpServer: HttpServer) => {
         }
 
         socket.join(`conversation:${conversationId}`);
-        } catch (error: any) {
-        }
+      } catch (error: any) {
+        // Error handling
+      }
     });
 
     socket.on('leave_conversation', (conversationId: string) => {
       socket.leave(`conversation:${conversationId}`);
-      });
+    });
 
     socket.on('send_message', async (data: {
       conversationId: string;
@@ -141,21 +142,17 @@ export const initializeSocket = (httpServer: HttpServer) => {
           userRooms.add(`user:${participant.user_id}`);
         }
         
-        .join(', ')}`);
-        
         io.to(`conversation:${data.conversationId}`).emit('new_message', message);
         for (const participant of conversation.participants || []) {
           if (participant.user_id === userId) {
             io.to(`user:${participant.user_id}`).emit('new_message', message);
             io.to(`user:${participant.user_id}`).emit('message_sent', { messageId: message.id });
-            `);
           } else {
             io.to(`user:${participant.user_id}`).emit('new_message', message);
             io.to(`user:${participant.user_id}`).emit('conversation_updated', {
               conversationId: data.conversationId,
               message,
             });
-            `);
             
             pushNotificationService.sendNotification(
               participant.user_id,
@@ -222,8 +219,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
           .select('id, first_name, last_name, avatar_url')
           .eq('id', userId)
           .single();
-
-        );
 
         conversation.participants?.forEach((participant) => {
           if (participant.user_id !== userId) {
@@ -527,8 +522,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
     });
 
     socket.on('disconnect', async () => {
-      `);
-
       const sockets = userSockets.get(userId);
       if (sockets) {
         sockets.delete(socket.id);

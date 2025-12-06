@@ -41,7 +41,6 @@ async function runSeedSQL() {
           const { error: queryError } = await supabase.from('_').select('*').limit(0);
           
           if (queryError) {
-            `);
             errorCount++;
           } else {
             successCount++;
@@ -54,11 +53,9 @@ async function runSeedSQL() {
       }
     }
 
-    );
-    );
-    );
-    ');
-    } catch (error: any) {
+    console.log(`Seed completed: ${successCount} successful, ${errorCount} errors`);
+  } catch (error: any) {
+    console.error('Seed failed:', error);
     process.exit(1);
   }
 }

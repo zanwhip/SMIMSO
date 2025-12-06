@@ -7,6 +7,9 @@ const router = Router();
 const userController = new UserController();
 
 router.get('/top-creators', (req, res) => userController.getTopCreators(req, res));
+router.get('/most-favorite', (req, res) => userController.getMostFavorite(req, res));
+router.get('/most-viewed', (req, res) => userController.getMostViewed(req, res));
+router.get('/most-active', (req, res) => userController.getMostActive(req, res));
 
 router.use(authMiddleware);
 

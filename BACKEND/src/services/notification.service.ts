@@ -18,8 +18,6 @@ export class NotificationService {
     
     this.clients.get(userId)!.push(client);
     
-    !.length})`);
-    
     this.sendToClient(client, {
       type: 'connected',
       message: 'Connected to notification stream',
@@ -42,19 +40,18 @@ export class NotificationService {
   sendToUser(userId: string, notification: any) {
     const userClients = this.clients.get(userId);
     if (userClients && userClients.length > 0) {
-      for user ${userId}`);
       userClients.forEach(client => {
         this.sendToClient(client, notification);
       });
-      } else {
-      }
+    }
   }
 
   private sendToClient(client: SSEClient, data: any) {
     try {
       client.response.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (error) {
-      }
+      // Error handling
+    }
   }
 
   async createNotification(data: {

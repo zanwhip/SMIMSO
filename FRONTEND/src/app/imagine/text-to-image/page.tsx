@@ -55,11 +55,6 @@ export default function TextToImagePage() {
         seed: seed || undefined,
       });
 
-      ,
-        keys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : [],
-        stringified: JSON.stringify(response.data, null, 2).substring(0, 1000), // First 1000 chars
-      });
-
       const imageUrl = extractImageUrl(response.data);
       
       if (imageUrl) {
@@ -73,7 +68,6 @@ export default function TextToImagePage() {
         }, ...prev]);
         toast.success('✅ Image generated successfully!');
       } else {
-        );
         toast.error('⚠️ Could not extract image from response. Please check console for details and try again.');
       }
     } catch (error: any) {

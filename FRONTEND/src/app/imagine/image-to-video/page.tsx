@@ -92,15 +92,7 @@ export default function ImageToVideoPage() {
         },
       });
 
-      ,
-        keys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : [],
-        stringified: JSON.stringify(response.data, null, 2).substring(0, 1000), // First 1000 chars
-      });
-
       const videoUrl = extractVideoUrl(response.data);
-      
-      : Object.keys(response.data || {}),
-      });
 
       if (videoUrl) {
         setGeneratedVideo(videoUrl);
@@ -113,8 +105,6 @@ export default function ImageToVideoPage() {
         }, ...prev]);
         toast.success('✅ Video generated successfully!', { id: 'video-generation' });
       } else {
-        );
-        
         let errorMsg = '⚠️ Could not extract video from response. ';
         if (response.data?.data) {
           errorMsg += 'The API returned data but video URL could not be found. ';

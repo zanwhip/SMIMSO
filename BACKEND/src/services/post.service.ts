@@ -48,34 +48,23 @@ export class PostService {
           }
         if (!description && aiGeneratedMetadata.description) {
           description = aiGeneratedMetadata.description;
-          }..."`);
         }
         if ((!tags || tags.length === 0) && aiGeneratedMetadata.tags.length > 0) {
           tags = aiGeneratedMetadata.tags;
-          }`);
         }
         if (!category_id && aiGeneratedMetadata.category_id) {
           category_id = aiGeneratedMetadata.category_id;
-          }
-
-        ,
-          description: description?.substring(0, 50),
-          category_id,
-          tags,
-          caption: caption?.substring(0, 50),
-        });
+        }
       } catch (error: any) {
         if (!title && images[0].filename) {
           title = images[0].filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-          }
+        }
       }
     }
 
     if (!title || title.trim() === '') {
       title = 'Untitled Post';
-      }
-
-    });
+    }
 
     const { data: newPost, error: postError } = await supabase
       .from('posts')
@@ -125,14 +114,16 @@ export class PostService {
           const aiFeatures = await aiService.generateImageFeatures(imagePath);
           embedding = aiFeatures.embedding;
         } catch (error) {
-          }
+          // Error handling
+        }
 
         let aiCaption: string | undefined;
         try {
           const clipResult = await aiService.generateCaptionWithClip(imagePath, categoryLabels);
           aiCaption = clipResult.caption;
-          } catch (error) {
-          }
+        } catch (error) {
+          // Error handling
+        }
 
         const userCaption = userCaptions[i]?.trim() || undefined;
 
@@ -172,10 +163,6 @@ export class PostService {
           }
           throw imageError;
         }
-
-        if (imageError) {
-          } else {
-          }
       }
     }
 

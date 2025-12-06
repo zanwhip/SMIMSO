@@ -109,7 +109,6 @@ export class SearchService {
             try {
               dbEmbedding = JSON.parse(image.embedding);
             } catch (e) {
-              );
               continue;
             }
           } else {
@@ -149,11 +148,8 @@ export class SearchService {
 
       const limitedResults = mergedResults.slice(0, limit);
 
-      ).join(', ')}`);
-
       return limitedResults;
     } catch (error: any) {
-      );
       throw error;
     }
   }
@@ -214,7 +210,6 @@ export class SearchService {
             try {
               dbEmbedding = JSON.parse(image.embedding);
             } catch (e) {
-              );
               continue;
             }
           } else {

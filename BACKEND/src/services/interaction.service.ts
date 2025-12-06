@@ -36,7 +36,8 @@ export class InteractionService {
       .single();
 
     if (postError) {
-      }
+      // Error handling
+    }
 
     if (post) {
       const { error: updateError } = await supabase
@@ -45,8 +46,7 @@ export class InteractionService {
         .eq('id', postId);
 
       if (updateError) {
-        } else {
-        + 1);
+        // Error handling
       }
 
       if (post.user_id !== userId) {
@@ -94,7 +94,8 @@ export class InteractionService {
       .single();
 
     if (postError) {
-      }
+      // Error handling
+    }
 
     if (post && (post.like_count || 0) > 0) {
       const { error: updateError } = await supabase
@@ -103,8 +104,7 @@ export class InteractionService {
         .eq('id', postId);
 
       if (updateError) {
-        } else {
-        - 1);
+        // Error handling
       }
     }
   }

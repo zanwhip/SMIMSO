@@ -3,7 +3,7 @@ import { PostService } from '../services/post.service';
 import { InteractionService } from '../services/interaction.service';
 import { AIService } from '../services/ai.service';
 import { successResponse, errorResponse, paginatedResponse } from '../utils/response';
-import { AuthRequest, CreatePostDTO } from '../types';
+import { AuthRequest, CreatePostDTO, UpdatePostDTO } from '../types';
 import supabase from '../config/supabase';
 import { uploadChatFile } from '../middleware/upload.middleware';
 
@@ -36,8 +36,6 @@ export class PostController {
       let result;
       try {
         result = await aiService.generateCaptionWithClip(file.path, categoryLabels);
-        
-        );
         
         if (!result.caption || result.caption.trim() === '') {
           result.caption = 'Beautiful Image';

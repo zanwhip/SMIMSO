@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET: jwt.Secret = process.env.JWT_SECRET || 'your-secret-key';
 
 export interface JwtPayload {
   id: string;
@@ -12,7 +12,7 @@ export interface JwtPayload {
 
 export const generateToken = (payload: JwtPayload): string => {
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn } as jwt.SignOptions);
 };
 
 export const verifyToken = (token: string): JwtPayload => {

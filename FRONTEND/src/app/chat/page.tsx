@@ -102,9 +102,6 @@ export default function ChatPage() {
   }, [messages]);
 
   const handleNewMessage = useCallback((message: Message) => {
-    .toISOString(),
-    });
-    
     if (!message?.id || !message?.conversation_id) {
       return;
     }
@@ -225,10 +222,12 @@ export default function ChatPage() {
         if (error.message.includes('Not a participant')) {
           toast.error('Bạn không phải là thành viên của cuộc trò chuyện này');
           if (error.conversationId === selectedConversationRef.current?.id) {
-            updateConversationInList(error.conversationId);
+            if (error.conversationId) {
+              updateConversationInList(error.conversationId);
+            }
           }
         } else if (error.message.includes('Failed to join')) {
-          :', error);
+          toast.error('Không thể tham gia cuộc trò chuyện');
         } else {
           toast.error(error.message || 'Có lỗi xảy ra');
         }
@@ -595,13 +594,9 @@ export default function ChatPage() {
         callType: type,
         userId: user?.id || '',
         onLocalStream: (stream) => {
-          .length);
-          .length);
           setLocalStream(stream);
         },
         onRemoteStream: (stream) => {
-          .length);
-          .length);
           setRemoteStream(stream);
         },
         onCallEnd: () => {
@@ -628,15 +623,9 @@ export default function ChatPage() {
         callType: callType,
         userId: user?.id || '',
         onLocalStream: (stream) => {
-          :', stream);
-          .length);
-          .length);
           setLocalStream(stream);
         },
         onRemoteStream: (stream) => {
-          :', stream);
-          .length);
-          .length);
           setRemoteStream(stream);
         },
         onCallEnd: () => {

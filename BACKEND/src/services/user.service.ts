@@ -280,6 +280,170 @@ export class UserService {
     }
   }
 
+  async getMostFavorite(limit: number = 10): Promise<any[]> {
+    try {
+      const { data: users, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          bio,
+          job
+        `)
+        .eq('is_active', true)
+        .limit(100); // Get more users to calculate likes
+
+      if (error || !users) {
+        return [];
+      }
+
+      const usersWithStats = await Promise.all(
+        users.map(async (user) => {
+          const { data: posts } = await supabase
+            .from('posts')
+            .select('like_count, view_count')
+            .eq('user_id', user.id);
+
+          const totalLikes = posts?.reduce((sum, post) => sum + (post.like_count || 0), 0) || 0;
+          const totalViews = posts?.reduce((sum, post) => sum + (post.view_count || 0), 0) || 0;
+          const totalPosts = posts?.length || 0;
+
+          return {
+            ...user,
+            totalLikes,
+            totalViews,
+            totalPosts,
+          };
+        })
+      );
+
+      return usersWithStats
+        .filter(user => user.totalLikes > 0)
+        .sort((a, b) => b.totalLikes - a.totalLikes)
+        .slice(0, limit);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  async getMostViewed(limit: number = 10): Promise<any[]> {
+    try {
+      const fourWeeksAgo = new Date();
+      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+      const { data: users, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          bio,
+          job
+        `)
+        .eq('is_active', true)
+        .limit(100); // Get more users to calculate views
+
+      if (error || !users) {
+        return [];
+      }
+
+      const usersWithStats = await Promise.all(
+        users.map(async (user) => {
+          // Get posts from last 4 weeks
+          const { data: recentPosts } = await supabase
+            .from('posts')
+            .select('view_count')
+            .eq('user_id', user.id)
+            .gte('created_at', fourWeeksAgo.toISOString());
+
+          const totalViews = recentPosts?.reduce((sum, post) => sum + (post.view_count || 0), 0) || 0;
+
+          return {
+            ...user,
+            totalViews,
+          };
+        })
+      );
+
+      return usersWithStats
+        .filter(user => user.totalViews > 0)
+        .sort((a, b) => b.totalViews - a.totalViews)
+        .slice(0, limit);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  async getMostActive(limit: number = 10): Promise<any[]> {
+    try {
+      const { data: users, error } = await supabase
+        .from('users')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          avatar_url,
+          bio,
+          job
+        `)
+        .eq('is_active', true)
+        .limit(100); // Get more users to calculate activity
+
+      if (error || !users) {
+        return [];
+      }
+
+      const usersWithStats = await Promise.all(
+        users.map(async (user) => {
+          // Count posts
+          const { count: postCount } = await supabase
+            .from('posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+          // Count comments
+          const { count: commentCount } = await supabase
+            .from('comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+
+          // Count recent posts (last 4 weeks)
+          const fourWeeksAgo = new Date();
+          fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+          
+          const { count: recentPostCount } = await supabase
+            .from('posts')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .gte('created_at', fourWeeksAgo.toISOString());
+
+          const totalPosts = postCount || 0;
+          const totalComments = commentCount || 0;
+          const recentPosts = recentPostCount || 0;
+          const activityScore = totalPosts * 2 + totalComments + recentPosts * 3; // Weight recent posts more
+
+          return {
+            ...user,
+            totalPosts,
+            totalComments,
+            recentPosts,
+            activityScore,
+          };
+        })
+      );
+
+      return usersWithStats
+        .filter(user => user.activityScore > 0)
+        .sort((a, b) => b.activityScore - a.activityScore)
+        .slice(0, limit);
+    } catch (error) {
+      return [];
+    }
+  }
+
   async getRelatedUsers(userId: string, limit: number = 10): Promise<any[]> {
     try {
       const { data: userLikes } = await supabase

@@ -186,6 +186,39 @@ export class UserController {
     }
   }
 
+  async getMostFavorite(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const creators = await userService.getMostFavorite(limit);
+
+      return successResponse(res, creators);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  async getMostViewed(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const creators = await userService.getMostViewed(limit);
+
+      return successResponse(res, creators);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  async getMostActive(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const creators = await userService.getMostActive(limit);
+
+      return successResponse(res, creators);
+    } catch (error: any) {
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
   async getRelatedUsers(req: AuthRequest, res: Response): Promise<Response> {
     try {
       if (!req.user) {
@@ -210,17 +243,23 @@ export class UserController {
       const { userId } = req.params;
       await userService.followUser(req.user.id, userId);
 
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', req.user.id)
+        .single();
+
       const { data: followingUser } = await supabase
         .from('users')
         .select('first_name, last_name')
         .eq('id', userId)
         .single();
 
-      if (followingUser) {
+      if (followingUser && currentUser) {
         await notificationService.createNotification({
           user_id: userId,
           type: 'follow',
-          content: `${req.user.first_name} ${req.user.last_name} started following you`,
+          content: `${currentUser.first_name} ${currentUser.last_name} started following you`,
           related_user_id: req.user.id,
         });
       }

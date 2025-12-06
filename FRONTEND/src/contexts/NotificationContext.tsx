@@ -108,7 +108,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000); // Exponential backoff, max 30s
-          `);
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connectToSSE();

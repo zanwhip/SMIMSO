@@ -86,7 +86,6 @@ class WebRTCService {
           const currentState = currentPeerConnection.connectionState;
           if (currentState === 'disconnected' || currentState === 'failed') {
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-              ...`);
               currentPeerConnection.restartIce().catch(console.error);
             } else {
               this.endCall(config.conversationId);
@@ -97,7 +96,6 @@ class WebRTCService {
         this.addTimeout(config.conversationId, timeout);
       } else if (state === 'failed') {
         reconnectAttempts++;
-        , restarting ICE...`);
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && this.isConnectionActive(config.conversationId)) {
           peerConnection.restartIce().catch((err) => {
             const timeout = setTimeout(() => {
@@ -136,7 +134,6 @@ class WebRTCService {
         iceReconnectAttempts = 0;
       } else if (iceState === 'failed') {
         iceReconnectAttempts++;
-        , restarting...`);
         if (iceReconnectAttempts < MAX_ICE_RECONNECT_ATTEMPTS && this.isConnectionActive(config.conversationId)) {
           peerConnection.restartIce().catch((err) => {
             });

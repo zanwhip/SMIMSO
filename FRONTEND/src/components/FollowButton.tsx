@@ -135,7 +135,7 @@ export default function FollowButton({
       className={`flex items-center space-x-1.5 rounded-lg transition ${
         isFollowing
           ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          : 'bg-purple-600 text-white hover:bg-purple-700'
+          : 'bg-black text-white hover:bg-gray-800'
       } ${sizeClasses[size]} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {isFollowing ? (

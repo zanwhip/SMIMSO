@@ -50,7 +50,6 @@ async function generateCaptionWithHuggingFace(imagePath: string): Promise<string
             }
             
             if (caption && caption.trim() && caption.trim().toLowerCase() !== 'beautiful image') {
-              }"`);
               return caption.trim();
             }
           }
@@ -65,16 +64,13 @@ async function generateCaptionWithHuggingFace(imagePath: string): Promise<string
             
             if (errorMsg.includes('loading') || errorMsg.includes('is currently loading')) {
               if (i < retries) {
-                , waiting 10s before retry ${i + 1}/${retries}...`);
                 await new Promise(resolve => setTimeout(resolve, 10000));
                 continue;
               }
             }
           }
           if (i === retries) {
-            if (error.response) {
-              .substring(0, 300));
-            }
+            // Error handling
           }
         }
       }
@@ -132,7 +128,7 @@ async function getLocalCaptioner() {
         quantized: true,
         progress_callback: (progress: any) => {
           if (progress?.status === 'progress' && progress.progress) {
-            }%`);
+            // Progress tracking
           }
         }
       }
@@ -141,7 +137,6 @@ async function getLocalCaptioner() {
     isInitializing = false;
     return localCaptioner;
   } catch (error: any) {
-    );
     isInitializing = false;
     localCaptioner = null; // Reset on error
     return null;
@@ -196,50 +191,41 @@ export class CLIPService {
       try {
         const localCap = await getLocalCaptioner();
         if (!localCap) {
-          ');
+          // Local captioner not available
         } else {
           try {
             tempImagePath = await prepareImage(imagePath);
             const startTime = Date.now();
             const results = await localCap(tempImagePath);
             const duration = Date.now() - startTime;
-            );
-            if (Array.isArray(results)) {
-              }
-            .substring(0, 1000));
             
             let caption = '';
             
             if (Array.isArray(results) && results.length > 0) {
               const first = results[0];
               caption = first.generated_text || first.text || first.caption || '';
-              } else if (results && typeof results === 'object') {
+            } else if (results && typeof results === 'object') {
               caption = results.generated_text || results.text || results.caption || '';
-              } else if (typeof results === 'string') {
+            } else if (typeof results === 'string') {
               caption = results;
-              }
+            }
             
             caption = (caption || '').trim();
-            
-            === 'beautiful image'}`);
             
             if (caption && caption.length > 0 && caption.toLowerCase() !== 'beautiful image') {
               try { fs.unlinkSync(tempImagePath); } catch (e) {}
               return caption;
-            } else {
-              );
             }
             
             try { fs.unlinkSync(tempImagePath); tempImagePath = null; } catch (e) {}
           } catch (error: any) {
-            );
             if (tempImagePath) {
               try { fs.unlinkSync(tempImagePath); tempImagePath = null; } catch (e) {}
             }
           }
         }
       } catch (error: any) {
-        );
+        // Error handling
       }
       
       const hfCaption = await generateCaptionWithHuggingFace(imagePath);
@@ -252,7 +238,6 @@ export class CLIPService {
       return caption;
       
     } catch (error: any) {
-      );
       const filename = path.basename(imagePath);
       return generateCaptionFromFilename(filename);
     } finally {
@@ -279,8 +264,6 @@ export class CLIPService {
       tempImagePath = await prepareImage(imagePath);
       const results = await classifier(tempImagePath, labels);
       
-      .substring(0, 500));
-      
       if (!results || !Array.isArray(results)) {
         return [];
       }
@@ -295,7 +278,6 @@ export class CLIPService {
       
       return predictions;
     } catch (error: any) {
-      );
       return [];
     } finally {
       if (tempImagePath && fs.existsSync(tempImagePath)) {
@@ -319,16 +301,15 @@ export class CLIPService {
           if (predictions.length > 0 && predictions[0].score > 0.25) {
             category_label = predictions[0].label;
             category_score = predictions[0].score;
-            }
-        } catch (classifyError: any) {
           }
+        } catch (classifyError: any) {
+          // Error handling
+        }
       }
 
       const result = { caption, category_label, category_score };
-      );
       return result;
     } catch (error: any) {
-      );
       const filename = path.basename(imagePath);
       const fallbackCaption = generateCaptionFromFilename(filename);
       return { caption: fallbackCaption };
@@ -381,16 +362,11 @@ export class CLIPService {
       const model = await this.getCLIPModel();
       if (!model) {
         return [];
-  }
+      }
 
       tempImagePath = await prepareImage(imagePath);
       
       const result = await model(tempImagePath);
-      
-      );
-      if (result && typeof result === 'object') {
-        );
-      }
       
       let embedding: number[] = [];
       
@@ -442,8 +418,6 @@ export class CLIPService {
 
   async generateTextEmbedding(text: string): Promise<number[]> {
     try {
-      );
-      
       const model = await this.getCLIPModel();
       if (!model) {
         return [];

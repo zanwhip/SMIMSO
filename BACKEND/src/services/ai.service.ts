@@ -69,12 +69,8 @@ export class AIService {
   ): Promise<{ caption: string; category_label?: string; category_score?: number }> {
     try {
       const result = await clipService.generateCaptionWithCategory(imagePath, categoryLabels);
-      
-      );
-      
       return result;
     } catch (error: any) {
-      );
       throw error; // Re-throw to let caller handle
     }
   }
@@ -118,17 +114,14 @@ export class AIService {
       try {
         const categoryLabels = categories.map(c => c.name);
         const clipResult = await this.generateCaptionWithClip(imagePath, categoryLabels);
-        );
-        
         caption = clipResult.caption || '';
 
         if (caption && caption.trim().length > 0 && caption.trim().toLowerCase() !== 'beautiful image') {
           aiWorked = true;
-          } else {
-          }
-      } catch (error: any) {
-        );
         }
+      } catch (error: any) {
+        // Error handling
+      }
 
       if (!aiWorked && (!caption || caption.trim().length === 0 || caption.trim().toLowerCase() === 'beautiful image')) {
         if (filename) {
@@ -146,11 +139,11 @@ export class AIService {
               .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
               .join(' ');
             } else {
-            caption = 'Beautiful Image';
+              caption = 'Beautiful Image';
             }
         } else {
           caption = 'Beautiful Image';
-          }
+        }
       }
 
       let description = caption;
@@ -162,7 +155,7 @@ export class AIService {
         } else {
           description = `${caption}. Share your thoughts and impressions about this image!`;
         }
-        }
+      }
 
       let tags: string[] = [];
 
@@ -173,7 +166,6 @@ export class AIService {
           .filter(word => word.length > 3 && !stopWords.includes(word))
           .filter((word, index, self) => self.indexOf(word) === index) // Remove duplicates
           .slice(0, 5); // Take first 5 meaningful words as tags
-        }`);
       } else if (caption && caption !== 'Beautiful Image') {
         const words = caption.toLowerCase().split(/\s+/);
         const stopWords = ['a', 'an', 'the', 'is', 'are', 'was', 'were', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'and', 'or', 'but', 'this', 'that'];
@@ -181,15 +173,10 @@ export class AIService {
           .filter(word => word.length > 3 && !stopWords.includes(word))
           .filter((word, index, self) => self.indexOf(word) === index)
           .slice(0, 5);
-
-        if (tags.length > 0) {
-          }`);
-        }
       }
 
       if (tags.length === 0) {
         tags = ['image', 'photo', 'creative'];
-        }`);
       }
 
       let category_id: string | undefined;
@@ -204,13 +191,11 @@ export class AIService {
             const matchedCategory = categories.find(c => c.name === bestMatch.label);
             if (matchedCategory && bestMatch.score > 0.25) { // Lower threshold to 0.25
               category_id = matchedCategory.id;
-              })`);
-            } else {
-              }`);
             }
           }
         } catch (error: any) {
-          }
+          // Error handling
+        }
       }
 
       if (!category_id && caption) {
@@ -240,13 +225,7 @@ export class AIService {
 
       if (!category_id && categories.length > 0) {
         category_id = categories[0].id;
-        }
-
-      ,
-        tags: tags.join(', '),
-        category_id: category_id ? 'Found' : 'None',
-        aiWorked,
-      });
+      }
 
       return {
         category_id,

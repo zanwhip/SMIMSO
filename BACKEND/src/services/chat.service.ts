@@ -220,7 +220,7 @@ export class ChatService {
           }
         } catch (addError: any) {
           if (addError?.code === '23505') {
-            `);
+            // Duplicate key - already a participant
           } else {
             }
         }
@@ -253,7 +253,7 @@ export class ChatService {
         user_id,
         joined_at,
         last_read_at,
-        users:user_id (
+        users!user_id (
           id,
           first_name,
           last_name,
@@ -387,11 +387,10 @@ export class ChatService {
                 } else {
                 throw new Error('Not a participant in this conversation');
               }
-            } else {
-              }
+            }
           } catch (error: any) {
             if (error?.code === '23505') {
-              `);
+              // Duplicate key error - already a participant
             } else {
               throw new Error('Not a participant in this conversation');
             }

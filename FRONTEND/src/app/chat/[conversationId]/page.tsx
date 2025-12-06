@@ -105,12 +105,6 @@ export default function ConversationDetailPage() {
 
   // Handle new message
   const handleNewMessage = useCallback((message: Message) => {
-      id: message.id,
-      convId: message.conversation_id,
-      senderId: message.sender_id,
-      currentConvId: conversationId,
-    });
-    
     if (!message?.id || !message?.conversation_id) {
       return;
     }
