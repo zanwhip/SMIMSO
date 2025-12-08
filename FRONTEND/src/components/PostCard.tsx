@@ -9,20 +9,36 @@ import { FiHeart, FiMessageCircle, FiDownload, FiBookmark } from 'react-icons/fi
 import { FaHeart } from 'react-icons/fa';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
+import PostDetailModal from '@/components/PostDetailModal';
 
 interface PostCardProps {
   post: Post;
+  onPostUpdate?: (post: Post) => void;
 }
 
-function PostCard({ post: initialPost }: PostCardProps) {
+function PostCard({ post: initialPost, onPostUpdate }: PostCardProps) {
   const [post, setPost] = useState(initialPost);
   const [isLiking, setIsLiking] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     setPost(initialPost);
   }, [initialPost]);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't open modal if clicking on interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('[role="button"]')
+    ) {
+      return;
+    }
+    setIsModalOpen(true);
+  };
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -63,12 +79,13 @@ function PostCard({ post: initialPost }: PostCardProps) {
   if (!imageUrl) return null;
 
   return (
-    <div 
-      className="post-card-item group relative cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <Link href={`/post/${post.id}`} className="block">
+    <>
+      <div 
+        className="post-card-item group relative cursor-pointer"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={handleCardClick}
+      >
         <div className="relative overflow-hidden rounded-lg bg-gray-100">
           
           {!imageLoaded && (
@@ -189,8 +206,20 @@ function PostCard({ post: initialPost }: PostCardProps) {
             )}
           </div>
         </div>
-      </Link>
-    </div>
+      </div>
+
+      <PostDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        postId={post.id}
+        onPostUpdate={(updatedPost) => {
+          setPost(updatedPost);
+          if (onPostUpdate) {
+            onPostUpdate(updatedPost);
+          }
+        }}
+      />
+    </>
   );
 }
 

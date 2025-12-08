@@ -13,11 +13,13 @@ import { Post, Category } from '@/types';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
 import { FiPlusCircle } from 'react-icons/fi';
+import CreatePostModal from '@/components/CreatePostModal';
 
 export default function HomePage() {
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -190,12 +192,12 @@ export default function HomePage() {
             <div className="text-center py-20 animate-fade-in">
               <div className="text-6xl mb-4">📭</div>
               <p className="text-gray-500 text-lg">No posts yet</p>
-              <Link
-                href="/create"
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
                 className="inline-block mt-6 px-6 py-3 bg-accent-600 hover:bg-accent-700 text-white rounded-lg font-medium transition-all active-scale"
               >
                 Upload your first photo
-              </Link>
+              </button>
             </div>
           ) : (
             <>
@@ -224,14 +226,23 @@ export default function HomePage() {
       </div>
 
       {isAuthenticated && (
-        <Link
-          href="/create"
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
           className="fab w-14 h-14 bg-accent-600 hover:bg-accent-700 text-white rounded-full flex items-center justify-center"
           title="Upload"
         >
           <FiPlusCircle className="w-6 h-6" />
-        </Link>
+        </button>
       )}
+
+      <CreatePostModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }

@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { FiPlus } from 'react-icons/fi';
+import CreatePostModal from './CreatePostModal';
 
 export default function InteractiveBanner() {
-  const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -108,7 +108,7 @@ export default function InteractiveBanner() {
     <div
       ref={containerRef}
       className="relative w-full h-48 sm:h-64 md:h-80 rounded-xl sm:rounded-2xl overflow-hidden mb-6 sm:mb-10 cursor-pointer group"
-      onClick={() => router.push('/create')}
+      onClick={() => setIsModalOpen(true)}
     >
       <canvas
         ref={canvasRef}
@@ -126,6 +126,15 @@ export default function InteractiveBanner() {
           </span>
         </button>
       </div>
+
+      <CreatePostModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          setIsModalOpen(false);
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }

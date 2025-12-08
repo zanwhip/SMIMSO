@@ -262,13 +262,6 @@ export default function PostDetailPage() {
                 {post.title}
               </h1>
 
-              {post.caption && (
-                <div className="mb-4 p-3 bg-purple-50 border-l-4 border-purple-500 rounded">
-                  <p className="text-sm text-purple-700">
-                    <span className="font-semibold">🤖 AI Caption:</span> {post.caption}
-                  </p>
-                </div>
-              )}
 
               {post.description && (
                 <p className="text-gray-700 mb-4">{post.description}</p>

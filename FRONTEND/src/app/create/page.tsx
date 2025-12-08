@@ -336,7 +336,7 @@ export default function CreatePostPage() {
                 disabled={isLoading}
                 className="px-8 py-2.5 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-xl hover:from-primary-700 hover:to-secondary-700 disabled:opacity-50 transition-all duration-300 shadow-medium hover:shadow-large hover:scale-[1.02] active:scale-[0.98] font-semibold ripple"
               >
-                {isLoading ? 'Publishing...' : 'Publish'}
+                {isLoading ? 'Posting...' : 'Post'}
               </button>
             </div>
           </form>

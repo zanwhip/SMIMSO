@@ -10,6 +10,7 @@ import NotificationDropdown from './NotificationDropdown';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useChat } from '@/contexts/ChatContext';
 import UserAvatar from './UserAvatar';
+import CreatePostModal from './CreatePostModal';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfilePopover, setShowProfilePopover] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const profilePopoverRef = useRef<HTMLDivElement>(null);
   const { unreadCount: notificationUnreadCount } = useNotifications();
   const { unreadCount: chatUnreadCount } = useChat();
@@ -93,14 +95,14 @@ export default function Navbar() {
                   <FiHome className="w-5 h-5" />
                 </Link>
 
-                <Link
-                  href="/create"
+                <button
+                  onClick={() => setIsCreateModalOpen(true)}
                   className="hidden sm:flex items-center space-x-1.5 px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all font-medium active-scale"
                   title="Upload"
                 >
                   <FiPlusCircle className="w-5 h-5" />
                   <span className="hidden lg:inline">Upload</span>
-                </Link>
+                </button>
 
                 <Link
                   href="/chat"
@@ -246,6 +248,15 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      <CreatePostModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setIsCreateModalOpen(false);
+          window.location.reload();
+        }}
+      />
     </nav>
   );
 }
