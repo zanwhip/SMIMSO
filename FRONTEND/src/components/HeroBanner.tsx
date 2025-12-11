@@ -2,9 +2,48 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useState, useRef } from 'react';
+import { FiImage } from 'react-icons/fi';
 
 export default function HeroBanner() {
   const router = useRouter();
+  const [searchValue, setSearchValue] = useState('');
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSearchClick = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Vui lòng chọn file ảnh');
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Kích thước ảnh phải nhỏ hơn 10MB');
+        return;
+      }
+
+      // Redirect to search page with image mode
+      router.push('/search?mode=image');
+      // Store file reference in sessionStorage as base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        sessionStorage.setItem('pendingImageSearch', reader.result as string);
+        sessionStorage.setItem('pendingImageName', file.name);
+        // Trigger event to notify search page
+        window.dispatchEvent(new CustomEvent('imageSearchReady'));
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset input
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
 
   return (
     <div className="relative bg-gradient-to-br from-gray-50 via-white to-blue-50/30 overflow-hidden">
@@ -48,43 +87,32 @@ export default function HeroBanner() {
 
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => router.push('/explore')}
-                className="group px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 flex items-center space-x-2"
+                onClick={() => {
+                  const event = new CustomEvent('openUploadModal');
+                  window.dispatchEvent(event);
+                }}
+                className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 flex items-center space-x-2 backdrop-blur-sm"
               >
-                <span>Get Started</span>
                 <svg 
-                  className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" 
+                  className="w-5 h-5 transform group-hover:scale-110 transition-transform" 
                   fill="none" 
                   viewBox="0 0 24 24" 
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-              </button>
-
-              <button
-                onClick={() => router.push('/imagine/text-to-image')}
-                className="group px-8 py-4 bg-white hover:bg-gray-50 text-gray-900 rounded-xl font-semibold transition-all duration-300 border-2 border-gray-200 hover:border-gray-300 hover:-translate-y-0.5 flex items-center space-x-2"
-              >
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
-                  <svg 
-                    className="w-5 h-5 text-white" 
-                    fill="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-                </div>
-                <span>Play now</span>
+                <span>Upload</span>
               </button>
             </div>
 
-            <div className="pt-4">
+            <div className="pt-4" data-hero-search>
               <div className="relative max-w-md group">
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="w-full px-6 py-3.5 pl-12 rounded-full border-2 border-gray-200 bg-white/80 backdrop-blur-sm hover:border-gray-300 focus:border-blue-500 focus:outline-none transition-all text-gray-900 placeholder-gray-500"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  className="w-full px-6 py-3.5 pl-12 pr-14 rounded-full border-2 border-gray-200 bg-white/90 backdrop-blur-md hover:border-gray-300 focus:border-blue-500 focus:outline-none transition-all text-gray-900 placeholder-gray-500 shadow-lg"
                   onFocus={(e) => {
                     const value = e.target.value;
                     if (value.trim()) {
@@ -108,6 +136,21 @@ export default function HeroBanner() {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={handleImageSearchClick}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all"
+                  title="Tìm kiếm bằng ảnh"
+                >
+                  <FiImage className="w-5 h-5" />
+                </button>
               </div>
             </div>
           </div>

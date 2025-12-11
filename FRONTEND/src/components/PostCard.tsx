@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Post } from '@/types';
 import { getImageUrl, formatNumber } from '@/lib/utils';
 import { FiHeart, FiMessageCircle, FiDownload, FiBookmark } from 'react-icons/fi';
-import { FaHeart } from 'react-icons/fa';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import PostDetailModal from '@/components/PostDetailModal';
@@ -111,99 +110,92 @@ function PostCard({ post: initialPost, onPostUpdate }: PostCardProps) {
             }`}
           />
 
+          {/* Avatar - Top Left */}
           <div 
-            className={`absolute top-3 right-3 flex space-x-2 transition-all duration-300 ${
-              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+            className={`absolute top-3 left-3 transition-all duration-300 ${
+              isHovered ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2'
             }`}
           >
+            <Link
+              href={`/profile/${post.user_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="block"
+            >
+              <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xl border-2 border-white/30 shadow-lg overflow-hidden ring-2 ring-white/20 hover:ring-white/40 transition-all duration-300 hover:scale-110">
+                {post.user?.avatar_url ? (
+                  <Image
+                    src={getImageUrl(post.user.avatar_url)}
+                    alt={userName}
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xs font-semibold">
+                    {userName.split(' ').map(n => n[0]).join('')}
+                  </div>
+                )}
+              </div>
+            </Link>
+          </div>
+
+          {/* Action Icons - Bottom Right - All in one row */}
+          <div 
+            className={`absolute bottom-3 right-3 flex items-center space-x-2 transition-all duration-300 ${
+              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            {/* Like Button */}
             <button
               onClick={handleLike}
-              className={`p-2.5 rounded-full backdrop-blur-md transition-all duration-200 active-scale ${
+              className={`p-2.5 rounded-full backdrop-blur-xl transition-all duration-200 active-scale shadow-lg border border-white/20 ${
                 post.isLiked 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-white/90 text-gray-700 hover:bg-white'
+                  ? 'bg-white/40 text-red-500 hover:bg-white/50' 
+                  : 'bg-white/40 text-gray-700 hover:bg-white/50'
               }`}
               title={post.isLiked ? 'Unlike' : 'Like'}
             >
-              {post.isLiked ? (
-                <FaHeart className="w-4 h-4" />
-              ) : (
-                <FiHeart className="w-4 h-4" />
-              )}
+              <FiHeart className={`w-4 h-4 ${post.isLiked ? 'fill-red-500 text-red-500' : ''}`} />
             </button>
-            
+
+            {/* Comment Button */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsModalOpen(true);
+              }}
+              className="p-2.5 rounded-full bg-white/40 backdrop-blur-xl text-gray-700 hover:bg-white/50 transition-all duration-200 active-scale shadow-lg border border-white/20"
+              title="Comment"
+            >
+              <FiMessageCircle className="w-4 h-4" />
+            </button>
+
+            {/* Download Button */}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toast.success('Download feature coming soon!');
+              }}
+              className="p-2.5 rounded-full bg-white/40 backdrop-blur-xl text-gray-700 hover:bg-white/50 transition-all duration-200 active-scale shadow-lg border border-white/20"
+              title="Download"
+            >
+              <FiDownload className="w-4 h-4" />
+            </button>
+
+            {/* Bookmark Button */}
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 toast.success('Bookmark feature coming soon!');
               }}
-              className="p-2.5 rounded-full bg-white/90 backdrop-blur-md text-gray-700 hover:bg-white transition-all duration-200 active-scale"
+              className="p-2.5 rounded-full bg-white/40 backdrop-blur-xl text-gray-700 hover:bg-white/50 transition-all duration-200 active-scale shadow-lg border border-white/20"
               title="Bookmark"
             >
               <FiBookmark className="w-4 h-4" />
             </button>
-          </div>
-
-          <div 
-            className={`absolute bottom-0 left-0 right-0 p-4 transition-all duration-300 ${
-              isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
-          >
-            
-            <div className="flex items-center justify-between mb-3">
-              <Link
-                href={`/profile/${post.user_id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center space-x-2 group/user"
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xs font-semibold overflow-hidden">
-                  {post.user?.avatar_url ? (
-                    <Image
-                      src={getImageUrl(post.user.avatar_url)}
-                      alt={userName}
-                      width={32}
-                      height={32}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    userName.split(' ').map(n => n[0]).join('')
-                  )}
-                </div>
-                <span className="text-white text-sm font-medium group-hover/user:underline">
-                  {userName}
-                </span>
-              </Link>
-
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toast.success('Download feature coming soon!');
-                }}
-                className="p-2 rounded-lg bg-white/90 backdrop-blur-md text-gray-700 hover:bg-white transition-all duration-200 active-scale"
-                title="Download"
-              >
-                <FiDownload className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex items-center space-x-4 text-white text-sm">
-              <div className="flex items-center space-x-1.5">
-                <FiHeart className="w-4 h-4" />
-                <span className="font-medium">{formatNumber(post.like_count)}</span>
-              </div>
-              <div className="flex items-center space-x-1.5">
-                <FiMessageCircle className="w-4 h-4" />
-                <span className="font-medium">{formatNumber(post.comment_count)}</span>
-              </div>
-            </div>
-
-            {post.title && (
-              <p className="text-white text-sm mt-2 line-clamp-2 font-medium">
-                {post.title}
-              </p>
-            )}
           </div>
         </div>
       </div>

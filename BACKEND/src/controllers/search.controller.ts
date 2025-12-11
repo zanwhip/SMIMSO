@@ -18,7 +18,8 @@ export class SearchController {
       }
 
       const limit = parseInt(req.query.limit as string) || 20;
-      const minSimilarity = parseFloat(req.query.minSimilarity as string) || 0.3;
+      // Lower default threshold for better recall, especially for people search
+      const minSimilarity = parseFloat(req.query.minSimilarity as string) || 0.25;
 
       const fs = require('fs');
       if (!fs.existsSync(file.path)) {

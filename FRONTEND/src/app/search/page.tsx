@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Navbar from '@/components/Navbar';
@@ -34,28 +34,15 @@ export default function SearchPage() {
   const [generatedCaption, setGeneratedCaption] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      const query = searchParams.get('q') || '';
-      setSearchQuery(query);
-      fetchCategories();
-      if (query) {
-        searchPosts(query);
-      }
-    }
-  }, [isAuthenticated, searchParams]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const response = await api.get('/options/categories');
       setCategories(response.data.data);
     } catch (error) {
       }
-  };
+  }, []);
 
-  const searchPosts = async (query: string, categoryId?: string) => {
+  const searchPosts = useCallback(async (query: string, categoryId?: string) => {
     setIsLoading(true);
     try {
       const response = await api.get('/posts', {
@@ -70,22 +57,23 @@ export default function SearchPage() {
       } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const searchByImage = async (imageFile: File) => {
+  const searchByImage = useCallback(async (imageFile: File) => {
     setIsLoading(true);
     setGeneratedCaption(''); // Reset caption
     try {
       const formData = new FormData();
       formData.append('image', imageFile);
 
+      // Lower similarity threshold for better people search results
       const response = await api.post('/search/image', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         params: {
           limit: 50,
-          minSimilarity: 0.3,
+          minSimilarity: 0.25, // Lower threshold for better recall, especially for people
         },
       });
 
@@ -112,7 +100,63 @@ export default function SearchPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    } else {
+      const query = searchParams.get('q') || '';
+      const mode = searchParams.get('mode') || 'text';
+      setSearchQuery(query);
+      setSearchMode(mode as SearchMode);
+      fetchCategories();
+      if (query && mode === 'text') {
+        searchPosts(query);
+      }
+    }
+  }, [isAuthenticated, searchParams, fetchCategories, searchPosts]);
+
+  // Listen for image upload events from Navbar/HeroBanner
+  useEffect(() => {
+    const handleImageReady = () => {
+      const imageDataUrl = sessionStorage.getItem('pendingImageSearch');
+      const imageName = sessionStorage.getItem('pendingImageName');
+      
+      if (imageDataUrl && imageName) {
+        setSearchMode('image');
+        setSelectedImage(imageName);
+        setImagePreview(imageDataUrl);
+        
+        // Convert data URL back to File for API call
+        fetch(imageDataUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            const file = new File([blob], imageName, { type: blob.type });
+            searchByImage(file);
+          })
+          .catch(() => {
+            // If conversion fails, just show preview
+            setImagePreview(imageDataUrl);
+          });
+        
+        // Clear session storage
+        sessionStorage.removeItem('pendingImageSearch');
+        sessionStorage.removeItem('pendingImageName');
+      }
+    };
+
+    // Check if there's a pending image when component mounts
+    if (searchParams.get('mode') === 'image') {
+      handleImageReady();
+    }
+
+    window.addEventListener('imageSearchReady', handleImageReady);
+    return () => {
+      window.removeEventListener('imageSearchReady', handleImageReady);
+    };
+  }, [searchParams, searchByImage]);
+
 
   const searchByTextQuery = async (query: string) => {
     setIsLoading(true);
@@ -150,12 +194,12 @@ export default function SearchPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        alert('Vui lòng chọn file ảnh');
         return;
       }
 
       if (file.size > 10 * 1024 * 1024) {
-        alert('Image size should be less than 10MB');
+        alert('Kích thước ảnh phải nhỏ hơn 10MB');
         return;
       }
 
