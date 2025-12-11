@@ -102,7 +102,16 @@ export default function ChatPage() {
   }, [messages]);
 
   const handleNewMessage = useCallback((message: Message) => {
+    console.log('[ChatPage] handleNewMessage received', {
+      messageId: message?.id,
+      conversationId: message?.conversation_id,
+      senderId: message?.sender_id,
+      currentUserId: user?.id,
+      selectedConversationId: selectedConversationRef.current?.id,
+    });
+    
     if (!message?.id || !message?.conversation_id) {
+      console.warn('[ChatPage] Invalid message received', { message });
       return;
     }
     
@@ -110,6 +119,11 @@ export default function ChatPage() {
     
     const currentConversation = selectedConversationRef.current;
     const isCurrent = message.conversation_id === currentConversation?.id;
+    
+    console.log('[ChatPage] Message handling', {
+      isCurrent,
+      isFromOtherUser: message.sender_id !== user?.id,
+    });
     
     if (isCurrent) {
       setMessages((prev) => {
@@ -122,9 +136,19 @@ export default function ChatPage() {
           );
         }
         
-        const filtered = prev.filter(m => 
-          !(m.id.startsWith('temp-') && m.content === message.content && m.sender_id === message.sender_id)
-        );
+        // Remove temp messages matching this message (by content, file_url, or sender)
+        const filtered = prev.filter(m => {
+          if (!m.id.startsWith('temp-')) return true;
+          if (m.sender_id !== message.sender_id) return true;
+          
+          // Match text messages
+          if (message.content && m.content === message.content) return false;
+          
+          // Match file messages (sticker, gif, image, video, audio)
+          if (message.file_url && m.file_url === message.file_url) return false;
+          
+          return true;
+        });
         
         const updated = [...filtered, message].sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -146,9 +170,17 @@ export default function ChatPage() {
       });
       
       if (message.sender_id !== user?.id && currentConversation) {
+        console.log('[ChatPage] Marking conversation as read', {
+          conversationId: currentConversation.id,
+        });
         markAsRead(currentConversation.id);
       }
     } else {
+      // Message is for another conversation - update unread count
+      console.log('[ChatPage] Updating unread count for other conversation', {
+        conversationId: message.conversation_id,
+      });
+      
       setConversations((prev) => prev.map(conv => 
         conv.id === message.conversation_id 
           ? { ...conv, unread_count: (conv.unread_count || 0) + 1, last_message_at: message.created_at }
@@ -156,6 +188,11 @@ export default function ChatPage() {
       ));
       
       incrementUnread(message.conversation_id);
+      
+      // Also refresh conversations to get accurate count from server
+      setTimeout(() => {
+        fetchConversations();
+      }, 500);
       
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
       if (currentPath.startsWith('/chat')) {
@@ -632,8 +669,6 @@ export default function ChatPage() {
           endCall();
         },
       }, callOffer);
-      
-      toast.success('Đã chấp nhận cuộc gọi');
     } catch (error: any) {
       toast.error('Không thể chấp nhận cuộc gọi');
       endCall();
@@ -651,6 +686,12 @@ export default function ChatPage() {
     const conversationId = selectedConversation?.id;
     const callTypeToEnd = callType;
     
+    console.log('[ChatPage] endCall called', {
+      conversationId,
+      callType: callTypeToEnd,
+      duration,
+    });
+    
     if (selectedConversation) {
       webrtcService.endCall(selectedConversation.id);
       socketService.sendCallEnd(selectedConversation.id, callTypeToEnd, duration);
@@ -667,18 +708,45 @@ export default function ChatPage() {
     setIsMicMuted(false);
     setIsVideoOff(false);
     setCallDuration(0);
+    
+    // Ensure socket is still connected and ready for messages
+    if (selectedConversation) {
+      setTimeout(async () => {
+        try {
+          const socket = await socketService.getSocket();
+          if (socket && socket.connected) {
+            console.log('[ChatPage] Re-joining conversation after call end', {
+              conversationId: selectedConversation.id,
+            });
+            socketService.joinConversation(selectedConversation.id);
+          }
+        } catch (error) {
+          console.error('[ChatPage] Error re-joining conversation after call', error);
+        }
+      }, 500);
+    }
   };
 
   const toggleMic = () => {
     if (!selectedConversation) return;
+    const wasMuted = isMicMuted;
     const enabled = webrtcService.toggleMic(selectedConversation.id);
-    setIsMicMuted(!enabled);
+    if (enabled !== undefined && enabled !== null) {
+      setIsMicMuted(!enabled);
+    } else {
+      setIsMicMuted(!wasMuted);
+    }
   };
 
   const toggleVideo = () => {
     if (!selectedConversation) return;
+    const wasVideoOff = isVideoOff;
     const enabled = webrtcService.toggleVideo(selectedConversation.id);
-    setIsVideoOff(!enabled);
+    if (enabled !== undefined && enabled !== null) {
+      setIsVideoOff(!enabled);
+    } else {
+      setIsVideoOff(!wasVideoOff);
+    }
   };
 
   const fetchRecommendedContacts = async (page: number = 1, append: boolean = false) => {
@@ -976,8 +1044,6 @@ export default function ChatPage() {
         fileName: file.name,
         fileSize: file.size,
       });
-
-      toast.success('Image sent');
     } catch (error: any) {
       toast.error('Failed to send image');
     }
@@ -1006,8 +1072,6 @@ export default function ChatPage() {
         fileName: file.name,
         fileSize: file.size,
       });
-
-      toast.success('File sent');
     } catch (error: any) {
       toast.error('Failed to send file');
     }
@@ -1041,8 +1105,6 @@ export default function ChatPage() {
         fileName: file.name,
         fileSize: file.size,
       });
-
-      toast.success('Video sent');
     } catch (error: any) {
       toast.error('Failed to send video');
     }
@@ -1059,13 +1121,35 @@ export default function ChatPage() {
     if (!selectedConversation) return;
 
     try {
+      // Optimistic update for GIF
+      const tempGifMessage: Message = {
+        id: `temp-gif-${Date.now()}`,
+        conversation_id: selectedConversation.id,
+        sender_id: user?.id || '',
+        message_type: 'gif',
+        file_url: gifUrl,
+        file_name: 'gif.gif',
+        is_edited: false,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sender: user!,
+      };
+      
+      setMessages((prev) => {
+        const exists = prev.find(m => m.id === tempGifMessage.id);
+        if (exists) return prev;
+        return [...prev, tempGifMessage].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
+
       socketService.sendMessage({
         conversationId: selectedConversation.id,
         messageType: 'gif',
         fileUrl: gifUrl,
         fileName: 'gif.gif',
       });
-      toast.success('GIF sent');
     } catch (error: any) {
       toast.error('Failed to send GIF');
     }
@@ -1081,7 +1165,28 @@ export default function ChatPage() {
         fileUrl: stickerUrl,
         fileName: 'sticker.png',
       });
-      toast.success('Sticker sent');
+      // Optimistic update for sticker
+      const tempStickerMessage: Message = {
+        id: `temp-sticker-${Date.now()}`,
+        conversation_id: selectedConversation.id,
+        sender_id: user?.id || '',
+        message_type: 'sticker',
+        file_url: stickerUrl,
+        file_name: 'sticker.png',
+        is_edited: false,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sender: user!,
+      };
+      
+      setMessages((prev) => {
+        const exists = prev.find(m => m.id === tempStickerMessage.id);
+        if (exists) return prev;
+        return [...prev, tempStickerMessage].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
     } catch (error: any) {
       toast.error('Failed to send sticker');
     }
@@ -1157,8 +1262,6 @@ export default function ChatPage() {
         fileName: 'voice-message.webm',
         fileSize: audioBlob.size,
       });
-
-      toast.success('Voice message sent');
     } catch (error: any) {
       toast.error('Failed to send voice message');
     }

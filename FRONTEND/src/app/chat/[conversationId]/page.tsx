@@ -105,20 +105,32 @@ export default function ConversationDetailPage() {
 
   // Handle new message
   const handleNewMessage = useCallback((message: Message) => {
+    console.log('[ConversationDetailPage] handleNewMessage received', {
+      messageId: message?.id,
+      conversationId: message?.conversation_id,
+      currentConversationId: conversationId,
+      senderId: message?.sender_id,
+      currentUserId: user?.id,
+    });
+    
     if (!message?.id || !message?.conversation_id) {
+      console.warn('[ConversationDetailPage] Invalid message', { message });
       return;
     }
     
     // Only handle messages for this conversation
     if (message.conversation_id !== conversationId) {
+      console.log('[ConversationDetailPage] Message is for different conversation, ignoring');
       return;
     }
     
+    console.log('[ConversationDetailPage] Processing message for this conversation');
     
     setMessages((prev) => {
       // Check if message already exists
       const existingIndex = prev.findIndex(m => m.id === message.id);
       if (existingIndex >= 0) {
+        console.log('[ConversationDetailPage] Message already exists, updating');
         const updated = [...prev];
         updated[existingIndex] = message;
         return updated.sort((a, b) => 
@@ -126,19 +138,44 @@ export default function ConversationDetailPage() {
         );
       }
       
+      console.log('[ConversationDetailPage] Adding new message, removing temp messages');
       
-      // Remove temp messages
-      const filtered = prev.filter(m => 
-        !(m.id.startsWith('temp-') && m.content === message.content && m.sender_id === message.sender_id)
-      );
+      // Remove temp messages matching this message (by content, file_url, or sender)
+      const filtered = prev.filter(m => {
+        if (!m.id.startsWith('temp-')) return true;
+        if (m.sender_id !== message.sender_id) return true;
+        
+        // Match text messages
+        if (message.content && m.content === message.content) {
+          console.log('[ConversationDetailPage] Removing temp message (text match)', { tempId: m.id });
+          return false;
+        }
+        
+        // Match file messages (sticker, gif, image, video, audio)
+        if (message.file_url && m.file_url === message.file_url) {
+          console.log('[ConversationDetailPage] Removing temp message (file match)', { tempId: m.id });
+          return false;
+        }
+        
+        return true;
+      });
       
-      return [...filtered, message].sort((a, b) => 
+      const updated = [...filtered, message].sort((a, b) => 
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
+      
+      console.log('[ConversationDetailPage] Messages updated', {
+        previousCount: prev.length,
+        newCount: updated.length,
+        tempRemoved: prev.length - filtered.length,
+      });
+      
+      return updated;
     });
     
     // Mark as read if not our own message
     if (message.sender_id !== user?.id) {
+      console.log('[ConversationDetailPage] Marking conversation as read', { conversationId });
       markAsRead(conversationId);
     }
   }, [conversationId, user?.id]);
@@ -195,7 +232,11 @@ export default function ConversationDetailPage() {
     const setupSocket = async () => {
       const socket = await socketService.getSocket();
       if (socket && socket.connected) {
+        // Ensure we're joined to conversation room
         socketService.joinConversation(conversationId);
+        
+        // Wait a bit to ensure join completes
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         // Register message handler
         socketService.onNewMessage(handleNewMessage);
@@ -214,6 +255,11 @@ export default function ConversationDetailPage() {
         socketService.onCallIceCandidate(handleCallIceCandidate);
         socketService.onCallEnd(handleCallEnd);
         socketService.onCallDecline(handleCallDecline);
+        
+        // Also listen to message_sent for our own messages
+        socketService.onMessageSent((data: { messageId: string }) => {
+          // Message was sent successfully, server will send back via new_message
+        });
       }
     };
 
@@ -440,7 +486,14 @@ export default function ConversationDetailPage() {
         conversationId,
         callType: type,
         userId: user?.id || '',
-        onLocalStream: (stream) => setLocalStream(stream),
+        onLocalStream: (stream) => {
+          setLocalStream(stream);
+          // Sync state with actual track states
+          setIsMicMuted(!stream.getAudioTracks()[0]?.enabled);
+          if (type === 'video') {
+            setIsVideoOff(!stream.getVideoTracks()[0]?.enabled);
+          }
+        },
         onRemoteStream: (stream) => setRemoteStream(stream),
         onCallEnd: () => endCall(),
       });
@@ -467,8 +520,6 @@ export default function ConversationDetailPage() {
         onRemoteStream: (stream) => setRemoteStream(stream),
         onCallEnd: () => endCall(),
       }, callOffer);
-      
-      toast.success('Đã chấp nhận cuộc gọi');
     } catch (error: any) {
       toast.error('Không thể chấp nhận cuộc gọi');
       endCall();
@@ -482,11 +533,24 @@ export default function ConversationDetailPage() {
   };
 
   const endCall = async () => {
-    const duration = callDuration;
+    console.log('[ConversationDetailPage] endCall called', {
+      conversationId,
+      callType,
+      callDuration,
+    });
     
     if (conversation) {
-      webrtcService.endCall(conversationId);
-      socketService.sendCallEnd(conversationId, callType, duration);
+      const actualDuration = webrtcService.endCall(conversationId);
+      // Use actual duration from WebRTC service or the tracked duration, whichever is larger
+      const finalDuration = Math.max(actualDuration, callDuration);
+      
+      console.log('[ConversationDetailPage] Sending call_end event', {
+        conversationId,
+        callType,
+        finalDuration,
+      });
+      
+      socketService.sendCallEnd(conversationId, callType, finalDuration);
     }
     
     // Clear global call state
@@ -501,22 +565,86 @@ export default function ConversationDetailPage() {
     setIsMicMuted(false);
     setIsVideoOff(false);
     setCallDuration(0);
+    
+    // Ensure socket is still connected and ready for messages
+    setTimeout(async () => {
+      try {
+        const socket = await socketService.getSocket();
+        console.log('[ConversationDetailPage] Socket status after call end', {
+          hasSocket: !!socket,
+          connected: socket?.connected,
+          conversationId,
+        });
+        
+        if (socket && socket.connected) {
+          console.log('[ConversationDetailPage] Re-joining conversation after call end', {
+            conversationId,
+          });
+          socketService.joinConversation(conversationId);
+          // Re-setup message handlers
+          socketService.onNewMessage(handleNewMessage);
+        } else {
+          console.warn('[ConversationDetailPage] Socket not connected after call end, attempting reconnect');
+          socketService.connect().then((newSocket) => {
+            if (newSocket && newSocket.connected) {
+              socketService.joinConversation(conversationId);
+              socketService.onNewMessage(handleNewMessage);
+            }
+          });
+        }
+      } catch (error: any) {
+        console.error('[ConversationDetailPage] Error re-joining conversation after call', {
+          error: error.message,
+          conversationId,
+        });
+      }
+    }, 500);
   };
 
   const toggleMic = () => {
     if (!conversation) return;
+    const wasMuted = isMicMuted;
     const enabled = webrtcService.toggleMic(conversationId);
-    setIsMicMuted(!enabled);
+    // If toggle returned enabled state, use it; otherwise use opposite of current state
+    if (enabled !== undefined && enabled !== null) {
+      setIsMicMuted(!enabled);
+    } else {
+      setIsMicMuted(!wasMuted);
+    }
   };
 
   const toggleVideo = () => {
     if (!conversation) return;
+    const wasVideoOff = isVideoOff;
     const enabled = webrtcService.toggleVideo(conversationId);
-    setIsVideoOff(!enabled);
+    // If toggle returned enabled state, use it; otherwise use opposite of current state
+    if (enabled !== undefined && enabled !== null) {
+      setIsVideoOff(!enabled);
+    } else {
+      setIsVideoOff(!wasVideoOff);
+    }
+  };
+
+  const switchCamera = async () => {
+    if (!conversation) return;
+    try {
+      const success = await webrtcService.switchCamera(conversationId);
+      if (!success) {
+        toast.error('Không thể đổi camera');
+      }
+    } catch (error) {
+      toast.error('Không thể đổi camera');
+    }
   };
 
   const sendMessage = async () => {
     if (!messageInput.trim() || !conversation || !user?.id) return;
+
+    console.log('[ConversationPage] sendMessage called', {
+      conversationId,
+      content: messageInput.trim().substring(0, 50),
+      userId: user?.id,
+    });
 
     const content = messageInput.trim();
     setMessageInput('');
@@ -529,16 +657,29 @@ export default function ConversationDetailPage() {
     // Ensure socket is connected and joined to conversation
     try {
       const socket = await socketService.getSocket();
+      console.log('[ConversationPage] Socket status', {
+        hasSocket: !!socket,
+        connected: socket?.connected,
+        conversationId,
+      });
+      
       if (!socket || !socket.connected) {
+        console.error('[ConversationPage] Socket not connected');
         toast.error('Chưa kết nối. Vui lòng thử lại.');
         return;
       }
 
       // Ensure we're joined to the conversation room
+      console.log('[ConversationPage] Joining conversation room', { conversationId });
       socketService.joinConversation(conversationId);
       // Wait a bit for join to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-    } catch (error) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log('[ConversationPage] Conversation room joined');
+    } catch (error: any) {
+      console.error('[ConversationPage] Error ensuring socket connection', {
+        error: error.message,
+        conversationId,
+      });
       toast.error('Không thể kết nối. Vui lòng refresh trang');
       return;
     }
@@ -562,12 +703,24 @@ export default function ConversationDetailPage() {
     ));
     
     try {
+      console.log('[ConversationPage] Sending message via socket', {
+        conversationId,
+        messageType: 'text',
+        contentLength: content.length,
+      });
+      
       socketService.sendMessage({
         conversationId,
         messageType: 'text',
         content,
       });
+      
+      console.log('[ConversationPage] Message sent via socket');
     } catch (error: any) {
+      console.error('[ConversationPage] Error sending message', {
+        error: error.message,
+        conversationId,
+      });
       const errorMessage = error?.message || 'Không thể gửi tin nhắn';
       
       // If "Not a participant" error, try to refresh conversation
@@ -807,6 +960,7 @@ export default function ConversationDetailPage() {
           isMicMuted={isMicMuted}
           isVideoOff={isVideoOff}
           onDurationChange={(duration) => setCallDuration(duration)}
+          onSwitchCamera={switchCamera}
         />
       )}
 

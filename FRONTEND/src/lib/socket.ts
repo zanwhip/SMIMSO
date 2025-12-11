@@ -56,6 +56,7 @@ class SocketService {
 
       this.socket.on('connect', () => {
         this.isConnecting = false;
+        console.log('[Socket] Connected successfully');
         
         if (this.newMessageCallbacks.size > 0) {
           const messageHandler = (message: Message) => {
@@ -63,12 +64,14 @@ class SocketService {
               try {
                 cb(message);
               } catch (error) {
-                }
+                console.error('[Socket] Error in new_message callback', error);
+              }
             });
           };
           this.socket?.removeAllListeners('new_message');
           this.socket?.on('new_message', messageHandler);
-          }
+          console.log('[Socket] Re-registered new_message handler after connect');
+        }
       });
 
       this.socket.on('disconnect', (reason) => {
@@ -84,7 +87,23 @@ class SocketService {
       });
 
       this.socket.on('reconnect', (attemptNumber) => {
-        });
+        console.log('[Socket] Reconnected after', attemptNumber, 'attempts');
+        // Re-register message handler after reconnect
+        if (this.newMessageCallbacks.size > 0) {
+          const messageHandler = (message: Message) => {
+            this.newMessageCallbacks.forEach(cb => {
+              try {
+                cb(message);
+              } catch (error) {
+                console.error('[Socket] Error in new_message callback', error);
+              }
+            });
+          };
+          this.socket?.removeAllListeners('new_message');
+          this.socket?.on('new_message', messageHandler);
+          console.log('[Socket] Re-registered new_message handler after reconnect');
+        }
+      });
 
       this.socket.on('reconnect_attempt', (attemptNumber) => {
         });
@@ -250,29 +269,48 @@ class SocketService {
     fileSize?: number;
     replyToId?: string;
   }) {
+    console.log('[Socket] sendMessage called', {
+      conversationId: data.conversationId,
+      messageType: data.messageType,
+      hasContent: !!data.content,
+      hasFileUrl: !!data.fileUrl,
+      socketConnected: this.getSocketSync()?.connected,
+    });
+    
     const send = (socket: Socket) => {
       if (socket && socket.connected) {
+        console.log('[Socket] Emitting send_message event', {
+          conversationId: data.conversationId,
+        });
         socket.emit('send_message', data);
       } else {
-        }
+        console.warn('[Socket] Socket not connected in send function');
+      }
     };
 
     const socket = this.getSocketSync();
     if (socket && socket.connected) {
       send(socket);
     } else {
+      console.warn('[Socket] Socket not connected, attempting to connect...');
       this.connect().then((socket) => {
         if (socket) {
           if (socket.connected) {
+            console.log('[Socket] Socket connected, sending message');
             send(socket);
           } else {
+            console.log('[Socket] Waiting for socket to connect...');
             socket.once('connect', () => {
+              console.log('[Socket] Socket connected, sending message');
               send(socket);
             });
           }
+        } else {
+          console.error('[Socket] Failed to get socket for sending message');
         }
       }).catch((error) => {
-        });
+        console.error('[Socket] Error connecting to send message', error);
+      });
     }
   }
 
@@ -450,28 +488,55 @@ class SocketService {
   }
 
   sendCallOffer(conversationId: string, callType: 'audio' | 'video', offer: RTCSessionDescriptionInit) {
+    console.log('[Socket] sendCallOffer called', {
+      conversationId,
+      callType,
+      offerType: offer.type,
+      socketConnected: this.getSocketSync()?.connected,
+    });
+    
     const socket = this.getSocketSync();
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('call_offer', { conversationId, callType, offer });
+      console.log('[Socket] Call offer emitted');
     } else {
+      console.warn('[Socket] Socket not connected, attempting to connect...');
       this.connect().then((socket) => {
-        if (socket) {
+        if (socket && socket.connected) {
+          console.log('[Socket] Socket connected, emitting call offer');
           socket.emit('call_offer', { conversationId, callType, offer });
+        } else {
+          console.error('[Socket] Failed to connect socket for call offer');
         }
-      }).catch(console.error);
+      }).catch((error) => {
+        console.error('[Socket] Error connecting for call offer', error);
+      });
     }
   }
 
   sendCallAnswer(conversationId: string, answer: RTCSessionDescriptionInit) {
+    console.log('[Socket] sendCallAnswer called', {
+      conversationId,
+      answerType: answer.type,
+      socketConnected: this.getSocketSync()?.connected,
+    });
+    
     const socket = this.getSocketSync();
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('call_answer', { conversationId, answer });
+      console.log('[Socket] Call answer emitted');
     } else {
+      console.warn('[Socket] Socket not connected for answer, attempting to connect...');
       this.connect().then((socket) => {
-        if (socket) {
+        if (socket && socket.connected) {
+          console.log('[Socket] Socket connected, emitting call answer');
           socket.emit('call_answer', { conversationId, answer });
+        } else {
+          console.error('[Socket] Failed to connect socket for call answer');
         }
-      }).catch(console.error);
+      }).catch((error) => {
+        console.error('[Socket] Error connecting for call answer', error);
+      });
     }
   }
 

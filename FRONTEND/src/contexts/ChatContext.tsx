@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/authStore';
 import { socketService } from '@/lib/socket';
 import { Message } from '@/types';
 import api from '@/lib/api';
+import { usePathname } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 interface CallState {
   isActive: boolean;
@@ -35,9 +37,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map());
   const [callState, setCallState] = useState<CallState | null>(null);
   const { isAuthenticated, user } = useAuthStore();
+  const pathname = usePathname();
   const hasSetupSocket = useRef(false);
   const activeConversationRef = useRef<string | null>(null);
   const handleNewMessageRef = useRef<((message: Message) => void) | null>(null);
+  const lastToastRef = useRef<Map<string, string>>(new Map()); // Track last toast per conversation
 
   useEffect(() => {
     activeConversationRef.current = activeConversation;
@@ -64,31 +68,66 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const incrementUnread = useCallback((conversationId: string) => {
-    setUnreadCounts((prev) => {
-      const newMap = new Map(prev);
-      const current = newMap.get(conversationId) || 0;
-      newMap.set(conversationId, current + 1);
-      return newMap;
-    });
-  }, []);
-
   const refreshConversations = useCallback(() => {
     if (isAuthenticated && user?.id) {
+      console.log('[ChatContext] refreshConversations called');
       api.get('/chat/conversations')
         .then((response) => {
           const conversations = response.data.data || [];
+          console.log('[ChatContext] Conversations fetched', {
+            count: conversations.length,
+            conversations: conversations.map((c: any) => ({
+              id: c.id,
+              unread_count: c.unread_count,
+            })),
+          });
+          
           const newUnreadCounts = new Map<string, number>();
           conversations.forEach((conv: any) => {
             if (conv.unread_count && conv.unread_count > 0) {
               newUnreadCounts.set(conv.id, conv.unread_count);
             }
           });
+          
+          console.log('[ChatContext] Setting unread counts', {
+            unreadCounts: Array.from(newUnreadCounts.entries()),
+            totalUnread: Array.from(newUnreadCounts.values()).reduce((a, b) => a + b, 0),
+          });
+          
           setUnreadCounts(newUnreadCounts);
         })
-        .catch(console.error);
+        .catch((error) => {
+          console.error('[ChatContext] Error fetching conversations', error);
+        });
     }
   }, [isAuthenticated, user?.id]);
+
+  const incrementUnread = useCallback((conversationId: string) => {
+    console.log('[ChatContext] incrementUnread called', {
+      conversationId,
+    });
+    
+    setUnreadCounts((prev) => {
+      const newMap = new Map(prev);
+      const current = newMap.get(conversationId) || 0;
+      const newCount = current + 1;
+      newMap.set(conversationId, newCount);
+      
+      console.log('[ChatContext] Unread count updated', {
+        conversationId,
+        previousCount: current,
+        newCount,
+        totalUnread: Array.from(newMap.values()).reduce((a, b) => a + b, 0),
+      });
+      
+      return newMap;
+    });
+    
+    // Refresh conversations after a short delay to sync with server
+    setTimeout(() => {
+      refreshConversations();
+    }, 1000);
+  }, [refreshConversations]);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {
@@ -96,7 +135,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
 
     const handleNewMessage = (message: Message) => {
+      console.log('[ChatContext] handleNewMessage received', {
+        messageId: message?.id,
+        conversationId: message?.conversation_id,
+        senderId: message?.sender_id,
+        currentUserId: user?.id,
+        activeConversation: activeConversationRef.current,
+        pathname: pathname,
+      });
+      
       if (!message?.id || !message?.conversation_id || !message?.sender_id) {
+        console.warn('[ChatContext] Invalid message received', { message });
         return;
       }
 
@@ -104,15 +153,57 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const currentActiveConv = activeConversationRef.current;
         const isActiveConv = currentActiveConv === message.conversation_id;
         
+        console.log('[ChatContext] Message from other user', {
+          isActiveConv,
+          currentActiveConv,
+          messageConvId: message.conversation_id,
+        });
+        
         if (!isActiveConv) {
+          console.log('[ChatContext] Incrementing unread count', {
+            conversationId: message.conversation_id,
+          });
           incrementUnread(message.conversation_id);
         } else {
-          }
+          console.log('[ChatContext] Message is for active conversation, not incrementing unread');
+        }
 
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
         const isOnChatPage = currentPath.startsWith('/chat');
         const isOnThisConvPage = currentPath === `/chat/${message.conversation_id}`;
         
+        // Show toast notification when not on chat page
+        if (!isOnChatPage || !isOnThisConvPage) {
+          const senderName = message.sender 
+            ? `${message.sender.first_name} ${message.sender.last_name}` 
+            : 'Someone';
+          
+          // Prevent duplicate toasts for same conversation (within 2 seconds)
+          const lastToastTime = lastToastRef.current.get(message.conversation_id);
+          const now = Date.now();
+          if (!lastToastTime || (now - parseInt(lastToastTime)) > 2000) {
+            lastToastRef.current.set(message.conversation_id, now.toString());
+            
+            toast(
+              `Message (${senderName} sent you a message)`,
+              {
+                duration: 4000,
+                position: 'bottom-left',
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                },
+                icon: '💬',
+              }
+            );
+          }
+        }
+        
+        // Browser notification (if permission granted)
         if ((!isOnChatPage || !isOnThisConvPage) && 'Notification' in window) {
           if (Notification.permission === 'granted') {
             const senderName = message.sender 
@@ -120,13 +211,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               : 'Someone';
             let body = '';
             
-            if (message.message_type === 'image') body = '📷 gửi ảnh';
-            else if (message.message_type === 'audio') body = '🎤 gửi tin nhắn thoại';
-            else if (message.message_type === 'video') body = '🎥 gửi video';
-            else if (message.message_type === 'sticker') body = '🎨 gửi sticker';
-            else if (message.message_type === 'gif') body = '🎬 gửi GIF';
+            if (message.message_type === 'image') body = '📷 sent an image';
+            else if (message.message_type === 'audio') body = '🎤 sent a voice message';
+            else if (message.message_type === 'video') body = '🎥 sent a video';
+            else if (message.message_type === 'sticker') body = '🎨 sent a sticker';
+            else if (message.message_type === 'gif') body = '🎬 sent a GIF';
             else {
-              body = message.content || 'gửi tin nhắn';
+              body = message.content || 'sent a message';
               if (body.length > 50) body = body.substring(0, 50) + '...';
             }
             
@@ -262,7 +353,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       socketService.offError(() => {}); // Remove error handler
       handleNewMessageRef.current = null;
     };
-  }, [isAuthenticated, user?.id, incrementUnread, refreshConversations]);
+  }, [isAuthenticated, user?.id, incrementUnread, refreshConversations, pathname]);
 
   const unreadCount = Array.from(unreadCounts.values()).reduce((sum, count) => sum + count, 0);
 

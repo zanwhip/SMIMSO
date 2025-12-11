@@ -429,6 +429,20 @@ img {
   animation: float-bounce-7 8.5s ease-in-out infinite;
 }
 
+/* Float animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
 /* Fade in up animation */
 @keyframes fade-in-up {
   from {
