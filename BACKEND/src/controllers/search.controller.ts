@@ -39,6 +39,16 @@ export class SearchController {
       } catch (error: any) {
         }
 
+      // Clean up temporary file
+      try {
+        const fs = require('fs');
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch (error) {
+        // Ignore cleanup errors
+      }
+
       return successResponse(
         res,
         {

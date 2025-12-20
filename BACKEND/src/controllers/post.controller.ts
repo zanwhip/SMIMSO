@@ -292,7 +292,21 @@ export class PostController {
         return errorResponse(res, 'No file uploaded', 400);
       }
 
-      const fileUrl = `/uploads/${file.filename}`;
+      const { storageService } = await import('../services/storage.service');
+      const fs = await import('fs');
+      
+      let fileUrl: string;
+      try {
+        fileUrl = await storageService.uploadFile(file.path, 'chat');
+        
+        // Delete local file after successful upload
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch (error: any) {
+        // If upload fails, keep local file and use local URL
+        fileUrl = `/uploads/${file.filename}`;
+      }
 
       return successResponse(res, { url: fileUrl, filename: file.filename }, 'File uploaded successfully');
     } catch (error: any) {

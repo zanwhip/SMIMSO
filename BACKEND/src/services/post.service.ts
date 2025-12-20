@@ -1,6 +1,8 @@
 import { supabase } from '../config/supabase';
 import { Post, PostImage, CreatePostDTO, UpdatePostDTO } from '../types';
 import { AIService } from './ai.service';
+import { storageService } from './storage.service';
+import fs from 'fs';
 
 const aiService = new AIService();
 
@@ -107,7 +109,6 @@ export class PostService {
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         const imagePath = image.path;
-        const imageUrl = `/uploads/${image.filename}`;
 
         let embedding: number[] | undefined;
         try {
@@ -127,10 +128,24 @@ export class PostService {
 
         const userCaption = userCaptions[i]?.trim() || undefined;
 
+        // Upload to Supabase Storage
+        let imageUrl: string;
+        try {
+          imageUrl = await storageService.uploadFile(imagePath, 'posts');
+          
+          // Delete local file after successful upload
+          if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+          }
+        } catch (error: any) {
+          // If upload fails, keep local file and use local URL
+          imageUrl = `/uploads/${image.filename}`;
+        }
+
         const imageData: any = {
           post_id: newPost.id,
           image_url: imageUrl,
-          image_path: imagePath,
+          image_path: imageUrl, // Store Supabase URL in image_path as well
           display_order: i,
         };
 

@@ -142,7 +142,22 @@ export class UserController {
         return errorResponse(res, 'No file uploaded', 400);
       }
 
-      const avatarUrl = `/uploads/${file.filename}`;
+      const { storageService } = await import('../services/storage.service');
+      const fs = await import('fs');
+      
+      let avatarUrl: string;
+      try {
+        avatarUrl = await storageService.uploadFile(file.path, 'avatars');
+        
+        // Delete local file after successful upload
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch (error: any) {
+        // If upload fails, keep local file and use local URL
+        avatarUrl = `/uploads/${file.filename}`;
+      }
+
       const updatedUser = await userService.updateUserProfile(req.user.id, {
         avatar_url: avatarUrl,
       });
@@ -164,7 +179,22 @@ export class UserController {
         return errorResponse(res, 'No file uploaded', 400);
       }
 
-      const coverUrl = `/uploads/${file.filename}`;
+      const { storageService } = await import('../services/storage.service');
+      const fs = await import('fs');
+      
+      let coverUrl: string;
+      try {
+        coverUrl = await storageService.uploadFile(file.path, 'covers');
+        
+        // Delete local file after successful upload
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch (error: any) {
+        // If upload fails, keep local file and use local URL
+        coverUrl = `/uploads/${file.filename}`;
+      }
+
       const updatedUser = await userService.updateUserProfile(req.user.id, {
         cover_url: coverUrl,
       });

@@ -6,8 +6,18 @@ import path from 'path';
 import fs from 'fs';
 import routes from './routes';
 import { initializeSocket } from './socket/socket';
+import { storageService } from './services/storage.service';
 
 dotenv.config();
+
+// Ensure Supabase Storage bucket exists on startup
+(async () => {
+  try {
+    await storageService.ensureBucket();
+  } catch (error: any) {
+    // Silently fail, bucket should be created manually
+  }
+})();
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
