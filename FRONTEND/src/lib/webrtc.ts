@@ -86,7 +86,10 @@ class WebRTCService {
           const currentState = currentPeerConnection.connectionState;
           if (currentState === 'disconnected' || currentState === 'failed') {
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-              currentPeerConnection.restartIce().catch(() => {});
+              try {
+                currentPeerConnection.restartIce();
+              } catch (error) {
+              }
             } else {
               this.endCall(config.conversationId);
               config.onCallEnd();
@@ -97,7 +100,8 @@ class WebRTCService {
       } else if (state === 'failed') {
         reconnectAttempts++;
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && this.isConnectionActive(config.conversationId)) {
-          peerConnection.restartIce().catch((err) => {
+          try {
+            peerConnection.restartIce();
             const timeout = setTimeout(() => {
               if (!this.isConnectionActive(config.conversationId)) return;
               
@@ -111,7 +115,8 @@ class WebRTCService {
               }
             }, 5000);
             this.addTimeout(config.conversationId, timeout);
-          });
+          } catch (err) {
+          }
         } else {
           this.endCall(config.conversationId);
           config.onCallEnd();
@@ -135,8 +140,10 @@ class WebRTCService {
       } else if (iceState === 'failed') {
         iceReconnectAttempts++;
         if (iceReconnectAttempts < MAX_ICE_RECONNECT_ATTEMPTS && this.isConnectionActive(config.conversationId)) {
-          peerConnection.restartIce().catch((err) => {
-            });
+          try {
+            peerConnection.restartIce();
+          } catch (err) {
+          }
         } else {
           }
       }
@@ -618,12 +625,6 @@ class WebRTCService {
     socketService.onCallAnswer(handleAnswer);
     socketService.onCallIceCandidate(handleIceCandidate);
     socketService.onCallEnd(handleCallEnd);
-
-    return () => {
-      socketService.offCallAnswer(handleAnswer);
-      socketService.offCallIceCandidate(handleIceCandidate);
-      socketService.offCallEnd(handleCallEnd);
-    };
   }
 }
 

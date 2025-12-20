@@ -362,7 +362,7 @@ export default function PostDetailModal({
                             Follow
                           </button>
                           <button
-                            onClick={() => toast.info('Donate feature coming soon!')}
+                            onClick={() => toast('Donate feature coming soon!')}
                             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium"
                           >
                             Donate

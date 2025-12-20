@@ -90,6 +90,9 @@ export default function SearchPage() {
           id: result.image_id,
           image_url: result.image_url,
           post_id: result.post_id,
+          image_path: result.image_url,
+          display_order: 0,
+          created_at: result.post.created_at,
         },
         similarity_score: result.similarity_score,
       }));
@@ -178,6 +181,9 @@ export default function SearchPage() {
           id: result.image_id,
           image_url: result.image_url,
           post_id: result.post_id,
+          image_path: result.image_url,
+          display_order: 0,
+          created_at: result.post.created_at,
         },
         similarity_score: result.similarity_score,
       }));

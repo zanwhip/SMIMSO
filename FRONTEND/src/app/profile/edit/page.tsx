@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { isAuthenticated, user, setUser } = useAuthStore();
+  const { isAuthenticated, user, updateUser } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -107,7 +107,7 @@ export default function EditProfilePage() {
         });
       }
 
-      setUser(response.data.data);
+      updateUser(response.data.data);
       
       toast.success('Profile updated successfully');
       router.push('/profile');

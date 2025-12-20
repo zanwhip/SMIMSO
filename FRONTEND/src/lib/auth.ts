@@ -14,7 +14,8 @@ export interface ExtendedSession extends Session {
 }
 
 export async function getAuthSession(): Promise<ExtendedSession | null> {
-  return await getSession();
+  const session = await getSession();
+  return session as ExtendedSession | null;
 }
 
 export async function getAuthToken(): Promise<string | null> {
