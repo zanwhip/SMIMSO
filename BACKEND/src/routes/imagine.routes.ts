@@ -30,5 +30,23 @@ router.post('/upscale', authMiddleware, uploadImagineFile, (req, res) =>
   imagineController.upscaleImage(req, res)
 );
 
+// Kie.ai 4o Image Generation endpoints
+router.post('/gpt4o-image/generate', authMiddleware, (req, res) => 
+  imagineController.generate4oImage(req, res)
+);
+
+router.get('/gpt4o-image/details', authMiddleware, (req, res) => 
+  imagineController.get4oImageDetails(req, res)
+);
+
+router.post('/gpt4o-image/download-url', authMiddleware, (req, res) => 
+  imagineController.get4oImageDownloadUrl(req, res)
+);
+
+// Callback endpoint (no auth required - handled by Kie.ai)
+router.post('/gpt4o-image/callback', (req, res) => 
+  imagineController.handle4oImageCallback(req, res)
+);
+
 export default router;
 

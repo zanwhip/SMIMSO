@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Navbar from '@/components/Navbar';
 import SecondaryNav from '@/components/SecondaryNav';
-import { FiZap, FiImage, FiVideo, FiTrendingUp, FiLayers, FiDroplet, FiMaximize2 } from 'react-icons/fi';
+import { FiZap, FiImage, FiVideo, FiTrendingUp, FiLayers, FiDroplet, FiMaximize2, FiEdit3 } from 'react-icons/fi';
 
 export default function IntelligencePage() {
   const router = useRouter();
@@ -59,6 +59,13 @@ export default function IntelligencePage() {
       description: 'Increase the resolution of images with AI',
       color: 'from-indigo-500 to-purple-500',
       href: '/imagine/upscale',
+    },
+    {
+      icon: FiEdit3,
+      title: 'Image to Image Editor',
+      description: 'Edit and transform images using GPT-4o Image with mask support',
+      color: 'from-teal-500 to-cyan-500',
+      href: '/imagine/image-to-image',
     },
   ];
 

@@ -6,8 +6,17 @@ import { HfInference } from '@huggingface/inference';
 import { Blob } from 'buffer';
 
 const VYRO_API_BASE = 'https://api.vyro.ai/v2';
+const KIE_API_BASE = 'https://api.kie.ai/api/v1';
 const getToken = (): string => {
   const token = process.env.IMAGINE_TOKEN || 'vk-G0L8QiCBFuL3XydqNnzB14kDYjkxNDnlD5hbOgVmDAidF';
+  return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+};
+
+const getKieToken = (): string => {
+  const token = process.env.KIE_KEY;
+  if (!token) {
+    throw new Error('KIE_KEY is not set in environment variables');
+  }
   return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
 };
 
@@ -39,6 +48,20 @@ export interface ImageToImageParams {
     width: number;
     height: number;
   };
+}
+
+export interface Kie4oImageGenerateParams {
+  prompt?: string;
+  filesUrl?: string[];
+  size?: '1:1' | '3:2' | '2:3';
+  callBackUrl?: string;
+  isEnhance?: boolean;
+  uploadCn?: boolean;
+  nVariants?: 1 | 2 | 4;
+  enableFallback?: boolean;
+  fallbackModel?: 'GPT_IMAGE_1' | 'FLUX_MAX';
+  maskUrl?: string;
+  fileUrl?: string; // deprecated
 }
 
 export class ImagineService {
@@ -738,6 +761,223 @@ export class ImagineService {
           }
         } else {
           errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Generate 4o Image using Kie.ai API
+   * Creates a new image generation task
+   */
+  async generate4oImage(params: Kie4oImageGenerateParams): Promise<any> {
+    try {
+      if (!params.prompt && !params.filesUrl && !params.fileUrl) {
+        throw new Error('At least one of prompt, filesUrl, or fileUrl must be provided');
+      }
+
+      if (!params.size) {
+        throw new Error('size is required (1:1, 3:2, or 2:3)');
+      }
+
+      const requestBody: any = {
+        size: params.size,
+      };
+
+      if (params.prompt) {
+        requestBody.prompt = params.prompt;
+      }
+
+      if (params.filesUrl && params.filesUrl.length > 0) {
+        requestBody.filesUrl = params.filesUrl;
+      }
+
+      if (params.fileUrl) {
+        requestBody.fileUrl = params.fileUrl;
+      }
+
+      if (params.callBackUrl) {
+        requestBody.callBackUrl = params.callBackUrl;
+      }
+
+      if (params.isEnhance !== undefined) {
+        requestBody.isEnhance = params.isEnhance;
+      }
+
+      if (params.uploadCn !== undefined) {
+        requestBody.uploadCn = params.uploadCn;
+      }
+
+      if (params.nVariants) {
+        requestBody.nVariants = params.nVariants;
+      }
+
+      if (params.enableFallback !== undefined) {
+        requestBody.enableFallback = params.enableFallback;
+      }
+
+      if (params.fallbackModel) {
+        requestBody.fallbackModel = params.fallbackModel;
+      }
+
+      if (params.maskUrl) {
+        requestBody.maskUrl = params.maskUrl;
+      }
+
+      const response = await axios.post(
+        `${KIE_API_BASE}/gpt4o-image/generate`,
+        requestBody,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': getKieToken(),
+          },
+          timeout: 60000, // 1 minute timeout for task creation
+        }
+      );
+
+      if (response.data.code === 200) {
+        return {
+          taskId: response.data.data.taskId,
+          message: response.data.msg || 'Task created successfully',
+        };
+      } else {
+        throw new Error(response.data.msg || 'Failed to create image generation task');
+      }
+    } catch (error: any) {
+      let errorMessage = 'Failed to generate 4o image';
+      
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.msg) {
+          errorMessage = error.response.data.msg;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Get 4o Image generation task details
+   * Query task status and results using taskId
+   */
+  async get4oImageDetails(taskId: string): Promise<any> {
+    try {
+      if (!taskId) {
+        throw new Error('taskId is required');
+      }
+
+      const response = await axios.get(
+        `${KIE_API_BASE}/gpt4o-image/record-info`,
+        {
+          headers: {
+            'Authorization': getKieToken(),
+          },
+          params: {
+            taskId,
+          },
+          timeout: 30000, // 30 seconds timeout
+        }
+      );
+
+      if (response.data.code === 200) {
+        return {
+          taskId: response.data.data.taskId,
+          status: response.data.data.status,
+          successFlag: response.data.data.successFlag,
+          progress: response.data.data.progress,
+          createTime: response.data.data.createTime,
+          completeTime: response.data.data.completeTime,
+          paramJson: response.data.data.paramJson,
+          resultUrls: response.data.data.response?.resultUrls || [],
+          errorCode: response.data.data.errorCode,
+          errorMessage: response.data.data.errorMessage,
+        };
+      } else {
+        throw new Error(response.data.msg || 'Failed to get image generation details');
+      }
+    } catch (error: any) {
+      let errorMessage = 'Failed to get 4o image details';
+      
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.msg) {
+          errorMessage = error.response.data.msg;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Get direct download URL for generated image
+   * Converts image URL to direct download URL (valid for 20 minutes)
+   */
+  async get4oImageDownloadUrl(taskId: string, url: string): Promise<any> {
+    try {
+      if (!taskId) {
+        throw new Error('taskId is required');
+      }
+
+      if (!url) {
+        throw new Error('url is required');
+      }
+
+      const response = await axios.post(
+        `${KIE_API_BASE}/gpt4o-image/download-url`,
+        {
+          taskId,
+          url,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': getKieToken(),
+          },
+          timeout: 30000, // 30 seconds timeout
+        }
+      );
+
+      if (response.data.code === 200) {
+        return {
+          downloadUrl: response.data.data,
+          expiresIn: 1200, // 20 minutes in seconds
+        };
+      } else {
+        throw new Error(response.data.msg || 'Failed to get download URL');
+      }
+    } catch (error: any) {
+      let errorMessage = 'Failed to get download URL';
+      
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.msg) {
+          errorMessage = error.response.data.msg;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
         }
       } else if (error.message) {
         errorMessage = error.message;

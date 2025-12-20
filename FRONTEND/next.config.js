@@ -24,6 +24,21 @@ const nextConfig = {
         hostname: 'plus.unsplash.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'tempfile.aiquickdraw.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.cloudflarestorage.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.cloudflarestorage.com',
+        pathname: '/**',
+      },
     ],
   },
   env: {
