@@ -89,7 +89,6 @@ export default function LeaderboardPage() {
         setMostActive(activeResponse.data.data);
       }
     } catch (error) {
-      console.error('Error fetching leaderboard:', error);
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +148,6 @@ export default function LeaderboardPage() {
           }
           return null;
         } catch (error) {
-          console.error(`Error fetching media for user ${user.id}:`, error);
           return null;
         }
       });
@@ -166,7 +164,6 @@ export default function LeaderboardPage() {
       
       setUserMediaRows(sortedResults);
     } catch (error) {
-      console.error('Error fetching users media:', error);
       setUserMediaRows([]);
     } finally {
       setIsLoadingMedia(false);

@@ -70,17 +70,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const refreshConversations = useCallback(() => {
     if (isAuthenticated && user?.id) {
-      console.log('[ChatContext] refreshConversations called');
       api.get('/chat/conversations')
         .then((response) => {
           const conversations = response.data.data || [];
-          console.log('[ChatContext] Conversations fetched', {
-            count: conversations.length,
-            conversations: conversations.map((c: any) => ({
-              id: c.id,
-              unread_count: c.unread_count,
-            })),
-          });
           
           const newUnreadCounts = new Map<string, number>();
           conversations.forEach((conv: any) => {
@@ -89,36 +81,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             }
           });
           
-          console.log('[ChatContext] Setting unread counts', {
-            unreadCounts: Array.from(newUnreadCounts.entries()),
-            totalUnread: Array.from(newUnreadCounts.values()).reduce((a, b) => a + b, 0),
-          });
-          
           setUnreadCounts(newUnreadCounts);
         })
-        .catch((error) => {
-          console.error('[ChatContext] Error fetching conversations', error);
-        });
+        .catch(() => {});
     }
   }, [isAuthenticated, user?.id]);
 
   const incrementUnread = useCallback((conversationId: string) => {
-    console.log('[ChatContext] incrementUnread called', {
-      conversationId,
-    });
-    
     setUnreadCounts((prev) => {
       const newMap = new Map(prev);
       const current = newMap.get(conversationId) || 0;
       const newCount = current + 1;
       newMap.set(conversationId, newCount);
-      
-      console.log('[ChatContext] Unread count updated', {
-        conversationId,
-        previousCount: current,
-        newCount,
-        totalUnread: Array.from(newMap.values()).reduce((a, b) => a + b, 0),
-      });
       
       return newMap;
     });
@@ -135,17 +109,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
 
     const handleNewMessage = (message: Message) => {
-      console.log('[ChatContext] handleNewMessage received', {
-        messageId: message?.id,
-        conversationId: message?.conversation_id,
-        senderId: message?.sender_id,
-        currentUserId: user?.id,
-        activeConversation: activeConversationRef.current,
-        pathname: pathname,
-      });
-      
       if (!message?.id || !message?.conversation_id || !message?.sender_id) {
-        console.warn('[ChatContext] Invalid message received', { message });
         return;
       }
 
@@ -153,19 +117,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const currentActiveConv = activeConversationRef.current;
         const isActiveConv = currentActiveConv === message.conversation_id;
         
-        console.log('[ChatContext] Message from other user', {
-          isActiveConv,
-          currentActiveConv,
-          messageConvId: message.conversation_id,
-        });
-        
         if (!isActiveConv) {
-          console.log('[ChatContext] Incrementing unread count', {
-            conversationId: message.conversation_id,
-          });
           incrementUnread(message.conversation_id);
-        } else {
-          console.log('[ChatContext] Message is for active conversation, not incrementing unread');
         }
 
         const currentPath = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
@@ -244,7 +197,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             } catch (error) {
               }
           } else if (Notification.permission === 'default') {
-            Notification.requestPermission().catch(console.error);
+            Notification.requestPermission().catch(() => {});
           }
         }
       }

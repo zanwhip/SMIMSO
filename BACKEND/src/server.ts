@@ -14,7 +14,7 @@ console.warn = (...args: any[]) => {
   const message = args[0]?.toString() || '';
   if (message.includes('onnxruntime') && 
       (message.includes('Removing initializer') || message.includes('Constant'))) {
-    return; // Suppress these warnings
+    return;
   }
   originalWarn.apply(console, args);
 };
@@ -94,9 +94,7 @@ app.use((req: Request, res: Response) => {
 });
 
 initializeSocket(httpServer);
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+httpServer.listen(PORT);
 
 export default app;
 

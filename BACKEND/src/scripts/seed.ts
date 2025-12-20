@@ -53,9 +53,7 @@ async function runSeedSQL() {
       }
     }
 
-    console.log(`Seed completed: ${successCount} successful, ${errorCount} errors`);
   } catch (error: any) {
-    console.error('Seed failed:', error);
     process.exit(1);
   }
 }

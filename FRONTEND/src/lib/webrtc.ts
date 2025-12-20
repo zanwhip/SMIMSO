@@ -86,7 +86,7 @@ class WebRTCService {
           const currentState = currentPeerConnection.connectionState;
           if (currentState === 'disconnected' || currentState === 'failed') {
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-              currentPeerConnection.restartIce().catch(console.error);
+              currentPeerConnection.restartIce().catch(() => {});
             } else {
               this.endCall(config.conversationId);
               config.onCallEnd();
@@ -149,12 +149,6 @@ class WebRTCService {
   }
 
   async startCall(config: CallConfig): Promise<void> {
-    console.log('[WebRTC] startCall called', { 
-      conversationId: config.conversationId, 
-      callType: config.callType,
-      userId: config.userId 
-    });
-    
     try {
       this.callEnded.set(config.conversationId, false);
       
@@ -172,14 +166,7 @@ class WebRTCService {
         } : false,
       };
 
-      console.log('[WebRTC] Requesting user media with constraints:', constraints);
       const localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('[WebRTC] Got local stream', {
-        videoTracks: localStream.getVideoTracks().length,
-        audioTracks: localStream.getAudioTracks().length,
-        videoTrackReady: localStream.getVideoTracks()[0]?.readyState,
-        audioTrackReady: localStream.getAudioTracks()[0]?.readyState,
-      });
       
       // Ensure stream is valid
       if (!localStream) {
@@ -212,23 +199,15 @@ class WebRTCService {
       
       this.localStreams.set(config.conversationId, localStream);
       config.onLocalStream(localStream);
-      console.log('[WebRTC] Local stream set and callback called');
 
       const peerConnection = new RTCPeerConnection(this.iceServers);
       this.peerConnections.set(config.conversationId, peerConnection);
-      console.log('[WebRTC] PeerConnection created');
 
       localStream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, localStream);
-        console.log('[WebRTC] Added track to peer connection', { 
-          kind: track.kind, 
-          enabled: track.enabled,
-          readyState: track.readyState 
-        });
         
         // Handle track ended (e.g., camera disconnected)
         track.onended = () => {
-          console.warn('[WebRTC] Track ended', { kind: track.kind });
           if (!this.callEnded.get(config.conversationId)) {
             toast.error('Camera hoặc microphone đã bị ngắt kết nối');
           }
@@ -236,24 +215,14 @@ class WebRTCService {
       });
 
       peerConnection.ontrack = (event) => {
-        console.log('[WebRTC] Remote track received', {
-          streams: event.streams.length,
-          tracks: event.track ? [{ kind: event.track.kind, enabled: event.track.enabled }] : [],
-        });
         const remoteStream = event.streams[0];
         if (remoteStream) {
-          console.log('[WebRTC] Remote stream details', {
-            id: remoteStream.id,
-            videoTracks: remoteStream.getVideoTracks().length,
-            audioTracks: remoteStream.getAudioTracks().length,
-          });
           this.remoteStreams.set(config.conversationId, remoteStream);
           config.onRemoteStream(remoteStream);
           
           // Handle remote track ended
           remoteStream.getTracks().forEach((track) => {
             track.onended = () => {
-              console.warn('[WebRTC] Remote track ended', { kind: track.kind });
               if (!this.callEnded.get(config.conversationId)) {
                 // Track ended, but connection might still be active
               }
@@ -264,68 +233,34 @@ class WebRTCService {
 
       peerConnection.onicecandidate = (event) => {
         if (event.candidate && !this.callEnded.get(config.conversationId)) {
-          console.log('[WebRTC] ICE candidate generated', {
-            candidate: event.candidate.candidate?.substring(0, 50),
-          });
           socketService.sendCallIceCandidate(config.conversationId, event.candidate);
-        } else if (!event.candidate) {
-          console.log('[WebRTC] ICE gathering complete');
         }
       };
 
       peerConnection.onicegatheringstatechange = () => {
-        console.log('[WebRTC] ICE gathering state changed', {
-          state: peerConnection.iceGatheringState,
-        });
-        if (peerConnection.iceGatheringState === 'complete' && !this.callEnded.get(config.conversationId)) {
-          console.log('[WebRTC] ICE gathering complete');
-        }
       };
 
       peerConnection.onconnectionstatechange = () => {
-        console.log('[WebRTC] Connection state changed', {
-          state: peerConnection.connectionState,
-          conversationId: config.conversationId,
-        });
       };
 
       peerConnection.oniceconnectionstatechange = () => {
-        console.log('[WebRTC] ICE connection state changed', {
-          state: peerConnection.iceConnectionState,
-          conversationId: config.conversationId,
-        });
       };
 
       this.setupConnectionStateHandlers(peerConnection, config);
 
-      console.log('[WebRTC] Creating offer...');
       const offer = await peerConnection.createOffer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: config.callType === 'video',
       });
-      console.log('[WebRTC] Offer created', { 
-        type: offer.type,
-        sdp: offer.sdp?.substring(0, 100) 
-      });
       
       await peerConnection.setLocalDescription(offer);
-      console.log('[WebRTC] Local description set');
       
-      console.log('[WebRTC] Sending call offer via socket...');
       socketService.sendCallOffer(config.conversationId, config.callType, offer);
-      console.log('[WebRTC] Call offer sent');
 
       this.callStartTime.set(config.conversationId, Date.now());
-      console.log('[WebRTC] Call started, setup listeners');
 
       this.setupCallListeners(config);
     } catch (error: any) {
-      console.error('[WebRTC] Error in startCall', {
-        error: error.message,
-        name: error.name,
-        stack: error.stack,
-        conversationId: config.conversationId,
-      });
       
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         toast.error('Vui lòng cho phép truy cập camera và microphone');
@@ -341,13 +276,6 @@ class WebRTCService {
   }
 
   async acceptCall(config: CallConfig, offer: RTCSessionDescriptionInit): Promise<void> {
-    console.log('[WebRTC] acceptCall called', { 
-      conversationId: config.conversationId, 
-      callType: config.callType,
-      userId: config.userId,
-      offerType: offer.type,
-    });
-    
     try {
       this.callEnded.set(config.conversationId, false);
       
@@ -365,12 +293,7 @@ class WebRTCService {
         } : false,
       };
 
-      console.log('[WebRTC] Requesting user media for accept call');
       const localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('[WebRTC] Got local stream for accept', {
-        videoTracks: localStream.getVideoTracks().length,
-        audioTracks: localStream.getAudioTracks().length,
-      });
       
       // Ensure stream is valid
       if (!localStream) {
@@ -403,22 +326,15 @@ class WebRTCService {
       
       this.localStreams.set(config.conversationId, localStream);
       config.onLocalStream(localStream);
-      console.log('[WebRTC] Local stream set for accept call');
 
       const peerConnection = new RTCPeerConnection(this.iceServers);
       this.peerConnections.set(config.conversationId, peerConnection);
-      console.log('[WebRTC] PeerConnection created for accept');
 
       localStream.getTracks().forEach((track) => {
         peerConnection.addTrack(track, localStream);
-        console.log('[WebRTC] Added track for accept', { 
-          kind: track.kind, 
-          enabled: track.enabled 
-        });
         
         // Handle track ended
         track.onended = () => {
-          console.warn('[WebRTC] Track ended in accept call', { kind: track.kind });
           if (!this.callEnded.get(config.conversationId)) {
             toast.error('Camera hoặc microphone đã bị ngắt kết nối');
           }
@@ -426,24 +342,14 @@ class WebRTCService {
       });
 
       peerConnection.ontrack = (event) => {
-        console.log('[WebRTC] Remote track received in accept', {
-          streams: event.streams.length,
-          tracks: event.track ? [{ kind: event.track.kind }] : [],
-        });
         const remoteStream = event.streams[0];
         if (remoteStream) {
-          console.log('[WebRTC] Remote stream in accept', {
-            id: remoteStream.id,
-            videoTracks: remoteStream.getVideoTracks().length,
-            audioTracks: remoteStream.getAudioTracks().length,
-          });
           this.remoteStreams.set(config.conversationId, remoteStream);
           config.onRemoteStream(remoteStream);
           
           // Handle remote track ended
           remoteStream.getTracks().forEach((track) => {
             track.onended = () => {
-              console.warn('[WebRTC] Remote track ended in accept', { kind: track.kind });
               if (!this.callEnded.get(config.conversationId)) {
                 // Track ended
               }
@@ -454,59 +360,33 @@ class WebRTCService {
 
       peerConnection.onicecandidate = (event) => {
         if (event.candidate && !this.callEnded.get(config.conversationId)) {
-          console.log('[WebRTC] ICE candidate in accept', {
-            candidate: event.candidate.candidate?.substring(0, 50),
-          });
           socketService.sendCallIceCandidate(config.conversationId, event.candidate);
         }
       };
 
       peerConnection.onconnectionstatechange = () => {
-        console.log('[WebRTC] Connection state in accept', {
-          state: peerConnection.connectionState,
-        });
       };
 
       peerConnection.oniceconnectionstatechange = () => {
-        console.log('[WebRTC] ICE connection state in accept', {
-          state: peerConnection.iceConnectionState,
-        });
       };
 
       this.setupConnectionStateHandlers(peerConnection, config);
 
-      console.log('[WebRTC] Setting remote description...');
       await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-      console.log('[WebRTC] Remote description set');
       
-      console.log('[WebRTC] Creating answer...');
       const answer = await peerConnection.createAnswer({
         offerToReceiveAudio: true,
         offerToReceiveVideo: config.callType === 'video',
       });
-      console.log('[WebRTC] Answer created', { 
-        type: answer.type,
-        sdp: answer.sdp?.substring(0, 100) 
-      });
       
       await peerConnection.setLocalDescription(answer);
-      console.log('[WebRTC] Local description set for answer');
       
-      console.log('[WebRTC] Sending call answer via socket...');
       socketService.sendCallAnswer(config.conversationId, answer);
-      console.log('[WebRTC] Call answer sent');
 
       this.callStartTime.set(config.conversationId, Date.now());
-      console.log('[WebRTC] Call accepted, setup listeners');
 
       this.setupCallListeners(config);
     } catch (error: any) {
-      console.error('[WebRTC] Error in acceptCall', {
-        error: error.message,
-        name: error.name,
-        stack: error.stack,
-        conversationId: config.conversationId,
-      });
       
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         toast.error('Vui lòng cho phép truy cập camera và microphone');
@@ -522,55 +402,30 @@ class WebRTCService {
   }
 
   async handleAnswer(conversationId: string, answer: RTCSessionDescriptionInit): Promise<void> {
-    console.log('[WebRTC] handleAnswer called', {
-      conversationId,
-      answerType: answer.type,
-    });
-    
     const peerConnection = this.peerConnections.get(conversationId);
     if (!peerConnection) {
-      console.warn('[WebRTC] No peer connection found for answer', { conversationId });
       return;
     }
 
     try {
-      console.log('[WebRTC] Setting remote description from answer');
       await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-      console.log('[WebRTC] Remote description set from answer successfully');
     } catch (error: any) {
-      console.error('[WebRTC] Error setting remote description from answer', {
-        error: error.message,
-        conversationId,
-      });
     }
   }
 
   async handleIceCandidate(conversationId: string, candidate: RTCIceCandidateInit): Promise<void> {
-    console.log('[WebRTC] handleIceCandidate called', {
-      conversationId,
-      candidate: candidate.candidate?.substring(0, 50),
-    });
-    
     const peerConnection = this.peerConnections.get(conversationId);
     if (!peerConnection) {
-      console.warn('[WebRTC] No peer connection found for ICE candidate', { conversationId });
       return;
     }
 
     try {
       await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      console.log('[WebRTC] ICE candidate added successfully');
     } catch (error: any) {
-      console.error('[WebRTC] Error adding ICE candidate', {
-        error: error.message,
-        conversationId,
-      });
     }
   }
 
   endCall(conversationId: string): number {
-    console.log('[WebRTC] endCall called', { conversationId });
-    
     this.callEnded.set(conversationId, true);
     
     this.clearTimeouts(conversationId);
@@ -580,17 +435,9 @@ class WebRTCService {
     const remoteStream = this.remoteStreams.get(conversationId);
     const startTime = this.callStartTime.get(conversationId);
 
-    console.log('[WebRTC] Cleaning up call resources', {
-      hasPeerConnection: !!peerConnection,
-      hasLocalStream: !!localStream,
-      hasRemoteStream: !!remoteStream,
-      startTime,
-    });
-
     // Stop all local tracks
     if (localStream) {
       localStream.getTracks().forEach((track) => {
-        console.log('[WebRTC] Stopping local track', { kind: track.kind });
         track.stop();
       });
       this.localStreams.delete(conversationId);
@@ -599,7 +446,6 @@ class WebRTCService {
     // Stop all remote tracks
     if (remoteStream) {
       remoteStream.getTracks().forEach((track) => {
-        console.log('[WebRTC] Stopping remote track', { kind: track.kind });
         track.stop();
       });
       this.remoteStreams.delete(conversationId);
@@ -620,9 +466,7 @@ class WebRTCService {
           }
         });
         peerConnection.close();
-        console.log('[WebRTC] PeerConnection closed');
       } catch (error) {
-        console.error('[WebRTC] Error closing peer connection', error);
       }
       this.peerConnections.delete(conversationId);
     }
@@ -630,15 +474,9 @@ class WebRTCService {
     const duration = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
     this.callStartTime.delete(conversationId);
     
-    console.log('[WebRTC] Call ended', {
-      conversationId,
-      duration,
-    });
-    
     // Clear call ended flag after a delay to allow cleanup
     setTimeout(() => {
       this.callEnded.delete(conversationId);
-      console.log('[WebRTC] Call ended flag cleared', { conversationId });
     }, 1000);
     
     return duration;

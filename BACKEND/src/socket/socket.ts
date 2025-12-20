@@ -54,14 +54,8 @@ export const initializeSocket = (httpServer: HttpServer) => {
     chatService.getUserConversations(userId).then((conversations) => {
       conversations.forEach((conv) => {
         socket.join(`conversation:${conv.id}`);
-        console.log('[Socket] User joined conversation room', {
-          userId,
-          conversationId: conv.id,
-        });
       });
-    }).catch((error) => {
-      console.error('[Socket] Error joining conversation rooms', error);
-    });
+    }).catch(() => {});
 
     socket.on('join_conversation', async (conversationId: string) => {
       try {
@@ -99,20 +93,9 @@ export const initializeSocket = (httpServer: HttpServer) => {
       fileSize?: number;
       replyToId?: string;
     }) => {
-      console.log('[Socket] send_message received', {
-        conversationId: data.conversationId,
-        messageType: data.messageType,
-        senderId: userId,
-        hasContent: !!data.content,
-        hasFileUrl: !!data.fileUrl,
-      });
-      
       try {
         if (!socket.rooms.has(`conversation:${data.conversationId}`)) {
           socket.join(`conversation:${data.conversationId}`);
-          console.log('[Socket] Joined conversation room for message', {
-            conversationId: data.conversationId,
-          });
         }
 
         const message = await chatService.sendMessage(
@@ -125,11 +108,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
           data.fileSize,
           data.replyToId
         );
-        
-        console.log('[Socket] Message sent successfully', {
-          messageId: message.id,
-          conversationId: data.conversationId,
-        });
 
         await chatService.markAsRead(data.conversationId, userId);
 
@@ -164,20 +142,11 @@ export const initializeSocket = (httpServer: HttpServer) => {
         
         // Emit to conversation room for all participants in the room
         io.to(`conversation:${data.conversationId}`).emit('new_message', message);
-        console.log('[Socket] Emitted new_message to conversation room', {
-          conversationId: data.conversationId,
-          messageId: message.id,
-        });
         
         // Also emit to each participant's user room for reliable delivery
         for (const participant of conversation.participants || []) {
           // Always emit to user room for reliable delivery
           io.to(`user:${participant.user_id}`).emit('new_message', message);
-          console.log('[Socket] Emitted new_message to user room', {
-            userId: participant.user_id,
-            messageId: message.id,
-            isSender: participant.user_id === userId,
-          });
           
           if (participant.user_id === userId) {
             // Sender gets confirmation
@@ -199,9 +168,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 messageId: message.id,
                 type: 'new_message',
               }
-            ).catch((error) => {
-              console.error('[Socket] Error sending push notification', error);
-            });
+            ).catch(() => {});
           }
         }
       } catch (error: any) {
@@ -230,13 +197,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
       callType: 'audio' | 'video';
       offer: any; // RTCSessionDescriptionInit
     }) => {
-      console.log('[Socket] call_offer received', {
-        conversationId: data.conversationId,
-        callType: data.callType,
-        callerId: userId,
-        offerType: data.offer?.type,
-      });
-      
       try {
         const { data: participant } = await supabaseAdmin
           .from('conversation_participants')
@@ -246,10 +206,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
           .maybeSingle();
 
         if (!participant) {
-          console.warn('[Socket] User is not a participant', {
-            userId,
-            conversationId: data.conversationId,
-          });
           socket.emit('error', { 
             message: 'Not a participant in this conversation',
             conversationId: data.conversationId 
@@ -259,16 +215,9 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
         if (!socket.rooms.has(`conversation:${data.conversationId}`)) {
           socket.join(`conversation:${data.conversationId}`);
-          console.log('[Socket] Joined conversation room for call', {
-            conversationId: data.conversationId,
-          });
         }
         
         const conversation = await chatService.getConversationById(data.conversationId, userId);
-        console.log('[Socket] Conversation fetched', {
-          conversationId: data.conversationId,
-          participantCount: conversation.participants?.length || 0,
-        });
         
         const { data: callerData } = await supabaseAdmin
           .from('users')
@@ -285,12 +234,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
               callerId: userId,
               caller: callerData || null, // Include caller info
             };
-            
-            console.log('[Socket] Emitting call_offer to participant', {
-              participantId: participant.user_id,
-              callType: data.callType,
-              conversationId: data.conversationId,
-            });
             
             io.to(`user:${participant.user_id}`).emit('call_offer', callOfferData);
             io.to(`conversation:${data.conversationId}`).emit('call_offer', callOfferData);
@@ -313,18 +256,8 @@ export const initializeSocket = (httpServer: HttpServer) => {
       conversationId: string;
       answer: any; // RTCSessionDescriptionInit
     }) => {
-      console.log('[Socket] call_answer received', {
-        conversationId: data.conversationId,
-        userId,
-        answerType: data.answer?.type,
-      });
-      
       try {
         const conversation = await chatService.getConversationById(data.conversationId, userId);
-        console.log('[Socket] Emitting call_answer to conversation and participants', {
-          conversationId: data.conversationId,
-          participantCount: conversation.participants?.length || 0,
-        });
         
         io.to(`conversation:${data.conversationId}`).emit('call_answer', {
           conversationId: data.conversationId,
@@ -334,9 +267,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
         
         conversation.participants?.forEach((participant) => {
           if (participant.user_id !== userId) {
-            console.log('[Socket] Emitting call_answer to participant', {
-              participantId: participant.user_id,
-            });
             io.to(`user:${participant.user_id}`).emit('call_answer', {
               conversationId: data.conversationId,
               answer: data.answer,
@@ -361,12 +291,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
       conversationId: string;
       candidate: any; // RTCIceCandidateInit
     }) => {
-      console.log('[Socket] call_ice_candidate received', {
-        conversationId: data.conversationId,
-        userId,
-        candidate: data.candidate?.candidate?.substring(0, 50),
-      });
-      
       socket.to(`conversation:${data.conversationId}`).emit('call_ice_candidate', {
         conversationId: data.conversationId,
         candidate: data.candidate,
@@ -388,7 +312,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
           });
         }
       } catch (error) {
-        console.error('[Socket] Error getting conversation for ICE candidate', error);
       }
     });
 
@@ -587,7 +510,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
               lastSeen: new Date().toISOString(),
             });
           });
-        }).catch(console.error);
+        }).catch(() => {});
       } catch (error: any) {
         socket.emit('error', { message: error.message || 'Failed to update status' });
       }
@@ -620,18 +543,12 @@ export const initializeSocket = (httpServer: HttpServer) => {
     });
 
     socket.on('disconnect', async (reason) => {
-      console.log('[Socket] User disconnected', {
-        userId,
-        socketId: socket.id,
-        reason,
-      });
-      
       const sockets = userSockets.get(userId);
       if (sockets) {
         sockets.delete(socket.id);
         if (sockets.size === 0) {
           userSockets.delete(userId);
-          await chatService.updateOnlineStatus(userId, false).catch(console.error);
+          await chatService.updateOnlineStatus(userId, false).catch(() => {});
           chatService.getUserConversations(userId).then((conversations) => {
             conversations.forEach((conv) => {
               io.to(`conversation:${conv.id}`).emit('user_online_status', {
@@ -640,12 +557,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 lastSeen: new Date().toISOString(),
               });
             });
-          }).catch(console.error);
-        } else {
-          console.log('[Socket] User still has other active connections', {
-            userId,
-            remainingConnections: sockets.size,
-          });
+          }).catch(() => {});
         }
       }
     });

@@ -105,40 +105,25 @@ export default function ConversationDetailPage() {
 
   // Handle new message
   const handleNewMessage = useCallback((message: Message) => {
-    console.log('[ConversationDetailPage] handleNewMessage received', {
-      messageId: message?.id,
-      conversationId: message?.conversation_id,
-      currentConversationId: conversationId,
-      senderId: message?.sender_id,
-      currentUserId: user?.id,
-    });
-    
     if (!message?.id || !message?.conversation_id) {
-      console.warn('[ConversationDetailPage] Invalid message', { message });
       return;
     }
     
     // Only handle messages for this conversation
     if (message.conversation_id !== conversationId) {
-      console.log('[ConversationDetailPage] Message is for different conversation, ignoring');
       return;
     }
-    
-    console.log('[ConversationDetailPage] Processing message for this conversation');
     
     setMessages((prev) => {
       // Check if message already exists
       const existingIndex = prev.findIndex(m => m.id === message.id);
       if (existingIndex >= 0) {
-        console.log('[ConversationDetailPage] Message already exists, updating');
         const updated = [...prev];
         updated[existingIndex] = message;
         return updated.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
       }
-      
-      console.log('[ConversationDetailPage] Adding new message, removing temp messages');
       
       // Remove temp messages matching this message (by content, file_url, or sender)
       const filtered = prev.filter(m => {
@@ -147,13 +132,11 @@ export default function ConversationDetailPage() {
         
         // Match text messages
         if (message.content && m.content === message.content) {
-          console.log('[ConversationDetailPage] Removing temp message (text match)', { tempId: m.id });
           return false;
         }
         
         // Match file messages (sticker, gif, image, video, audio)
         if (message.file_url && m.file_url === message.file_url) {
-          console.log('[ConversationDetailPage] Removing temp message (file match)', { tempId: m.id });
           return false;
         }
         
@@ -164,18 +147,11 @@ export default function ConversationDetailPage() {
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
       
-      console.log('[ConversationDetailPage] Messages updated', {
-        previousCount: prev.length,
-        newCount: updated.length,
-        tempRemoved: prev.length - filtered.length,
-      });
-      
       return updated;
     });
     
     // Mark as read if not our own message
     if (message.sender_id !== user?.id) {
-      console.log('[ConversationDetailPage] Marking conversation as read', { conversationId });
       markAsRead(conversationId);
     }
   }, [conversationId, user?.id]);
@@ -533,22 +509,10 @@ export default function ConversationDetailPage() {
   };
 
   const endCall = async () => {
-    console.log('[ConversationDetailPage] endCall called', {
-      conversationId,
-      callType,
-      callDuration,
-    });
-    
     if (conversation) {
       const actualDuration = webrtcService.endCall(conversationId);
       // Use actual duration from WebRTC service or the tracked duration, whichever is larger
       const finalDuration = Math.max(actualDuration, callDuration);
-      
-      console.log('[ConversationDetailPage] Sending call_end event', {
-        conversationId,
-        callType,
-        finalDuration,
-      });
       
       socketService.sendCallEnd(conversationId, callType, finalDuration);
     }
@@ -570,21 +534,12 @@ export default function ConversationDetailPage() {
     setTimeout(async () => {
       try {
         const socket = await socketService.getSocket();
-        console.log('[ConversationDetailPage] Socket status after call end', {
-          hasSocket: !!socket,
-          connected: socket?.connected,
-          conversationId,
-        });
         
         if (socket && socket.connected) {
-          console.log('[ConversationDetailPage] Re-joining conversation after call end', {
-            conversationId,
-          });
           socketService.joinConversation(conversationId);
           // Re-setup message handlers
           socketService.onNewMessage(handleNewMessage);
         } else {
-          console.warn('[ConversationDetailPage] Socket not connected after call end, attempting reconnect');
           socketService.connect().then((newSocket) => {
             if (newSocket && newSocket.connected) {
               socketService.joinConversation(conversationId);
@@ -593,10 +548,6 @@ export default function ConversationDetailPage() {
           });
         }
       } catch (error: any) {
-        console.error('[ConversationDetailPage] Error re-joining conversation after call', {
-          error: error.message,
-          conversationId,
-        });
       }
     }, 500);
   };
@@ -640,12 +591,6 @@ export default function ConversationDetailPage() {
   const sendMessage = async () => {
     if (!messageInput.trim() || !conversation || !user?.id) return;
 
-    console.log('[ConversationPage] sendMessage called', {
-      conversationId,
-      content: messageInput.trim().substring(0, 50),
-      userId: user?.id,
-    });
-
     const content = messageInput.trim();
     setMessageInput('');
     socketService.stopTyping(conversationId);
@@ -657,29 +602,17 @@ export default function ConversationDetailPage() {
     // Ensure socket is connected and joined to conversation
     try {
       const socket = await socketService.getSocket();
-      console.log('[ConversationPage] Socket status', {
-        hasSocket: !!socket,
-        connected: socket?.connected,
-        conversationId,
-      });
       
       if (!socket || !socket.connected) {
-        console.error('[ConversationPage] Socket not connected');
         toast.error('Chưa kết nối. Vui lòng thử lại.');
         return;
       }
 
       // Ensure we're joined to the conversation room
-      console.log('[ConversationPage] Joining conversation room', { conversationId });
       socketService.joinConversation(conversationId);
       // Wait a bit for join to complete
       await new Promise(resolve => setTimeout(resolve, 200));
-      console.log('[ConversationPage] Conversation room joined');
     } catch (error: any) {
-      console.error('[ConversationPage] Error ensuring socket connection', {
-        error: error.message,
-        conversationId,
-      });
       toast.error('Không thể kết nối. Vui lòng refresh trang');
       return;
     }
@@ -703,24 +636,12 @@ export default function ConversationDetailPage() {
     ));
     
     try {
-      console.log('[ConversationPage] Sending message via socket', {
-        conversationId,
-        messageType: 'text',
-        contentLength: content.length,
-      });
-      
       socketService.sendMessage({
         conversationId,
         messageType: 'text',
         content,
       });
-      
-      console.log('[ConversationPage] Message sent via socket');
     } catch (error: any) {
-      console.error('[ConversationPage] Error sending message', {
-        error: error.message,
-        conversationId,
-      });
       const errorMessage = error?.message || 'Không thể gửi tin nhắn';
       
       // If "Not a participant" error, try to refresh conversation

@@ -219,7 +219,6 @@ export default function CallModal({
         
         updateAudioLevel();
       } catch (error) {
-        console.error('[CallModal] Error setting up local audio level:', error);
       }
     } else {
       if (animationFrameRef.current) {
@@ -227,7 +226,7 @@ export default function CallModal({
         animationFrameRef.current = null;
       }
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(console.error);
+        audioContextRef.current.close().catch(() => {});
         audioContextRef.current = null;
       }
       analyserRef.current = null;
@@ -239,7 +238,7 @@ export default function CallModal({
         cancelAnimationFrame(animationFrameRef.current);
       }
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(console.error);
+        audioContextRef.current.close().catch(() => {});
       }
     };
   }, [localStream, isOpen, isIncoming]);
@@ -273,7 +272,6 @@ export default function CallModal({
         
         updateRemoteAudioLevel();
       } catch (error) {
-        console.error('[CallModal] Error setting up remote audio level:', error);
       }
     } else {
       if (remoteAnimationFrameRef.current) {
@@ -281,7 +279,7 @@ export default function CallModal({
         remoteAnimationFrameRef.current = null;
       }
       if (remoteAudioContextRef.current) {
-        remoteAudioContextRef.current.close().catch(console.error);
+        remoteAudioContextRef.current.close().catch(() => {});
         remoteAudioContextRef.current = null;
       }
       remoteAnalyserRef.current = null;
@@ -293,7 +291,7 @@ export default function CallModal({
         cancelAnimationFrame(remoteAnimationFrameRef.current);
       }
       if (remoteAudioContextRef.current) {
-        remoteAudioContextRef.current.close().catch(console.error);
+        remoteAudioContextRef.current.close().catch(() => {});
       }
     };
   }, [remoteStream, isOpen, isIncoming]);
@@ -389,7 +387,7 @@ export default function CallModal({
                 className="w-full h-full object-cover"
                 muted={false}
                 onLoadedMetadata={() => {
-                  remoteVideoRef.current?.play().catch(console.error);
+                  remoteVideoRef.current?.play().catch(() => {});
                 }}
               />
             ) : (

@@ -18,5 +18,17 @@ router.post('/image-to-video', authMiddleware, uploadImagineFile, (req, res) =>
   imagineController.imageToVideo(req, res)
 );
 
+router.post('/style-transfer', authMiddleware, uploadImagineFile, (req, res) => 
+  imagineController.styleTransfer(req, res)
+);
+
+router.post('/colorize', authMiddleware, uploadImagineFile, (req, res) => 
+  imagineController.colorizeImage(req, res)
+);
+
+router.post('/upscale', authMiddleware, uploadImagineFile, (req, res) => 
+  imagineController.upscaleImage(req, res)
+);
+
 export default router;
 

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Navbar from '@/components/Navbar';
 import SecondaryNav from '@/components/SecondaryNav';
-import { FiZap, FiImage, FiVideo, FiTrendingUp } from 'react-icons/fi';
+import { FiZap, FiImage, FiVideo, FiTrendingUp, FiLayers, FiDroplet, FiMaximize2 } from 'react-icons/fi';
 
 export default function IntelligencePage() {
   const router = useRouter();
@@ -38,6 +38,27 @@ export default function IntelligencePage() {
       description: 'Bring static images to life with AI animation',
       color: 'from-green-500 to-emerald-500',
       href: '/imagine/image-to-video',
+    },
+    {
+      icon: FiLayers,
+      title: 'Style Transfer',
+      description: 'Transfer the style of an image to another image',
+      color: 'from-orange-500 to-red-500',
+      href: '/imagine/style-transfer',
+    },
+    {
+      icon: FiDroplet,
+      title: 'Colorize Image',
+      description: 'Colorize black and white images with AI',
+      color: 'from-yellow-500 to-orange-500',
+      href: '/imagine/colorize',
+    },
+    {
+      icon: FiMaximize2,
+      title: 'Upscale Image',
+      description: 'Increase the resolution of images with AI',
+      color: 'from-indigo-500 to-purple-500',
+      href: '/imagine/upscale',
     },
   ];
 

@@ -56,7 +56,6 @@ class SocketService {
 
       this.socket.on('connect', () => {
         this.isConnecting = false;
-        console.log('[Socket] Connected successfully');
         
         if (this.newMessageCallbacks.size > 0) {
           const messageHandler = (message: Message) => {
@@ -64,13 +63,11 @@ class SocketService {
               try {
                 cb(message);
               } catch (error) {
-                console.error('[Socket] Error in new_message callback', error);
               }
             });
           };
           this.socket?.removeAllListeners('new_message');
           this.socket?.on('new_message', messageHandler);
-          console.log('[Socket] Re-registered new_message handler after connect');
         }
       });
 
@@ -87,7 +84,6 @@ class SocketService {
       });
 
       this.socket.on('reconnect', (attemptNumber) => {
-        console.log('[Socket] Reconnected after', attemptNumber, 'attempts');
         // Re-register message handler after reconnect
         if (this.newMessageCallbacks.size > 0) {
           const messageHandler = (message: Message) => {
@@ -95,13 +91,11 @@ class SocketService {
               try {
                 cb(message);
               } catch (error) {
-                console.error('[Socket] Error in new_message callback', error);
               }
             });
           };
           this.socket?.removeAllListeners('new_message');
           this.socket?.on('new_message', messageHandler);
-          console.log('[Socket] Re-registered new_message handler after reconnect');
         }
       });
 
@@ -166,7 +160,7 @@ class SocketService {
             });
           }
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -209,7 +203,7 @@ class SocketService {
             s.once('connect', () => setupListener(s));
           }
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -229,7 +223,7 @@ class SocketService {
         if (socket) {
           socket.on('conversation_updated', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -249,7 +243,7 @@ class SocketService {
         if (socket) {
           socket.on('message_sent', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -269,22 +263,9 @@ class SocketService {
     fileSize?: number;
     replyToId?: string;
   }) {
-    console.log('[Socket] sendMessage called', {
-      conversationId: data.conversationId,
-      messageType: data.messageType,
-      hasContent: !!data.content,
-      hasFileUrl: !!data.fileUrl,
-      socketConnected: this.getSocketSync()?.connected,
-    });
-    
     const send = (socket: Socket) => {
       if (socket && socket.connected) {
-        console.log('[Socket] Emitting send_message event', {
-          conversationId: data.conversationId,
-        });
         socket.emit('send_message', data);
-      } else {
-        console.warn('[Socket] Socket not connected in send function');
       }
     };
 
@@ -292,25 +273,17 @@ class SocketService {
     if (socket && socket.connected) {
       send(socket);
     } else {
-      console.warn('[Socket] Socket not connected, attempting to connect...');
       this.connect().then((socket) => {
         if (socket) {
           if (socket.connected) {
-            console.log('[Socket] Socket connected, sending message');
             send(socket);
           } else {
-            console.log('[Socket] Waiting for socket to connect...');
             socket.once('connect', () => {
-              console.log('[Socket] Socket connected, sending message');
               send(socket);
             });
           }
-        } else {
-          console.error('[Socket] Failed to get socket for sending message');
         }
-      }).catch((error) => {
-        console.error('[Socket] Error connecting to send message', error);
-      });
+      }).catch(() => {});
     }
   }
 
@@ -323,7 +296,7 @@ class SocketService {
         if (socket) {
           socket.on('user_typing', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -343,7 +316,7 @@ class SocketService {
         if (socket) {
           socket.emit('typing_start', { conversationId });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -356,7 +329,7 @@ class SocketService {
         if (socket) {
           socket.emit('typing_stop', { conversationId });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -375,7 +348,7 @@ class SocketService {
         if (socket) {
           socket.on('call_offer', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -404,7 +377,7 @@ class SocketService {
         if (socket) {
           socket.on('call_answer', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -432,7 +405,7 @@ class SocketService {
         if (socket) {
           socket.on('call_ice_candidate', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -456,7 +429,7 @@ class SocketService {
         if (socket) {
           socket.on('call_end', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -476,7 +449,7 @@ class SocketService {
         if (socket) {
           socket.on('call_decline', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -488,55 +461,28 @@ class SocketService {
   }
 
   sendCallOffer(conversationId: string, callType: 'audio' | 'video', offer: RTCSessionDescriptionInit) {
-    console.log('[Socket] sendCallOffer called', {
-      conversationId,
-      callType,
-      offerType: offer.type,
-      socketConnected: this.getSocketSync()?.connected,
-    });
-    
     const socket = this.getSocketSync();
     if (socket && socket.connected) {
       socket.emit('call_offer', { conversationId, callType, offer });
-      console.log('[Socket] Call offer emitted');
     } else {
-      console.warn('[Socket] Socket not connected, attempting to connect...');
       this.connect().then((socket) => {
         if (socket && socket.connected) {
-          console.log('[Socket] Socket connected, emitting call offer');
           socket.emit('call_offer', { conversationId, callType, offer });
-        } else {
-          console.error('[Socket] Failed to connect socket for call offer');
         }
-      }).catch((error) => {
-        console.error('[Socket] Error connecting for call offer', error);
-      });
+      }).catch(() => {});
     }
   }
 
   sendCallAnswer(conversationId: string, answer: RTCSessionDescriptionInit) {
-    console.log('[Socket] sendCallAnswer called', {
-      conversationId,
-      answerType: answer.type,
-      socketConnected: this.getSocketSync()?.connected,
-    });
-    
     const socket = this.getSocketSync();
     if (socket && socket.connected) {
       socket.emit('call_answer', { conversationId, answer });
-      console.log('[Socket] Call answer emitted');
     } else {
-      console.warn('[Socket] Socket not connected for answer, attempting to connect...');
       this.connect().then((socket) => {
         if (socket && socket.connected) {
-          console.log('[Socket] Socket connected, emitting call answer');
           socket.emit('call_answer', { conversationId, answer });
-        } else {
-          console.error('[Socket] Failed to connect socket for call answer');
         }
-      }).catch((error) => {
-        console.error('[Socket] Error connecting for call answer', error);
-      });
+      }).catch(() => {});
     }
   }
 
@@ -549,7 +495,7 @@ class SocketService {
         if (socket) {
           socket.emit('call_ice_candidate', { conversationId, candidate });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -562,7 +508,7 @@ class SocketService {
         if (socket) {
           socket.emit('call_end', { conversationId, callType, duration: duration || 0 });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -575,7 +521,7 @@ class SocketService {
         if (socket) {
           socket.emit('call_decline', { conversationId, callType });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -588,7 +534,7 @@ class SocketService {
         if (socket) {
           socket.on('error', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -608,7 +554,7 @@ class SocketService {
         if (socket) {
           socket.emit('add_reaction', { messageId, emoji });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -621,7 +567,7 @@ class SocketService {
         if (socket) {
           socket.emit('remove_reaction', { messageId, emoji });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -634,7 +580,7 @@ class SocketService {
         if (socket) {
           socket.on('reaction_added', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -654,7 +600,7 @@ class SocketService {
         if (socket) {
           socket.on('reaction_removed', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -674,7 +620,7 @@ class SocketService {
         if (socket) {
           socket.emit('edit_message', { messageId, content });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -687,7 +633,7 @@ class SocketService {
         if (socket) {
           socket.emit('delete_message', { messageId });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -700,7 +646,7 @@ class SocketService {
         if (socket) {
           socket.on('message_edited', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -720,7 +666,7 @@ class SocketService {
         if (socket) {
           socket.on('message_deleted', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -740,7 +686,7 @@ class SocketService {
         if (socket) {
           socket.emit('update_online_status', { isOnline });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -753,7 +699,7 @@ class SocketService {
         if (socket) {
           socket.on('user_online_status', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -773,7 +719,7 @@ class SocketService {
         if (socket) {
           socket.emit('add_group_member', { conversationId, userId });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -786,7 +732,7 @@ class SocketService {
         if (socket) {
           socket.emit('remove_group_member', { conversationId, userId });
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -799,7 +745,7 @@ class SocketService {
         if (socket) {
           socket.on('member_added', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 
@@ -819,7 +765,7 @@ class SocketService {
         if (socket) {
           socket.on('member_removed', callback);
         }
-      }).catch(console.error);
+      }).catch(() => {});
     }
   }
 

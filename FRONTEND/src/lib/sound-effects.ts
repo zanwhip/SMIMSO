@@ -126,7 +126,6 @@ class SoundEffectsService {
       oscillator.start(now);
       oscillator.stop(now + duration);
     } catch (error) {
-      console.error('[SoundEffects] Error playing tone:', error);
     }
   }
 
@@ -172,7 +171,6 @@ class SoundEffectsService {
         oscillator.stop(now + duration);
       });
     } catch (error) {
-      console.error('[SoundEffects] Error playing chord:', error);
     }
   }
 

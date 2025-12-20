@@ -70,4 +70,103 @@ export class ImagineController {
       return errorResponse(res, error.message || 'Failed to generate video', 500);
     }
   }
+
+  async styleTransfer(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { prompt, guidance_scale, negative_prompt, num_inference_steps, target_size } = req.body;
+      const file = req.file;
+
+      if (!file) {
+        return errorResponse(res, 'Image file is required', 400);
+      }
+
+      let parsedTargetSize = undefined;
+      if (target_size) {
+        try {
+          parsedTargetSize = typeof target_size === 'string' ? JSON.parse(target_size) : target_size;
+        } catch (e) {
+          // If parsing fails, ignore target_size
+        }
+      }
+
+      const result = await imagineService.styleTransfer({
+        imagePath: file.path,
+        prompt,
+        guidance_scale: guidance_scale ? parseFloat(guidance_scale) : undefined,
+        negative_prompt,
+        num_inference_steps: num_inference_steps ? parseInt(num_inference_steps) : undefined,
+        target_size: parsedTargetSize,
+      });
+
+      return successResponse(res, result, 'Style transferred successfully');
+    } catch (error: any) {
+      return errorResponse(res, error.message || 'Failed to transfer style', 500);
+    }
+  }
+
+  async colorizeImage(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { prompt, guidance_scale, negative_prompt, num_inference_steps, target_size } = req.body;
+      const file = req.file;
+
+      if (!file) {
+        return errorResponse(res, 'Image file is required', 400);
+      }
+
+      let parsedTargetSize = undefined;
+      if (target_size) {
+        try {
+          parsedTargetSize = typeof target_size === 'string' ? JSON.parse(target_size) : target_size;
+        } catch (e) {
+          // If parsing fails, ignore target_size
+        }
+      }
+
+      const result = await imagineService.colorizeImage({
+        imagePath: file.path,
+        prompt,
+        guidance_scale: guidance_scale ? parseFloat(guidance_scale) : undefined,
+        negative_prompt,
+        num_inference_steps: num_inference_steps ? parseInt(num_inference_steps) : undefined,
+        target_size: parsedTargetSize,
+      });
+
+      return successResponse(res, result, 'Image colorized successfully');
+    } catch (error: any) {
+      return errorResponse(res, error.message || 'Failed to colorize image', 500);
+    }
+  }
+
+  async upscaleImage(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { prompt, guidance_scale, negative_prompt, num_inference_steps, target_size } = req.body;
+      const file = req.file;
+
+      if (!file) {
+        return errorResponse(res, 'Image file is required', 400);
+      }
+
+      let parsedTargetSize = undefined;
+      if (target_size) {
+        try {
+          parsedTargetSize = typeof target_size === 'string' ? JSON.parse(target_size) : target_size;
+        } catch (e) {
+          // If parsing fails, ignore target_size
+        }
+      }
+
+      const result = await imagineService.upscaleImage({
+        imagePath: file.path,
+        prompt,
+        guidance_scale: guidance_scale ? parseFloat(guidance_scale) : undefined,
+        negative_prompt,
+        num_inference_steps: num_inference_steps ? parseInt(num_inference_steps) : undefined,
+        target_size: parsedTargetSize,
+      });
+
+      return successResponse(res, result, 'Image upscaled successfully');
+    } catch (error: any) {
+      return errorResponse(res, error.message || 'Failed to upscale image', 500);
+    }
+  }
 }

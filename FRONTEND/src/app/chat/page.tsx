@@ -102,16 +102,7 @@ export default function ChatPage() {
   }, [messages]);
 
   const handleNewMessage = useCallback((message: Message) => {
-    console.log('[ChatPage] handleNewMessage received', {
-      messageId: message?.id,
-      conversationId: message?.conversation_id,
-      senderId: message?.sender_id,
-      currentUserId: user?.id,
-      selectedConversationId: selectedConversationRef.current?.id,
-    });
-    
     if (!message?.id || !message?.conversation_id) {
-      console.warn('[ChatPage] Invalid message received', { message });
       return;
     }
     
@@ -119,11 +110,6 @@ export default function ChatPage() {
     
     const currentConversation = selectedConversationRef.current;
     const isCurrent = message.conversation_id === currentConversation?.id;
-    
-    console.log('[ChatPage] Message handling', {
-      isCurrent,
-      isFromOtherUser: message.sender_id !== user?.id,
-    });
     
     if (isCurrent) {
       setMessages((prev) => {
@@ -170,16 +156,10 @@ export default function ChatPage() {
       });
       
       if (message.sender_id !== user?.id && currentConversation) {
-        console.log('[ChatPage] Marking conversation as read', {
-          conversationId: currentConversation.id,
-        });
         markAsRead(currentConversation.id);
       }
     } else {
       // Message is for another conversation - update unread count
-      console.log('[ChatPage] Updating unread count for other conversation', {
-        conversationId: message.conversation_id,
-      });
       
       setConversations((prev) => prev.map(conv => 
         conv.id === message.conversation_id 
@@ -251,8 +231,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (isAuthenticated) {
       if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
-          }).catch(console.error);
+        Notification.requestPermission().then(() => {}).catch(() => {});
       }
       
       const handleError = (error: { message: string; conversationId?: string }) => {
@@ -319,7 +298,7 @@ export default function ChatPage() {
       });
 
       if (isSupported && !isSubscribed && permissionStatus !== 'denied') {
-        subscribe().catch(console.error);
+        subscribe().catch(() => {});
       }
 
       fetchConversations();
@@ -686,12 +665,6 @@ export default function ChatPage() {
     const conversationId = selectedConversation?.id;
     const callTypeToEnd = callType;
     
-    console.log('[ChatPage] endCall called', {
-      conversationId,
-      callType: callTypeToEnd,
-      duration,
-    });
-    
     if (selectedConversation) {
       webrtcService.endCall(selectedConversation.id);
       socketService.sendCallEnd(selectedConversation.id, callTypeToEnd, duration);
@@ -715,13 +688,9 @@ export default function ChatPage() {
         try {
           const socket = await socketService.getSocket();
           if (socket && socket.connected) {
-            console.log('[ChatPage] Re-joining conversation after call end', {
-              conversationId: selectedConversation.id,
-            });
             socketService.joinConversation(selectedConversation.id);
           }
         } catch (error) {
-          console.error('[ChatPage] Error re-joining conversation after call', error);
         }
       }, 500);
     }
