@@ -9,16 +9,6 @@ import { initializeSocket } from './socket/socket';
 
 dotenv.config();
 
-const originalWarn = console.warn;
-console.warn = (...args: any[]) => {
-  const message = args[0]?.toString() || '';
-  if (message.includes('onnxruntime') && 
-      (message.includes('Removing initializer') || message.includes('Constant'))) {
-    return;
-  }
-  originalWarn.apply(console, args);
-};
-
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
 

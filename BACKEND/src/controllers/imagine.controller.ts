@@ -271,17 +271,9 @@ export class ImagineController {
     try {
       const { code, msg, data } = req.body;
 
-      // Log callback for debugging
-      console.log('Received 4o image generation callback:', {
-        taskId: data?.taskId,
-        status: code,
-        message: msg,
-      });
-
       if (code === 200) {
         // Task completed successfully
         const resultUrls = data?.info?.result_urls || [];
-        console.log(`Generated ${resultUrls.length} images for task ${data.taskId}`);
         
         // Here you can process the generated images
         // For example: save to database, notify user, etc.
@@ -289,21 +281,10 @@ export class ImagineController {
         return res.status(200).json({ status: 'received', message: 'Callback processed successfully' });
       } else {
         // Task failed
-        console.log(`4o image generation failed for task ${data?.taskId}:`, msg);
-        
-        // Handle failure cases
-        if (code === 400) {
-          console.log('Content policy violation or parameter error');
-        } else if (code === 451) {
-          console.log('Image download failed');
-        } else if (code === 500) {
-          console.log('Server internal error');
-        }
         
         return res.status(200).json({ status: 'received', message: 'Callback processed (failed task)' });
       }
     } catch (error: any) {
-      console.error('Error processing 4o image callback:', error);
       // Still return 200 to acknowledge receipt
       return res.status(200).json({ status: 'received', error: error.message });
     }

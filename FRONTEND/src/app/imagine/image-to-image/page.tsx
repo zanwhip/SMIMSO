@@ -86,7 +86,6 @@ export default function ImageToImagePage() {
         return response.data.data.downloadUrl;
       }
     } catch (error) {
-      console.error('Failed to get direct download URL:', error);
     }
 
     return url;
@@ -125,7 +124,6 @@ export default function ImageToImagePage() {
           }
         }
       } catch (error: any) {
-        console.error('Error polling task status:', error);
       }
     }, 3000); // Poll every 3 seconds
 
@@ -305,7 +303,6 @@ export default function ImageToImagePage() {
       }
       return null;
     } catch (error) {
-      console.error('Failed to upload mask:', error);
       return null;
     }
   };
@@ -390,7 +387,6 @@ export default function ImageToImagePage() {
             downloadUrl = response.data.data.downloadUrl;
           }
         } catch (error) {
-          console.error('Failed to get download URL, using original:', error);
         }
       }
 
@@ -720,7 +716,6 @@ export default function ImageToImagePage() {
                               className="object-contain"
                               unoptimized
                               onError={(e) => {
-                                console.error('Image load error:', imageUrl);
                                 toast.error(`Failed to load image ${index + 1}`);
                               }}
                             />
