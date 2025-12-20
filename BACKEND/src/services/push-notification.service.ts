@@ -3,13 +3,31 @@ import { supabaseAdmin } from '../config/supabase';
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_EMAIL = process.env.VAPID_EMAIL || 'mailto:admin@example.com';
 
+// Initialize VAPID keys only if both are provided and valid
+let vapidInitialized = false;
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    'mailto:your-email@example.com', // Contact email
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY
-  );
+  try {
+    // Remove padding "=" and whitespace from keys if present
+    // web-push requires URL-safe base64 without padding
+    const cleanPublicKey = VAPID_PUBLIC_KEY.trim().replace(/=/g, '').replace(/\s/g, '');
+    const cleanPrivateKey = VAPID_PRIVATE_KEY.trim().replace(/=/g, '').replace(/\s/g, '');
+    
+    // Validate keys are not empty after cleaning
+    if (cleanPublicKey && cleanPrivateKey && cleanPublicKey.length > 0 && cleanPrivateKey.length > 0) {
+      webpush.setVapidDetails(
+        VAPID_EMAIL,
+        cleanPublicKey,
+        cleanPrivateKey
+      );
+      vapidInitialized = true;
+    }
+  } catch (error) {
+    // Silently fail if VAPID keys are invalid
+    // Push notifications will be disabled
+    vapidInitialized = false;
+  }
 }
 
 export interface PushSubscription {
@@ -57,7 +75,7 @@ export class PushNotificationService {
     body: string,
     data?: any
   ): Promise<void> {
-    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    if (!vapidInitialized) {
       return;
     }
 
