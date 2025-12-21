@@ -1,6 +1,33 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Get API URL with fallback - handle both undefined and empty string
+const getApiUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  const fallbackUrl = 'http://smimso-api-production.up.railway.app/api';
+  
+  // If envUrl is undefined, null, or empty string, use fallback
+  if (!envUrl || envUrl.trim() === '') {
+    return fallbackUrl;
+  }
+  
+  return envUrl;
+};
+
+// Get base URL without /api for auth routes
+const getBaseUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  const fallbackUrl = 'http://smimso-api-production.up.railway.app';
+  
+  if (!envUrl || envUrl.trim() === '') {
+    return fallbackUrl;
+  }
+  
+  // Remove /api if present
+  return envUrl.replace('/api', '');
+};
+
+const API_URL = getApiUrl();
+const BASE_URL = getBaseUrl();
 
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
@@ -8,6 +35,15 @@ const api: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30000, // 30 seconds timeout to prevent infinite hanging
+});
+
+// Auth API instance without /api prefix
+export const authApi: AxiosInstance = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000,
 });
 
 export const createApiWithTimeout = (timeout: number = 90000): AxiosInstance => {
@@ -19,6 +55,20 @@ export const createApiWithTimeout = (timeout: number = 90000): AxiosInstance => 
     timeout,
   });
 };
+
+// Add auth token interceptor for authApi
+authApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 api.interceptors.request.use(
   (config) => {
@@ -40,8 +90,8 @@ api.interceptors.response.use(
       if (error.code === 'ECONNABORTED') {
         return Promise.reject(new Error('Kết nối quá lâu. Vui lòng kiểm tra kết nối mạng và thử lại.'));
       } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        const apiUrl = error.config?.baseURL || API_URL;
-        const isLocalhost = apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1');
+        const apiUrl = error.config?.baseURL || API_URL || 'http://smimso-api-production.up.railway.app';
+        const isLocalhost = apiUrl && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1'));
         if (isLocalhost && typeof window !== 'undefined') {
           const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
           if (isMobile) {

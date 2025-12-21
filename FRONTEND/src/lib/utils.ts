@@ -32,7 +32,8 @@ export function getImageUrl(path: string): string {
   if (path.startsWith('http')) {
     return path;
   }
-  return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${path}`;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://smimso-api-production.up.railway.app/api';
+  return `${apiUrl.replace('/api', '')}${path}`;
 }
 
 export function formatNumber(num: number): string {

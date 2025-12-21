@@ -34,12 +34,18 @@ export class AuthController {
   async login(req: Request, res: Response): Promise<Response> {
     try {
       const data: LoginDTO = req.body;
+      
+      if (!data.emailOrPhone || !data.password) {
+        return errorResponse(res, 'Email/Phone and password are required', 400);
+      }
+
       const result = await authService.login(data);
 
       return successResponse(res, {
         user: {
           id: result.user.id,
           email: result.user.email,
+          phone: result.user.phone,
           first_name: result.user.first_name,
           last_name: result.user.last_name,
           avatar_url: result.user.avatar_url,
@@ -47,7 +53,7 @@ export class AuthController {
         token: result.token,
       }, 'Login successful');
     } catch (error: any) {
-      return errorResponse(res, error.message, 401);
+      return errorResponse(res, error.message || 'Login failed', 401);
     }
   }
 

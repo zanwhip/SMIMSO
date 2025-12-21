@@ -1,12 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['localhost', 'lh3.googleusercontent.com', 'images.unsplash.com', 'plus.unsplash.com'],
+    domains: ['localhost', 'smimso-api-production.up.railway.app', 'lh3.googleusercontent.com', 'images.unsplash.com', 'plus.unsplash.com'],
     remotePatterns: [
       {
         protocol: 'http',
         hostname: 'localhost',
         port: '5000',
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'smimso-api-production.up.railway.app',
         pathname: '/uploads/**',
       },
       {
@@ -42,8 +47,8 @@ const nextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
-    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://smimso-api-production.up.railway.app',
+    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://smimso-api-production.up.railway.app',
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
   },
 }

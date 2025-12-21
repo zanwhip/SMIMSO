@@ -55,17 +55,25 @@ export class AuthService {
   async login(data: LoginDTO): Promise<{ user: User; token: string }> {
     const { emailOrPhone, password, rememberMe } = data;
 
+    if (!emailOrPhone || !password) {
+      throw new Error('Email/Phone and password are required');
+    }
+
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
       .or(`email.eq."${emailOrPhone}",phone.eq."${emailOrPhone}"`)
-      .single();
+      .maybeSingle();
 
-    if (error || !user) {
+    if (error) {
+      throw new Error('Database error: ' + error.message);
+    }
+
+    if (!user) {
       throw new Error('Invalid credentials');
     }
 
-    if (!user.is_active) {
+    if (user.is_active === false) {
       throw new Error('Account is deactivated');
     }
 
@@ -78,7 +86,7 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    const token = generateToken({ id: user.id, email: user.email });
+    const token = generateToken({ id: user.id, email: user.email || '' });
 
     return { user, token };
   }

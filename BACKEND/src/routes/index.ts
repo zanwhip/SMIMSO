@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import authRoutes from './auth.routes';
+import { authMiddleware } from '../middleware/auth.middleware';
 import surveyRoutes from './survey.routes';
 import postRoutes from './post.routes';
 import userRoutes from './user.routes';
@@ -12,7 +12,16 @@ import searchRoutes from './search.routes';
 
 const router = Router();
 
-router.use('/auth', authRoutes);
+// Health check - public endpoint
+router.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    message: 'SMIMSO API is running',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// All other routes require authentication
 router.use('/survey', surveyRoutes);
 router.use('/posts', postRoutes);
 router.use('/users', userRoutes);
@@ -22,14 +31,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/chat', chatRoutes);
 router.use('/imagine', imagineRoutes);
 router.use('/search', searchRoutes);
-
-router.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'SMIMSO API is running',
-    timestamp: new Date().toISOString(),
-  });
-});
 
 export default router;
 

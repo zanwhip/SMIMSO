@@ -10,14 +10,10 @@ import { storageService } from './services/storage.service';
 
 dotenv.config();
 
-// Ensure Supabase Storage bucket exists on startup
-(async () => {
-  try {
-    await storageService.ensureBucket();
-  } catch (error: any) {
-    // Silently fail, bucket should be created manually
-  }
-})();
+// Ensure Supabase Storage bucket exists on startup (non-blocking)
+storageService.ensureBucket().catch(() => {
+  // Silently fail, bucket should be created manually in Supabase dashboard
+});
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
@@ -41,6 +37,11 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Auth routes without /api prefix
+import authRoutes from './routes/auth.routes';
+app.use('/auth', authRoutes);
+
+// Other routes with /api prefix
 app.use('/api', routes);
 
 app.get('/', (req: Request, res: Response) => {
@@ -49,7 +50,7 @@ app.get('/', (req: Request, res: Response) => {
     message: 'Welcome to SMIMSO API - Smart Image & Idea Social Network',
     version: '1.0.0',
       endpoints: {
-        auth: '/api/auth',
+        auth: '/auth',
         survey: '/api/survey',
         posts: '/api/posts',
         users: '/api/users',
@@ -79,7 +80,8 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     });
   }
 
-  res.status(500).json({
+  const statusCode = (err as any).statusCode || 500;
+  res.status(statusCode).json({
     success: false,
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined,

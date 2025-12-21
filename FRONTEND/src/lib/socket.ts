@@ -10,7 +10,7 @@ const showError = (message: string) => {
     }
 };
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL;
 
 class SocketService {
   private socket: Socket | null = null;

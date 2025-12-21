@@ -2,61 +2,52 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import { verifyToken } from '../utils/jwt';
 
-export const authMiddleware = async (
+export const authMiddleware = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
-  try {
-    const authHeader = req.headers.authorization;
+): void => {
+  const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        error: 'No token provided',
-      });
-    }
-
-    const token = authHeader.substring(7);
-
-    try {
-      const decoded = verifyToken(token);
-      req.user = decoded;
-      next();
-    } catch (error) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid or expired token',
-      });
-    }
-  } catch (error) {
-    return res.status(500).json({
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({
       success: false,
-      error: 'Authentication error',
+      error: 'Authentication required. Please provide a valid token.',
+    });
+    return;
+  }
+
+  const token = authHeader.substring(7);
+
+  try {
+    const decoded = verifyToken(token);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      error: 'Invalid or expired token. Please login again.',
     });
   }
 };
 
-export const optionalAuth = async (
+export const optionalAuth = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
-  try {
-    const authHeader = req.headers.authorization;
+): void => {
+  const authHeader = req.headers.authorization;
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      try {
-        const decoded = verifyToken(token);
-        req.user = decoded;
-      } catch (error) {
-      }
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = verifyToken(token);
+      req.user = decoded;
+    } catch (error) {
+      // Silently fail for optional auth
     }
-
-    next();
-  } catch (error) {
-    next();
   }
+
+  next();
 };
 

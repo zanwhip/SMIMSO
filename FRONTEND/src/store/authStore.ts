@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '@/types';
-import api, { setAuthToken, removeAuthToken } from '@/lib/api';
+import api, { authApi, setAuthToken, removeAuthToken } from '@/lib/api';
 
 interface AuthState {
   user: User | null;
@@ -28,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
       login: async (emailOrPhone: string, password: string) => {
         try {
           set({ isLoading: true });
-          const response = await api.post('/auth/login', {
+          const response = await authApi.post('/auth/login', {
             emailOrPhone,
             password,
           });
@@ -64,7 +64,7 @@ export const useAuthStore = create<AuthState>()(
 
       register: async (data: any) => {
         try {
-          const response = await api.post('/auth/register', data);
+          const response = await authApi.post('/auth/register', data);
 
           const { user, token } = response.data.data;
 
@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
 
       googleLogin: async (token: string) => {
         try {
-          const response = await api.post('/auth/google-login', { token });
+          const response = await authApi.post('/auth/google-login', { token });
 
           const { user, token: jwtToken, isNewUser } = response.data.data;
 
@@ -129,7 +129,7 @@ export const useAuthStore = create<AuthState>()(
 
           set({ isLoading: true });
           setAuthToken(token);
-          const response = await api.get('/auth/me');
+          const response = await authApi.get('/auth/me');
           const user = response.data.data;
 
           set({

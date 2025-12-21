@@ -1,14 +1,13 @@
 import { Router } from 'express';
 import { OptionsController } from '../controllers/options.controller';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 const optionsController = new OptionsController();
 
-router.get('/', optionsController.getFormOptions.bind(optionsController));
-
-router.get('/jobs', optionsController.getJobOptions.bind(optionsController));
-
-router.get('/categories', optionsController.getCategories.bind(optionsController));
+router.get('/', authMiddleware, optionsController.getFormOptions.bind(optionsController));
+router.get('/jobs', authMiddleware, optionsController.getJobOptions.bind(optionsController));
+router.get('/categories', authMiddleware, optionsController.getCategories.bind(optionsController));
 
 export default router;
 

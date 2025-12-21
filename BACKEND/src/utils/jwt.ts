@@ -3,7 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const JWT_SECRET: jwt.Secret = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET: jwt.Secret = process.env.JWT_SECRET || '';
+
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be at least 32 characters long. Please set it in your environment variables.');
+}
 
 export interface JwtPayload {
   id: string;
