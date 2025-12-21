@@ -25,12 +25,56 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   }
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+// CORS configuration - allow all origins for development, specific origins for production
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps, Postman, or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:3000',
+      'https://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+      'https://localhost:3001',
+    ].filter(Boolean) as string[];
+
+    // In development, allow localhost
+    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+    }
+
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow production domains
+    if (origin.includes('smimso') || origin.includes('vercel.app') || origin.includes('railway.app') || origin.includes('netlify.app')) {
+      return callback(null, true);
+    }
+
+    // Default: allow for now (can be restricted in production)
+    callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
