@@ -3,7 +3,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 // Get API URL with fallback - handle both undefined and empty string
 const getApiUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  const fallbackUrl = 'http://smimso-api-production.up.railway.app/api';
+  const fallbackUrl = 'https://smimso-api-production.up.railway.app/api';
   
   // If envUrl is undefined, null, or empty string, use fallback
   if (!envUrl || envUrl.trim() === '') {
@@ -16,7 +16,7 @@ const getApiUrl = () => {
 // Get base URL without /api for auth routes
 const getBaseUrl = () => {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  const fallbackUrl = 'http://smimso-api-production.up.railway.app';
+  const fallbackUrl = 'https://smimso-api-production.up.railway.app';
   
   if (!envUrl || envUrl.trim() === '') {
     return fallbackUrl;
@@ -90,7 +90,7 @@ api.interceptors.response.use(
       if (error.code === 'ECONNABORTED') {
         return Promise.reject(new Error('Kết nối quá lâu. Vui lòng kiểm tra kết nối mạng và thử lại.'));
       } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-        const apiUrl = error.config?.baseURL || API_URL || 'http://smimso-api-production.up.railway.app';
+        const apiUrl = error.config?.baseURL || API_URL || 'https://smimso-api-production.up.railway.app';
         const isLocalhost = apiUrl && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1'));
         if (isLocalhost && typeof window !== 'undefined') {
           const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);

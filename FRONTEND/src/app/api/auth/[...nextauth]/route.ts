@@ -2,7 +2,7 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://smimso-api-production.up.railway.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://smimso-api-production.up.railway.app';
 
 const authOptions: NextAuthOptions = {
   providers: [

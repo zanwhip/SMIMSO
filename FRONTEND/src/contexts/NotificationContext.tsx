@@ -71,7 +71,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       eventSourceRef.current = null;
     }
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://smimso-api-production.up.railway.app/api';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://smimso-api-production.up.railway.app/api';
     const sseUrl = `${API_URL}/notifications/stream?token=${encodeURIComponent(token)}`;
 
     try {

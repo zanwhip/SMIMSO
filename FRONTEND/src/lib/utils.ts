@@ -29,11 +29,40 @@ export function formatDate(date: string | Date | null | undefined): string {
 }
 
 export function getImageUrl(path: string): string {
-  if (path.startsWith('http')) {
+  if (!path) return '';
+  
+  // If already a full URL (http/https), return as is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://smimso-api-production.up.railway.app/api';
+  
+  // If it's a Supabase storage URL (starts with /storage), construct full URL
+  if (path.startsWith('/storage/')) {
+    // Extract Supabase URL from environment or use default pattern
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (supabaseUrl) {
+      return `${supabaseUrl}${path}`;
+    }
+    // Fallback: try to extract from API URL if it contains supabase
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    if (apiUrl.includes('supabase')) {
+      // This shouldn't happen, but handle it
+      return path;
+    }
+  }
+  
+  // For relative paths, prepend API base URL
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://smimso-api-production.up.railway.app/api';
   return `${apiUrl.replace('/api', '')}${path}`;
+}
+
+/**
+ * Check if an image URL is from Supabase Storage
+ * Supabase URLs typically look like: https://[project].supabase.co/storage/v1/object/public/...
+ */
+export function isSupabaseUrl(url: string): boolean {
+  if (!url) return false;
+  return url.includes('supabase.co') && url.includes('/storage/v1/object/public/');
 }
 
 export function formatNumber(num: number): string {

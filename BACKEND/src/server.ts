@@ -28,6 +28,10 @@ storageService.ensureBucket().catch((error) => {
 const app: Application = express();
 const PORT = parseInt(envConfig.PORT, 10);
 
+// Trust proxy - Railway uses a reverse proxy
+// This ensures req.protocol, req.hostname, and req.ip are correctly set
+app.set('trust proxy', true);
+
 const httpServer = createServer(app);
 
 const uploadsDir = path.join(__dirname, '../uploads');

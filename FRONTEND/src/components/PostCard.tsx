@@ -4,7 +4,7 @@ import { useState, useEffect, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Post } from '@/types';
-import { getImageUrl, formatNumber } from '@/lib/utils';
+import { getImageUrl, formatNumber, isSupabaseUrl } from '@/lib/utils';
 import { FiHeart, FiMessageCircle, FiDownload, FiBookmark } from 'react-icons/fi';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -102,6 +102,7 @@ function PostCard({ post: initialPost, onPostUpdate }: PostCardProps) {
             onLoad={() => setImageLoaded(true)}
             loading="lazy"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            unoptimized={isSupabaseUrl(getImageUrl(imageUrl))}
           />
 
           <div 
@@ -129,6 +130,7 @@ function PostCard({ post: initialPost, onPostUpdate }: PostCardProps) {
                     width={40}
                     height={40}
                     className="w-full h-full object-cover"
+                    unoptimized={isSupabaseUrl(getImageUrl(post.user.avatar_url))}
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xs font-semibold">

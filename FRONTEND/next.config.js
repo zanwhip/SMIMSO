@@ -10,13 +10,18 @@ const nextConfig = {
         pathname: '/uploads/**',
       },
       {
-        protocol: 'http',
+        protocol: 'https',
         hostname: 'smimso-api-production.up.railway.app',
         pathname: '/uploads/**',
       },
       {
         protocol: 'https',
         hostname: '*.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.in',
         pathname: '/storage/v1/object/public/**',
       },
       {
@@ -47,8 +52,8 @@ const nextConfig = {
     ],
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://smimso-api-production.up.railway.app',
-    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://smimso-api-production.up.railway.app',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://smimso-api-production.up.railway.app',
+    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || 'https://smimso-api-production.up.railway.app',
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
   },
 }

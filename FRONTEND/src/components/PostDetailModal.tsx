@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { Post, Comment } from '@/types';
-import { getImageUrl, formatDate, formatNumber } from '@/lib/utils';
+import { getImageUrl, formatDate, formatNumber, isSupabaseUrl } from '@/lib/utils';
 import { FiHeart, FiMessageCircle, FiBookmark, FiShare2, FiEdit2, FiDownload, FiX, FiInfo, FiSend } from 'react-icons/fi';
 import { FaHeart } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -304,6 +304,7 @@ export default function PostDetailModal({
                                   width={48}
                                   height={48}
                                   className="w-full h-full object-cover"
+                                  unoptimized={isSupabaseUrl(getImageUrl(post.user.avatar_url))}
                                 />
                               ) : (
                                 userInitials
@@ -473,6 +474,7 @@ export default function PostDetailModal({
                                   width={40}
                                   height={40}
                                   className="rounded-full"
+                                  unoptimized={isSupabaseUrl(getImageUrl(comment.user.avatar_url))}
                                 />
                               ) : (
                                 <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-gray-600 font-semibold">
@@ -568,6 +570,7 @@ export default function PostDetailModal({
                                 src={getImageUrl(relatedImageUrl)}
                                 alt={relatedPost.title || 'Related post'}
                                 fill
+                                unoptimized={isSupabaseUrl(getImageUrl(relatedImageUrl))}
                                 className="object-cover group-hover:scale-110 transition-transform duration-300"
                                 sizes="(max-width: 768px) 50vw, 25vw"
                               />
