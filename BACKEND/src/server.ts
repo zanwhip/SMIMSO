@@ -60,20 +60,27 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Apply CORS middleware before all other middleware
-app.use(cors(corsOptions));
-
-// Handle preflight requests for all routes
-app.options('*', cors(corsOptions));
-
-// Additional middleware to log CORS requests and ensure headers are set
-app.use((req: Request, res: Response, next: NextFunction) => {
+// Handle preflight OPTIONS requests FIRST, before any other middleware
+// This must be before any other routes to prevent redirects
+app.options('*', (req: Request, res: Response) => {
   const origin = req.headers.origin;
-  if (origin && req.method === 'OPTIONS') {
-    logger.info(`CORS Preflight: ${req.method} ${req.path} from ${origin}`);
+  // When credentials: true, we must set the specific origin, not '*'
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    // For requests without origin (like Postman), allow all
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
-  next();
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  res.status(204).end();
 });
+
+// Apply CORS middleware for all other requests
+app.use(cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
