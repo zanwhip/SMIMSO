@@ -5,10 +5,19 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package files
+<<<<<<< HEAD
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies for build)
 RUN npm ci
+=======
+COPY package.json ./
+COPY package-lock.json* ./
+
+# Install all dependencies (including devDependencies for build)
+# Use npm install which works with or without package-lock.json
+RUN npm install
+>>>>>>> e17fbb3 (build BE 27/12)
 
 # Copy source code
 COPY . .
