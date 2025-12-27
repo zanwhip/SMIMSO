@@ -124,13 +124,12 @@ function PostCard({ post: initialPost, onPostUpdate }: PostCardProps) {
             >
               <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xl border-2 border-white/30 shadow-lg overflow-hidden ring-2 ring-white/20 hover:ring-white/40 transition-all duration-300 hover:scale-110">
                 {post.user?.avatar_url ? (
-                  <Image
-                    src={getImageUrl(post.user.avatar_url)}
+                  <SafeImage
+                    src={post.user.avatar_url}
                     alt={userName}
                     width={40}
                     height={40}
                     className="w-full h-full object-cover"
-                    unoptimized={isExternalUrl(getImageUrl(post.user.avatar_url))}
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white text-xs font-semibold">
