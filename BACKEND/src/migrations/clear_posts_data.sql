@@ -39,3 +39,4 @@ DELETE FROM posts;
 -- SELECT COUNT(*) as remaining_saved_posts FROM saved_posts;
 -- SELECT COUNT(*) as remaining_activities FROM user_activities WHERE post_id IS NOT NULL;
 
+

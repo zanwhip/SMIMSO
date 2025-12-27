@@ -4,7 +4,8 @@ import { useState, useEffect, memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Post } from '@/types';
-import { getImageUrl, formatNumber, isExternalUrl } from '@/lib/utils';
+import { getImageUrl, formatNumber } from '@/lib/utils';
+import SafeImage from '@/components/SafeImage';
 import { FiHeart, FiMessageCircle, FiDownload, FiBookmark } from 'react-icons/fi';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -91,8 +92,8 @@ function PostCard({ post: initialPost, onPostUpdate }: PostCardProps) {
             <div className="absolute inset-0 skeleton" />
           )}
 
-          <Image
-            src={getImageUrl(imageUrl)}
+          <SafeImage
+            src={imageUrl}
             alt={post.title || 'Post image'}
             width={500}
             height={500}
@@ -102,7 +103,6 @@ function PostCard({ post: initialPost, onPostUpdate }: PostCardProps) {
             onLoad={() => setImageLoaded(true)}
             loading="lazy"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            unoptimized={isExternalUrl(getImageUrl(imageUrl))}
           />
 
           <div 

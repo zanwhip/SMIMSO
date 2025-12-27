@@ -79,6 +79,14 @@ export function isExternalUrl(url: string): boolean {
 }
 
 /**
+ * Check if we should use regular <img> tag instead of Next.js Image component
+ * This is needed to avoid ORB (Opaque Response Blocking) errors with external URLs
+ */
+export function shouldUseRegularImg(url: string): boolean {
+  return isExternalUrl(url);
+}
+
+/**
  * Check if an image URL is from Supabase Storage
  * Supabase URLs typically look like: https://[project].supabase.co/storage/v1/object/public/...
  */
