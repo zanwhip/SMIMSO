@@ -41,9 +41,14 @@ if (!fs.existsSync(uploadsDir)) {
   }
   }
 
+// CORS configuration - allow all origins
+// Note: When credentials: true, we must use a callback function, not '*' or true
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow all origins
+    // Allow all origins - set the origin header to the requesting origin
+    if (origin) {
+      logger.info(`CORS: Allowing request from origin: ${origin}`);
+    }
     callback(null, true);
   },
   credentials: true,
@@ -55,9 +60,20 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
+// Apply CORS middleware before all other middleware
 app.use(cors(corsOptions));
 
+// Handle preflight requests for all routes
 app.options('*', cors(corsOptions));
+
+// Additional middleware to log CORS requests and ensure headers are set
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+  if (origin && req.method === 'OPTIONS') {
+    logger.info(`CORS Preflight: ${req.method} ${req.path} from ${origin}`);
+  }
+  next();
+});
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
