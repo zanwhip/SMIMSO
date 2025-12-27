@@ -61,15 +61,23 @@ const setCorsHeaders = (req: Request, res: Response) => {
   logger.info(`CORS: Headers set for ${req.method} ${req.path} from origin: ${origin || 'no origin'}`);
 };
 
-// CORS Middleware - MUST be the FIRST middleware
+// CRITICAL: Handle OPTIONS requests FIRST, before ANY other middleware
+// This must be at the absolute top to prevent any redirects
+app.options('*', (req: Request, res: Response) => {
+  setCorsHeaders(req, res);
+  logger.info(`CORS Preflight OPTIONS: ${req.path} from ${req.headers.origin || 'no origin'}`);
+  return res.status(204).end();
+});
+
+// CORS Middleware - MUST be the FIRST middleware after OPTIONS handler
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // Set CORS headers immediately
+  // Set CORS headers immediately for all requests
   setCorsHeaders(req, res);
   
-  // Handle preflight OPTIONS requests - return immediately
+  // Double-check OPTIONS (in case app.options didn't catch it)
   if (req.method === 'OPTIONS') {
-    logger.info(`CORS Preflight handled: ${req.method} ${req.path}`);
-    return res.status(204).send();
+    logger.info(`CORS Preflight in middleware: ${req.method} ${req.path}`);
+    return res.status(204).end();
   }
   
   next();
