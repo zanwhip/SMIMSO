@@ -40,15 +40,16 @@ if (!fs.existsSync(uploadsDir)) {
   }
   }
 
-// Helper function to set CORS headers
+// Helper function to set CORS headers - MUST be called before any response
 const setCorsHeaders = (req: Request, res: Response) => {
-  const origin = req.headers.origin;
+  const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
   
+  // Always allow the requesting origin
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    logger.info(`CORS: Setting headers for origin: ${origin}`);
   } else {
+    // Fallback: allow all origins if no origin header
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
   
@@ -56,18 +57,19 @@ const setCorsHeaders = (req: Request, res: Response) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Max-Age', '86400');
+  
+  logger.info(`CORS: Headers set for ${req.method} ${req.path} from origin: ${origin || 'no origin'}`);
 };
 
-// CORS Middleware - Handle ALL CORS requests manually for maximum control
-// This MUST be the first middleware
+// CORS Middleware - MUST be the FIRST middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // Set CORS headers for all requests
+  // Set CORS headers immediately
   setCorsHeaders(req, res);
   
-  // Handle preflight OPTIONS requests immediately - BEFORE any other processing
+  // Handle preflight OPTIONS requests - return immediately
   if (req.method === 'OPTIONS') {
-    logger.info(`CORS Preflight: ${req.method} ${req.path} from ${req.headers.origin || 'no origin'}`);
-    return res.status(204).end();
+    logger.info(`CORS Preflight handled: ${req.method} ${req.path}`);
+    return res.status(204).send();
   }
   
   next();
@@ -76,6 +78,25 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Middleware to ensure CORS headers on every response
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Override res.json to always set CORS headers
+  const originalJson = res.json.bind(res);
+  res.json = function(body: any) {
+    setCorsHeaders(req, res);
+    return originalJson(body);
+  };
+  
+  // Override res.send to always set CORS headers
+  const originalSend = res.send.bind(res);
+  res.send = function(body?: any) {
+    setCorsHeaders(req, res);
+    return originalSend(body);
+  };
+  
+  next();
+});
+
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 import authRoutes from './routes/auth.routes';
@@ -83,7 +104,19 @@ app.use('/auth', authRoutes);
 
 app.use('/api', routes);
 
+// Test CORS endpoint
+app.get('/test-cors', (req: Request, res: Response) => {
+  setCorsHeaders(req, res);
+  res.json({
+    success: true,
+    message: 'CORS test endpoint',
+    origin: req.headers.origin,
+    headers: req.headers,
+  });
+});
+
 app.get('/', (req: Request, res: Response) => {
+  setCorsHeaders(req, res);
   res.json({
     success: true,
     message: 'Welcome to SMIMSO API - Smart Image & Idea Social Network',
@@ -100,6 +133,7 @@ app.get('/', (req: Request, res: Response) => {
         imagine: '/api/imagine',
         search: '/api/search',
         health: '/api/health',
+        testCors: '/test-cors',
       },
   });
 });
