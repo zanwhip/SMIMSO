@@ -11,6 +11,7 @@
     "validate-env": "ts-node -e \"try { require('./src/utils/env-validator').validateEnv(); } catch(e) { console.warn('Env validation skipped:', e.message); }\"",
     "test": "jest",
     "seed": "ts-node src/scripts/seed.ts",
+    "seed-posts": "ts-node src/scripts/seed-posts.ts",
     "clear-posts": "ts-node src/scripts/clear-posts.ts",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist"
