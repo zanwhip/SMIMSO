@@ -112,35 +112,33 @@ export default function SafeImage({
     );
   }
 
-  // Use Next.js Image for internal URLs
+  // For Next.js Image, we need to wrap it to catch errors
+  // Since Next.js Image doesn't support onError, we'll use img tag if it's external or if error occurred
+  // For internal URLs that might fail, we'll also use img tag as fallback
   if (fill) {
     return (
-      <Image
-        src={imageUrl}
+      <img
+        src={imageError ? PLACEHOLDER_IMAGE : imageUrl}
         alt={alt}
-        fill
         className={className}
         onLoad={handleLoad}
-        loading={loading}
-        sizes={sizes}
-        priority={priority}
         onError={handleError}
+        loading={loading}
+        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
       />
     );
   }
 
   return (
-    <Image
-      src={imageUrl}
+    <img
+      src={imageError ? PLACEHOLDER_IMAGE : imageUrl}
       alt={alt}
-      width={width || 500}
-      height={height || 500}
+      width={width}
+      height={height}
       className={className}
       onLoad={handleLoad}
       onError={handleError}
       loading={loading}
-      sizes={sizes}
-      priority={priority}
     />
   );
 }
