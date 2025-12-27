@@ -352,7 +352,6 @@ export class UserService {
 
       const usersWithStats = await Promise.all(
         users.map(async (user) => {
-          // Get posts from last 4 weeks
           const { data: recentPosts } = await supabase
             .from('posts')
             .select('view_count')
@@ -398,19 +397,16 @@ export class UserService {
 
       const usersWithStats = await Promise.all(
         users.map(async (user) => {
-          // Count posts
           const { count: postCount } = await supabase
             .from('posts')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id);
 
-          // Count comments
           const { count: commentCount } = await supabase
             .from('comments')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id);
 
-          // Count recent posts (last 4 weeks)
           const fourWeeksAgo = new Date();
           fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
           

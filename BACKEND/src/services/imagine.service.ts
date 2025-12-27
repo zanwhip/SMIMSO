@@ -475,7 +475,6 @@ export class ImagineService {
         throw new Error('HF_KEY is not set in environment variables');
       }
 
-      // Determine MIME type from file extension
       const ext = path.extname(params.imagePath).toLowerCase();
       const mimeTypes: { [key: string]: string } = {
         '.jpg': 'image/jpeg',
@@ -486,11 +485,8 @@ export class ImagineService {
       };
       const mimeType = mimeTypes[ext] || 'image/jpeg';
 
-      // Convert image to base64 for API
       const base64Image = imageBuffer.toString('base64');
       
-      // Use Hugging Face Inference API directly with JSON
-      // For image-to-image, inputs should be the base64 image string
       const requestBody: any = {
         inputs: base64Image,
         parameters: {
@@ -521,7 +517,6 @@ export class ImagineService {
         }
       );
 
-      // Convert response to base64
       const resultBuffer = Buffer.from(response.data);
       const base64 = resultBuffer.toString('base64');
       const contentType = response.headers['content-type'] || 'image/png';
@@ -580,7 +575,6 @@ export class ImagineService {
         throw new Error('HF_KEY is not set in environment variables');
       }
 
-      // Determine MIME type from file extension
       const ext = path.extname(params.imagePath).toLowerCase();
       const mimeTypes: { [key: string]: string } = {
         '.jpg': 'image/jpeg',
@@ -591,10 +585,8 @@ export class ImagineService {
       };
       const mimeType = mimeTypes[ext] || 'image/jpeg';
 
-      // Convert image to base64 for API
       const base64Image = imageBuffer.toString('base64');
       
-      // Use Hugging Face Inference API directly with JSON
       const requestBody: any = {
         inputs: base64Image,
         parameters: {
@@ -622,7 +614,6 @@ export class ImagineService {
         }
       );
 
-      // Convert response to base64
       const resultBuffer = Buffer.from(response.data);
       const base64 = resultBuffer.toString('base64');
       const contentType = response.headers['content-type'] || 'image/png';
@@ -681,7 +672,6 @@ export class ImagineService {
         throw new Error('HF_KEY is not set in environment variables');
       }
 
-      // Determine MIME type from file extension
       const ext = path.extname(params.imagePath).toLowerCase();
       const mimeTypes: { [key: string]: string } = {
         '.jpg': 'image/jpeg',
@@ -692,13 +682,10 @@ export class ImagineService {
       };
       const mimeType = mimeTypes[ext] || 'image/jpeg';
 
-      // Convert image to base64 for API
       const base64Image = imageBuffer.toString('base64');
 
-      // For upscaling, we'll use a higher resolution target
       const defaultTargetSize = params.target_size || { width: 1024, height: 1024 };
 
-      // Use Hugging Face Inference API directly with JSON
       const requestBody: any = {
         inputs: base64Image,
         parameters: {
@@ -723,7 +710,6 @@ export class ImagineService {
         }
       );
 
-      // Convert response to base64
       const resultBuffer = Buffer.from(response.data);
       const base64 = resultBuffer.toString('base64');
       const contentType = response.headers['content-type'] || 'image/png';

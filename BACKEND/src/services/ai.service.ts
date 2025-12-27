@@ -120,7 +120,6 @@ export class AIService {
           aiWorked = true;
         }
       } catch (error: any) {
-        // Error handling
       }
 
       if (!aiWorked && (!caption || caption.trim().length === 0 || caption.trim().toLowerCase() === 'beautiful image')) {
@@ -194,7 +193,6 @@ export class AIService {
             }
           }
         } catch (error: any) {
-          // Error handling
         }
       }
 

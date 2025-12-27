@@ -149,12 +149,10 @@ export class UserController {
       try {
         avatarUrl = await storageService.uploadFile(file.path, 'avatars');
         
-        // Delete local file after successful upload
         if (fs.existsSync(file.path)) {
           fs.unlinkSync(file.path);
         }
       } catch (error: any) {
-        // If upload fails, keep local file and use local URL
         avatarUrl = `/uploads/${file.filename}`;
       }
 
@@ -186,12 +184,10 @@ export class UserController {
       try {
         coverUrl = await storageService.uploadFile(file.path, 'covers');
         
-        // Delete local file after successful upload
         if (fs.existsSync(file.path)) {
           fs.unlinkSync(file.path);
         }
       } catch (error: any) {
-        // If upload fails, keep local file and use local URL
         coverUrl = `/uploads/${file.filename}`;
       }
 

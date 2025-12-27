@@ -7,34 +7,49 @@ import fs from 'fs';
 import routes from './routes';
 import { initializeSocket } from './socket/socket';
 import { storageService } from './services/storage.service';
+import { logger } from './utils/logger';
+import { validateEnv, getEnvConfig } from './utils/env-validator';
 
 dotenv.config();
 
-// Ensure Supabase Storage bucket exists on startup (non-blocking)
-storageService.ensureBucket().catch(() => {
-  // Silently fail, bucket should be created manually in Supabase dashboard
+try {
+  validateEnv();
+} catch (error) {
+  logger.error('Failed to validate environment variables', error);
+  process.exit(1);
+}
+
+const envConfig = getEnvConfig();
+
+storageService.ensureBucket().catch((error) => {
+  logger.warn('Failed to ensure storage bucket exists', error);
+  logger.info('Note: Bucket should be created manually in Supabase dashboard if it does not exist');
 });
 
 const app: Application = express();
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(envConfig.PORT, 10);
 
 const httpServer = createServer(app);
 
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    logger.info('Created uploads directory');
+  } catch (error) {
+    logger.error('Failed to create uploads directory', error);
   }
+}
 
-// CORS configuration - allow all origins for development, specific origins for production
+const isProduction = envConfig.NODE_ENV === 'production';
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps, Postman, or curl requests)
     if (!origin) {
       return callback(null, true);
     }
 
     const allowedOrigins = [
-      process.env.FRONTEND_URL,
+      envConfig.FRONTEND_URL,
       'http://localhost:3000',
       'https://localhost:3000',
       'http://127.0.0.1:3000',
@@ -42,38 +57,41 @@ const corsOptions = {
       'https://localhost:3001',
     ].filter(Boolean) as string[];
 
-    // In development, allow localhost
-    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+    if (!isProduction) {
       if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
         return callback(null, true);
       }
     }
 
-    // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    // Allow production domains
-    if (origin.includes('smimso') || origin.includes('vercel.app') || origin.includes('railway.app') || origin.includes('netlify.app')) {
+    if (origin.includes('smimso') || 
+        origin.includes('vercel.app') || 
+        origin.includes('railway.app') || 
+        origin.includes('netlify.app') ||
+        origin.includes('render.com')) {
       return callback(null, true);
     }
 
-    // Default: allow for now (can be restricted in production)
+    if (isProduction) {
+      logger.warn(`CORS: Blocked request from unauthorized origin: ${origin}`);
+    }
+
     callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['Content-Type', 'Authorization'],
-  maxAge: 86400, // 24 hours
+  maxAge: 86400,
   preflightContinue: false,
   optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
@@ -81,11 +99,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Auth routes without /api prefix
 import authRoutes from './routes/auth.routes';
 app.use('/auth', authRoutes);
 
-// Other routes with /api prefix
 app.use('/api', routes);
 
 app.get('/', (req: Request, res: Response) => {
@@ -110,6 +126,11 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error('Unhandled error in request', err, {
+    path: req.path,
+    method: req.method,
+  });
+
   if (err.message.includes('File too large')) {
     return res.status(413).json({
       success: false,
@@ -125,10 +146,13 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   }
 
   const statusCode = (err as any).statusCode || 500;
+  const isDevelopment = !isProduction;
+  
   res.status(statusCode).json({
     success: false,
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    message: isDevelopment ? err.message : undefined,
+    ...(isDevelopment && { stack: err.stack }),
   });
 });
 
@@ -140,7 +164,60 @@ app.use((req: Request, res: Response) => {
 });
 
 initializeSocket(httpServer);
-httpServer.listen(PORT);
+
+httpServer.listen(PORT, () => {
+  logger.info(`🚀 SMIMSO Backend Server is running`);
+  logger.info(`📍 Port: ${PORT}`);
+  logger.info(`🌍 Environment: ${envConfig.NODE_ENV || 'development'}`);
+  logger.info(`🔗 API Base URL: http://localhost:${PORT}`);
+  logger.info(`📋 Health Check: http://localhost:${PORT}/api/health`);
+});
+
+httpServer.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  const bind = typeof PORT === 'string' ? `Pipe ${PORT}` : `Port ${PORT}`;
+
+  switch (error.code) {
+    case 'EACCES':
+      logger.error(`${bind} requires elevated privileges`);
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      logger.error(`${bind} is already in use`);
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+});
+
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM signal received: closing HTTP server');
+  httpServer.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT signal received: closing HTTP server');
+  httpServer.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
+});
+
+process.on('unhandledRejection', (reason: Error, promise: Promise<any>) => {
+  logger.error('Unhandled Rejection at:', reason);
+});
+
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
+});
 
 export default app;
 

@@ -12,16 +12,17 @@ import searchRoutes from './search.routes';
 
 const router = Router();
 
-// Health check - public endpoint
 router.get('/health', (req, res) => {
   res.json({
     success: true,
     message: 'SMIMSO API is running',
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
   });
 });
 
-// All other routes require authentication
 router.use('/survey', surveyRoutes);
 router.use('/posts', postRoutes);
 router.use('/users', userRoutes);

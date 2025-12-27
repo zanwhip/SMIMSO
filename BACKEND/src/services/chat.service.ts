@@ -220,7 +220,6 @@ export class ChatService {
           }
         } catch (addError: any) {
           if (addError?.code === '23505') {
-            // Duplicate key - already a participant
           } else {
             }
         }
@@ -390,7 +389,6 @@ export class ChatService {
             }
           } catch (error: any) {
             if (error?.code === '23505') {
-              // Duplicate key error - already a participant
             } else {
               throw new Error('Not a participant in this conversation');
             }

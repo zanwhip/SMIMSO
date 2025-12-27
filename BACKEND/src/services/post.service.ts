@@ -115,7 +115,6 @@ export class PostService {
           const aiFeatures = await aiService.generateImageFeatures(imagePath);
           embedding = aiFeatures.embedding;
         } catch (error) {
-          // Error handling
         }
 
         let aiCaption: string | undefined;
@@ -123,22 +122,18 @@ export class PostService {
           const clipResult = await aiService.generateCaptionWithClip(imagePath, categoryLabels);
           aiCaption = clipResult.caption;
         } catch (error) {
-          // Error handling
         }
 
         const userCaption = userCaptions[i]?.trim() || undefined;
 
-        // Upload to Supabase Storage
         let imageUrl: string;
         try {
           imageUrl = await storageService.uploadFile(imagePath, 'posts');
           
-          // Delete local file after successful upload
           if (fs.existsSync(imagePath)) {
             fs.unlinkSync(imagePath);
           }
         } catch (error: any) {
-          // If upload fails, keep local file and use local URL
           imageUrl = `/uploads/${image.filename}`;
         }
 

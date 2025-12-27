@@ -50,7 +50,6 @@ export class NotificationService {
     try {
       client.response.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (error) {
-      // Error handling
     }
   }
 

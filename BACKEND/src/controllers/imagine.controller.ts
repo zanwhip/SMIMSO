@@ -85,7 +85,6 @@ export class ImagineController {
         try {
           parsedTargetSize = typeof target_size === 'string' ? JSON.parse(target_size) : target_size;
         } catch (e) {
-          // If parsing fails, ignore target_size
         }
       }
 
@@ -118,7 +117,6 @@ export class ImagineController {
         try {
           parsedTargetSize = typeof target_size === 'string' ? JSON.parse(target_size) : target_size;
         } catch (e) {
-          // If parsing fails, ignore target_size
         }
       }
 
@@ -151,7 +149,6 @@ export class ImagineController {
         try {
           parsedTargetSize = typeof target_size === 'string' ? JSON.parse(target_size) : target_size;
         } catch (e) {
-          // If parsing fails, ignore target_size
         }
       }
 
@@ -190,7 +187,6 @@ export class ImagineController {
         fileUrl,
       } = req.body;
 
-      // Validate required fields
       if (!prompt && !filesUrl && !fileUrl) {
         return errorResponse(res, 'At least one of prompt, filesUrl, or fileUrl must be provided', 400);
       }
@@ -272,20 +268,13 @@ export class ImagineController {
       const { code, msg, data } = req.body;
 
       if (code === 200) {
-        // Task completed successfully
         const resultUrls = data?.info?.result_urls || [];
-        
-        // Here you can process the generated images
-        // For example: save to database, notify user, etc.
         
         return res.status(200).json({ status: 'received', message: 'Callback processed successfully' });
       } else {
-        // Task failed
-        
         return res.status(200).json({ status: 'received', message: 'Callback processed (failed task)' });
       }
     } catch (error: any) {
-      // Still return 200 to acknowledge receipt
       return res.status(200).json({ status: 'received', error: error.message });
     }
   }

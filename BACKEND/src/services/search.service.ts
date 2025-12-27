@@ -29,7 +29,6 @@ function extractKeywords(caption: string, maxKeywords: number = 5): string {
     'what', 'which', 'who', 'whom', 'whose', 'where', 'when', 'why', 'how'
   ]);
 
-  // People-related keywords that should be prioritized
   const peopleKeywords = new Set([
     'person', 'people', 'man', 'woman', 'men', 'women', 'boy', 'girl', 'child', 'children',
     'face', 'portrait', 'people', 'human', 'humans', 'individual', 'individuals',
@@ -43,11 +42,9 @@ function extractKeywords(caption: string, maxKeywords: number = 5): string {
     .filter(word => word.length > 2 && !stopWords.has(word))
     .filter((word, index, self) => self.indexOf(word) === index); // Remove duplicates
 
-  // Prioritize people-related keywords
   const peopleWords = words.filter(w => peopleKeywords.has(w));
   const otherWords = words.filter(w => !peopleKeywords.has(w));
   
-  // Combine: people keywords first, then others
   const keywords = [...peopleWords, ...otherWords].slice(0, maxKeywords);
   
   return keywords.join(' ');
@@ -156,17 +153,14 @@ export class SearchService {
 
       const mergedResults = this.mergeSearchResults(results, captionResults, limit);
 
-      // Boost scores for results that might contain people
       const boostedResults = mergedResults.map(result => {
         let boostedScore = result.similarity_score;
         
-        // Check if caption or title/description contains people-related terms
         const postText = `${result.post?.title || ''} ${result.post?.description || ''} ${queryCaption || ''}`.toLowerCase();
         const peopleTerms = ['person', 'people', 'man', 'woman', 'face', 'portrait', 'human'];
         const hasPeopleTerm = peopleTerms.some(term => postText.includes(term));
         
         if (hasPeopleTerm && result.similarity_score > 0.2) {
-          // Small boost for people-related content
           boostedScore = Math.min(result.similarity_score * 1.1, 1.0);
         }
         
@@ -472,7 +466,6 @@ export class SearchService {
   ): ImageSearchResult[] {
     const merged = new Map<string, ImageSearchResult>();
 
-    // Prioritize embedding results (more accurate for visual similarity)
     for (const result of embeddingResults) {
       const key = result.post_id;
       if (!merged.has(key)) {
@@ -486,14 +479,12 @@ export class SearchService {
       }
     }
 
-    // Add caption results, boosting if they match embedding results
     for (const result of captionResults) {
       const key = result.post_id;
       if (!merged.has(key)) {
         merged.set(key, result);
       } else {
         const existing = merged.get(key)!;
-        // If both embedding and caption match, boost the score
         if (existing.search_method === 'embedding' || existing.search_method === 'hybrid') {
           existing.similarity_score = Math.min(existing.similarity_score + result.similarity_score * 0.2, 1.0);
           existing.search_method = 'hybrid';

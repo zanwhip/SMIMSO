@@ -299,12 +299,10 @@ export class PostController {
       try {
         fileUrl = await storageService.uploadFile(file.path, 'chat');
         
-        // Delete local file after successful upload
         if (fs.existsSync(file.path)) {
           fs.unlinkSync(file.path);
         }
       } catch (error: any) {
-        // If upload fails, keep local file and use local URL
         fileUrl = `/uploads/${file.filename}`;
       }
 

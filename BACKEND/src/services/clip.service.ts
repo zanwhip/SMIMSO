@@ -70,7 +70,6 @@ async function generateCaptionWithHuggingFace(imagePath: string): Promise<string
             }
           }
           if (i === retries) {
-            // Error handling
           }
         }
       }
@@ -128,7 +127,6 @@ async function getLocalCaptioner() {
         quantized: true,
         progress_callback: (progress: any) => {
           if (progress?.status === 'progress' && progress.progress) {
-            // Progress tracking
           }
         }
       }
@@ -191,7 +189,6 @@ export class CLIPService {
       try {
         const localCap = await getLocalCaptioner();
         if (!localCap) {
-          // Local captioner not available
         } else {
           try {
             tempImagePath = await prepareImage(imagePath);
@@ -225,7 +222,6 @@ export class CLIPService {
           }
         }
       } catch (error: any) {
-        // Error handling
       }
       
       const hfCaption = await generateCaptionWithHuggingFace(imagePath);
@@ -303,7 +299,6 @@ export class CLIPService {
             category_score = predictions[0].score;
           }
         } catch (classifyError: any) {
-          // Error handling
         }
       }
 

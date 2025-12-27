@@ -36,7 +36,6 @@ export class InteractionService {
       .single();
 
     if (postError) {
-      // Error handling
     }
 
     if (post) {
@@ -46,7 +45,6 @@ export class InteractionService {
         .eq('id', postId);
 
       if (updateError) {
-        // Error handling
       }
 
       if (post.user_id !== userId) {
@@ -94,7 +92,6 @@ export class InteractionService {
       .single();
 
     if (postError) {
-      // Error handling
     }
 
     if (post && (post.like_count || 0) > 0) {
@@ -104,7 +101,6 @@ export class InteractionService {
         .eq('id', postId);
 
       if (updateError) {
-        // Error handling
       }
     }
   }

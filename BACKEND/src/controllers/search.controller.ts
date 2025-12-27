@@ -18,7 +18,6 @@ export class SearchController {
       }
 
       const limit = parseInt(req.query.limit as string) || 20;
-      // Lower default threshold for better recall, especially for people search
       const minSimilarity = parseFloat(req.query.minSimilarity as string) || 0.25;
 
       const fs = require('fs');
@@ -39,14 +38,12 @@ export class SearchController {
       } catch (error: any) {
         }
 
-      // Clean up temporary file
       try {
         const fs = require('fs');
         if (fs.existsSync(file.path)) {
           fs.unlinkSync(file.path);
         }
       } catch (error) {
-        // Ignore cleanup errors
       }
 
       return successResponse(

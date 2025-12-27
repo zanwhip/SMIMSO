@@ -33,7 +33,7 @@ export const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB default
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'),
     files: 10,
   },
 });
@@ -101,7 +101,7 @@ export const chatUpload = multer({
   storage,
   fileFilter: chatFileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB default
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'),
     files: 1,
   },
 });

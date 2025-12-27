@@ -10,26 +10,17 @@ export class StorageService {
     this.bucketName = process.env.SUPABASE_STORAGE_BUCKET || 'uploads';
   }
 
-  /**
-   * Upload file to Supabase Storage
-   * @param filePath Local file path
-   * @param folder Folder in storage bucket (e.g., 'posts', 'avatars', 'covers')
-   * @param fileName Optional custom file name, otherwise uses UUID
-   * @returns Public URL of uploaded file
-   */
   async uploadFile(
     filePath: string,
     folder: string = 'general',
     fileName?: string
   ): Promise<string> {
     try {
-      // Read file from local path
       const fileBuffer = fs.readFileSync(filePath);
       const fileExtension = path.extname(filePath);
       const finalFileName = fileName || `${uuidv4()}${fileExtension}`;
       const storagePath = `${folder}/${finalFileName}`;
 
-      // Upload to Supabase Storage
       const { data, error } = await supabaseAdmin.storage
         .from(this.bucketName)
         .upload(storagePath, fileBuffer, {
@@ -41,7 +32,6 @@ export class StorageService {
         throw new Error(`Failed to upload file to Supabase Storage: ${error.message}`);
       }
 
-      // Get public URL
       const { data: urlData } = supabaseAdmin.storage
         .from(this.bucketName)
         .getPublicUrl(storagePath);
@@ -56,13 +46,6 @@ export class StorageService {
     }
   }
 
-  /**
-   * Upload file buffer directly (without saving to disk first)
-   * @param buffer File buffer
-   * @param originalName Original file name for extension
-   * @param folder Folder in storage bucket
-   * @returns Public URL of uploaded file
-   */
   async uploadBuffer(
     buffer: Buffer,
     originalName: string,
@@ -73,7 +56,6 @@ export class StorageService {
       const fileName = `${uuidv4()}${fileExtension}`;
       const storagePath = `${folder}/${fileName}`;
 
-      // Upload to Supabase Storage
       const { data, error } = await supabaseAdmin.storage
         .from(this.bucketName)
         .upload(storagePath, buffer, {
@@ -85,7 +67,6 @@ export class StorageService {
         throw new Error(`Failed to upload file to Supabase Storage: ${error.message}`);
       }
 
-      // Get public URL
       const { data: urlData } = supabaseAdmin.storage
         .from(this.bucketName)
         .getPublicUrl(storagePath);
@@ -100,14 +81,8 @@ export class StorageService {
     }
   }
 
-  /**
-   * Delete file from Supabase Storage
-   * @param fileUrl Public URL of the file
-   * @returns true if deleted successfully
-   */
   async deleteFile(fileUrl: string): Promise<boolean> {
     try {
-      // Extract path from URL
       const url = new URL(fileUrl);
       const pathParts = url.pathname.split('/');
       const bucketIndex = pathParts.findIndex(part => part === this.bucketName);
@@ -132,9 +107,6 @@ export class StorageService {
     }
   }
 
-  /**
-   * Get content type from file extension
-   */
   private getContentType(extension: string): string {
     const contentTypes: { [key: string]: string } = {
       '.jpg': 'image/jpeg',
@@ -153,9 +125,6 @@ export class StorageService {
     return contentTypes[extension.toLowerCase()] || 'application/octet-stream';
   }
 
-  /**
-   * Ensure storage bucket exists
-   */
   async ensureBucket(): Promise<void> {
     try {
       const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
@@ -169,7 +138,7 @@ export class StorageService {
       if (!bucketExists) {
         const { error: createError } = await supabaseAdmin.storage.createBucket(this.bucketName, {
           public: true,
-          fileSizeLimit: 10485760, // 10MB
+          fileSizeLimit: 10485760,
           allowedMimeTypes: [
             'image/jpeg',
             'image/jpg',

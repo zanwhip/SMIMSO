@@ -44,7 +44,6 @@ export const optionalAuth = (
       const decoded = verifyToken(token);
       req.user = decoded;
     } catch (error) {
-      // Silently fail for optional auth
     }
   }
 

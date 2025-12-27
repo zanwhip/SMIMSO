@@ -39,7 +39,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
     }
   });
 
-  const userSockets = new Map<string, Set<string>>(); // userId -> Set of socketIds
+  const userSockets = new Map<string, Set<string>>();
 
   io.on('connection', (socket: AuthenticatedSocket) => {
     const userId = socket.userId!;
@@ -76,7 +76,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
         socket.join(`conversation:${conversationId}`);
       } catch (error: any) {
-        // Error handling
       }
     });
 
@@ -140,25 +139,19 @@ export const initializeSocket = (httpServer: HttpServer) => {
           userRooms.add(`user:${participant.user_id}`);
         }
         
-        // Emit to conversation room for all participants in the room
         io.to(`conversation:${data.conversationId}`).emit('new_message', message);
         
-        // Also emit to each participant's user room for reliable delivery
         for (const participant of conversation.participants || []) {
-          // Always emit to user room for reliable delivery
           io.to(`user:${participant.user_id}`).emit('new_message', message);
           
           if (participant.user_id === userId) {
-            // Sender gets confirmation
             io.to(`user:${participant.user_id}`).emit('message_sent', { messageId: message.id });
           } else {
-            // Other participants get conversation update notification
             io.to(`user:${participant.user_id}`).emit('conversation_updated', {
               conversationId: data.conversationId,
               message,
             });
             
-            // Send push notification
             pushNotificationService.sendNotification(
               participant.user_id,
               senderName,
@@ -195,7 +188,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
     socket.on('call_offer', async (data: {
       conversationId: string;
       callType: 'audio' | 'video';
-      offer: any; // RTCSessionDescriptionInit
+      offer: any;
     }) => {
       try {
         const { data: participant } = await supabaseAdmin
@@ -232,7 +225,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
               callType: data.callType,
               offer: data.offer,
               callerId: userId,
-              caller: callerData || null, // Include caller info
+              caller: callerData || null,
             };
             
             io.to(`user:${participant.user_id}`).emit('call_offer', callOfferData);
@@ -244,7 +237,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
           data.conversationId,
           userId,
           data.callType,
-          'missed', // Will be updated when answered
+          'missed',
           new Date().toISOString()
         );
       } catch (error) {
@@ -254,7 +247,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
     socket.on('call_answer', async (data: {
       conversationId: string;
-      answer: any; // RTCSessionDescriptionInit
+      answer: any;
     }) => {
       try {
         const conversation = await chatService.getConversationById(data.conversationId, userId);
@@ -278,7 +271,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
         await chatService.saveCallHistory(
           data.conversationId,
           userId,
-          'audio', // Default, will be updated when call ends
+          'audio',
           'answered',
           new Date().toISOString()
         ).catch(() => {});
@@ -289,7 +282,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
     socket.on('call_ice_candidate', async (data: {
       conversationId: string;
-      candidate: any; // RTCIceCandidateInit
+      candidate: any;
     }) => {
       socket.to(`conversation:${data.conversationId}`).emit('call_ice_candidate', {
         conversationId: data.conversationId,
@@ -297,7 +290,6 @@ export const initializeSocket = (httpServer: HttpServer) => {
         userId,
       });
       
-      // Also emit to user rooms for reliability
       try {
         const conversation = await chatService.getConversationById(data.conversationId, userId);
         if (conversation) {
@@ -344,7 +336,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
         data.conversationId,
         userId,
         data.callType,
-        'answered', // Could be updated based on status
+        'answered',
         new Date(Date.now() - duration * 1000).toISOString(),
         new Date().toISOString(),
         duration
