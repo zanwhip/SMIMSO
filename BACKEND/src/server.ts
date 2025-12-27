@@ -34,56 +34,21 @@ const httpServer = createServer(app);
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   try {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+  fs.mkdirSync(uploadsDir, { recursive: true });
     logger.info('Created uploads directory');
   } catch (error) {
     logger.error('Failed to create uploads directory', error);
   }
-}
+  }
 
-const isProduction = envConfig.NODE_ENV === 'production';
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    const allowedOrigins = [
-      envConfig.FRONTEND_URL,
-      'http://localhost:3000',
-      'https://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:3001',
-      'https://localhost:3001',
-    ].filter(Boolean) as string[];
-
-    if (!isProduction) {
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        return callback(null, true);
-      }
-    }
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    if (origin.includes('smimso') || 
-        origin.includes('vercel.app') || 
-        origin.includes('railway.app') || 
-        origin.includes('netlify.app') ||
-        origin.includes('render.com')) {
-      return callback(null, true);
-    }
-
-    if (isProduction) {
-      logger.warn(`CORS: Blocked request from unauthorized origin: ${origin}`);
-    }
-
+    // Allow all origins
     callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400,
   preflightContinue: false,
@@ -146,7 +111,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   }
 
   const statusCode = (err as any).statusCode || 500;
-  const isDevelopment = !isProduction;
+  const isDevelopment = envConfig.NODE_ENV !== 'production';
   
   res.status(statusCode).json({
     success: false,
