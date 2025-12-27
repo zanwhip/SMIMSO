@@ -8,7 +8,7 @@ import PostCard from '@/components/PostCard';
 import Image from 'next/image';
 import api from '@/lib/api';
 import { UserProfile, Post } from '@/types';
-import { getImageUrl, formatNumber } from '@/lib/utils';
+import { getImageUrl, formatNumber, isExternalUrl } from '@/lib/utils';
 import { FiEdit2, FiHeart, FiBookmark, FiUserPlus, FiUserCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import FollowModal from '@/components/FollowModal';
@@ -98,6 +98,7 @@ export default function ProfilePage() {
                 width={1200}
                 height={300}
                 className="w-full h-full object-cover"
+                unoptimized={isExternalUrl(getImageUrl(profile.cover_url))}
               />
             </div>
           )}
@@ -116,6 +117,7 @@ export default function ProfilePage() {
                     width={128}
                     height={128}
                     className="w-32 h-32 rounded-full border-4 border-white shadow-lg"
+                    unoptimized={isExternalUrl(getImageUrl(profile.avatar_url))}
                   />
                 ) : (
                   <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-gray-300" />

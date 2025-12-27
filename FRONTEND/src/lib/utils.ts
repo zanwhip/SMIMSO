@@ -57,6 +57,28 @@ export function getImageUrl(path: string): string {
 }
 
 /**
+ * Check if an image URL is an external URL (not a relative path)
+ * External URLs include Supabase Storage, Railway API, or any http/https URL
+ * These should use unoptimized to avoid Next.js Image optimization issues
+ */
+export function isExternalUrl(url: string): boolean {
+  if (!url) return false;
+  // Check if it's a full URL (http/https)
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return true;
+  }
+  // Check if it's a Supabase storage path
+  if (url.includes('supabase.co') || url.includes('/storage/v1/object/public/')) {
+    return true;
+  }
+  // Check if it's a Railway API URL pattern
+  if (url.includes('railway.app') || url.includes('/uploads/')) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Check if an image URL is from Supabase Storage
  * Supabase URLs typically look like: https://[project].supabase.co/storage/v1/object/public/...
  */

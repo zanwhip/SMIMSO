@@ -8,7 +8,7 @@ import SecondaryNav from '@/components/SecondaryNav';
 import Image from 'next/image';
 import Link from 'next/link';
 import api from '@/lib/api';
-import { getImageUrl, formatNumber } from '@/lib/utils';
+import { getImageUrl, formatNumber, isExternalUrl } from '@/lib/utils';
 import { FiEye, FiMail, FiStar } from 'react-icons/fi';
 import FollowButton from '@/components/FollowButton';
 
@@ -260,6 +260,7 @@ export default function LeaderboardPage() {
                               alt={`${creator.first_name} ${creator.last_name}`}
                               fill
                               className="object-cover"
+                              unoptimized={isExternalUrl(getImageUrl(creator.avatar_url))}
                             />
                           ) : (
                             <div className="w-14 h-14 bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center text-white text-lg font-semibold">
@@ -329,6 +330,7 @@ export default function LeaderboardPage() {
                                 alt="Media"
                                 fill
                                 className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                unoptimized={isExternalUrl(getImageUrl(item.image_url))}
                               />
                               {isLastImage && (
                                 <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col items-center justify-center text-white group-hover:bg-opacity-70 transition-all">
