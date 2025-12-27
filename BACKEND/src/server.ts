@@ -40,14 +40,14 @@ if (!fs.existsSync(uploadsDir)) {
   }
   }
 
-// CORS Middleware - Handle ALL CORS requests manually for maximum control
-app.use((req: Request, res: Response, next: NextFunction) => {
+// Helper function to set CORS headers
+const setCorsHeaders = (req: Request, res: Response) => {
   const origin = req.headers.origin;
   
-  // Set CORS headers for all requests
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    logger.info(`CORS: Setting headers for origin: ${origin}`);
   } else {
     res.setHeader('Access-Control-Allow-Origin', '*');
   }
@@ -56,9 +56,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Max-Age', '86400');
+};
+
+// CORS Middleware - Handle ALL CORS requests manually for maximum control
+// This MUST be the first middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Set CORS headers for all requests
+  setCorsHeaders(req, res);
   
-  // Handle preflight OPTIONS requests immediately
+  // Handle preflight OPTIONS requests immediately - BEFORE any other processing
   if (req.method === 'OPTIONS') {
+    logger.info(`CORS Preflight: ${req.method} ${req.path} from ${req.headers.origin || 'no origin'}`);
     return res.status(204).end();
   }
   
@@ -97,6 +105,9 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  // Set CORS headers even for error responses
+  setCorsHeaders(req, res);
+  
   logger.error('Unhandled error in request', err, {
     path: req.path,
     method: req.method,
@@ -128,6 +139,9 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use((req: Request, res: Response) => {
+  // Set CORS headers for 404 responses
+  setCorsHeaders(req, res);
+  
   res.status(404).json({
     success: false,
     error: 'Route not found',
